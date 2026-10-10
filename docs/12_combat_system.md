@@ -35,17 +35,19 @@ Each action has phases: **Startup → Active → Recovery**. The server uses `wo
 
 ## 3. Vanguard move table (`CombatConfig.Frames.Vanguard`)
 
+*Timings slowed to about 1.7 × the first values on the user's direction (2026-10-10, D-052: "he swings way too fast"). First values: Light1 0.18 / 0.12 / 0.30, Light2 0.16 / 0.12 / 0.30, Light3 0.24 / 0.16 / 0.50, Heavy 0.55 / 0.18 / 0.70 (lunge 0.40–0.60, cancel before 0.35), Special 0.40 / 0.10 / 0.80, chain delay 0.10.*
+
 | Move | Startup | Active | Recovery | Damage | Poise | Energy | Cooldown | Notes |
 |---|---|---|---|---|---|---|---|---|
-| Light1 | 0.18 | 0.12 | 0.30 | 40 | 15 | 0 | — | Chains to Light2 |
-| Light2 | 0.16 | 0.12 | 0.30 | 45 | 15 | 0 | — | Chains to Light3 |
-| Light3 | 0.24 | 0.16 | 0.50 | 70 | 30 | 0 | — | Ends the chain. Low aim (ankles) |
-| Heavy | 0.55 | 0.18 | 0.70 | 140 | 50 | 0 | — | Lunge 12 studs during 0.40–0.60. Dodge-cancel allowed before 0.35 |
-| Special: Pile Driver | 0.40 | 0.10 | 0.80 | 90 | 120 | 50 | 6.0 s | Low-mid aim. Not cancelable after startup begins |
+| Light1 | 0.35 | 0.20 | 0.45 | 40 | 15 | 0 | — | Chains to Light2 |
+| Light2 | 0.32 | 0.20 | 0.45 | 45 | 15 | 0 | — | Chains to Light3 |
+| Light3 | 0.45 | 0.25 | 0.70 | 70 | 30 | 0 | — | Ends the chain. Low aim (ankles) |
+| Heavy | 0.90 | 0.28 | 0.90 | 140 | 50 | 0 | — | Lunge 12 studs during 0.70–1.00. Dodge-cancel allowed before 0.60 |
+| Special: Pile Driver | 0.60 | 0.15 | 1.00 | 90 | 120 | 50 | 6.0 s | Low-mid aim. Not cancelable after startup begins |
 | Dodge | — | 0.35 total | — | — | — | 25 | 0.8 s from start | i-frames 0.05–0.30. Distance 55 |
 | Core Strike | — | 1.6 total | — | 700 flat at 0.62 | — | 0 | — | Invulnerable for the whole duration |
 
-**Chaining:** if Light is pressed while in LightN (N < 3) at any time after LightN's startup began, the next light is queued and **starts at LightN's recovery start + 0.10 s** (cutting the remaining recovery). After Light3, the chain ends and full recovery plays. No input by the end of recovery resets the chain.
+**Chaining:** if Light is pressed while in LightN (N < 3) at any time after LightN's startup began, the next light is queued and **starts at LightN's recovery start + 0.15 s** (cutting the remaining recovery). After Light3, the chain ends and full recovery plays. No input by the end of recovery resets the chain.
 
 **Recovery cancel:** Light and Heavy recoveries can be canceled into **Dodge** after 50% of the recovery has elapsed. Special recovery can't be canceled.
 

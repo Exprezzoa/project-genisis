@@ -120,15 +120,29 @@ return function(ctx)
 		-- Hand: y -1.5 .. 1.5 (wrist).
 		local hand = main[name .. "Hand"]
 		K.ball(hand, "WristBall", 3, V(0, 1.5, 0), P.STEEL_DARK)
-		K.egg(hand, "Palm", V(4.2, 3.2, 3.2), V(0, 0, 0), P.VG_FRAME)
-		K.capsule(hand, "KnuckleGuard", V(-1.7, -0.9, -1.6), V(1.7, -0.9, -1.6), 1.3, P.VG_ARMOR)
-		for index, x in ipairs({ -1.5, -0.5, 0.5, 1.5 }) do
-			K.poly(hand, "Finger" .. index, { V(x, -1.1, -1.5), V(x, -2.6, -1.7), V(x, -3, -0.5) }, 0.9, P.VG_FRAME, "Metal", { caps = true })
-			K.ring(hand, "FingerJoint" .. index, V(x, -2.6, -1.7), "X", 1.05, 0.5, P.STEEL_MID)
-		end
-		K.poly(hand, "Thumb", { V(-2 * sx, -0.2, -0.8), V(-2.5 * sx, -1.4, -1.3), V(-1.9 * sx, -2.3, -0.9) }, 1, P.VG_FRAME, "Metal", { caps = true })
 		if sx > 0 then
+			-- The blade hand grips: the handle runs front to back under the palm (at y -0.5), the four fingers
+			-- wrap round it from the outside, under it and up the inside, and the thumb locks over the front
+			-- (D-052: with a loose fist the blade looked stuck to the hand).
+			K.egg(hand, "Palm", V(3.6, 2.4, 4.8), V(0, 0.75, -0.5), P.VG_FRAME)
+			for index, z in ipairs({ -2.3, -1.2, -0.1, 1 }) do
+				K.poly(hand, "Finger" .. index, {
+					V(1.35, 0.2, z), V(1.3, -1.1, z), V(0.45, -1.8, z), V(-0.75, -1.65, z), V(-1.3, -0.8, z),
+				}, 0.9, P.VG_FRAME, "Metal", { caps = true })
+				K.ring(hand, "FingerJoint" .. index, V(1.4, -0.5, z), "Z", 1.1, 0.5, P.STEEL_MID)
+			end
+			K.poly(hand, "Thumb", { V(-1.5, 0.5, -0.4), V(-1.55, -0.3, -1.6), V(-0.9, 0.35, -2.7) }, 1, P.VG_FRAME, "Metal", { caps = true })
+			K.capsule(hand, "KnuckleGuard", V(1.95, -0.45, -2.5), V(1.95, -0.45, 1.2), 1.1, P.VG_ARMOR)
 			K.box(hand, "Prompt_Board", V(3, 3, 3), V(0, 0, 0), P.VG_FRAME, "SmoothPlastic", { Transparency = 1, CastShadow = false })
+		else
+			-- The free hand: a loose fist.
+			K.egg(hand, "Palm", V(4.2, 3.2, 3.2), V(0, 0, 0), P.VG_FRAME)
+			K.capsule(hand, "KnuckleGuard", V(-1.7, -0.9, -1.6), V(1.7, -0.9, -1.6), 1.3, P.VG_ARMOR)
+			for index, x in ipairs({ -1.5, -0.5, 0.5, 1.5 }) do
+				K.poly(hand, "Finger" .. index, { V(x, -1.1, -1.5), V(x, -2.6, -1.7), V(x, -3, -0.5) }, 0.9, P.VG_FRAME, "Metal", { caps = true })
+				K.ring(hand, "FingerJoint" .. index, V(x, -2.6, -1.7), "X", 1.05, 0.5, P.STEEL_MID)
+			end
+			K.poly(hand, "Thumb", { V(-2 * sx, -0.2, -0.8), V(-2.5 * sx, -1.4, -1.3), V(-1.9 * sx, -2.3, -0.9) }, 1, P.VG_FRAME, "Metal", { caps = true })
 		end
 	end
 

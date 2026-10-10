@@ -14,12 +14,13 @@ CombatConfig.SAMPLE_RATE = 20 -- hitbox samples per second during an active wind
 CombatConfig.LAG_PAD = 2 * S -- studs added to every attack box, per axis
 CombatConfig.INPUT_BUFFER = 0.25 -- seconds a press is kept until it becomes valid
 CombatConfig.PREDICTION_TIMEOUT = 0.25 -- the client drops a predicted action the server didn't confirm
-CombatConfig.CHAIN_DELAY = 0.10 -- a queued light starts this long after the previous light's recovery begins
+CombatConfig.CHAIN_DELAY = 0.15 -- a queued light starts this long after the previous light's recovery begins
 CombatConfig.RECOVERY_CANCEL = 0.5 -- fraction of a Light/Heavy recovery after which Dodge may cancel it
 CombatConfig.MERCY = 0.4 -- seconds of invulnerability after being hit
 CombatConfig.DODGE_GRACE = 0.15 -- a dodge this late after an attack's active start still counts
 
--- Moves per Frame class (docs/12 §3). Times in seconds from the move's start:
+-- Moves per Frame class (docs/12 §3). Slowed to about 1.7 x the first numbers on the user's direction (D-052):
+-- a 64-stud machine swinging a 45-stud blade has to read as heavy. Times in seconds from the move's start:
 --   startup, active, recovery   total = startup + active + recovery
 --   box  = attack box in the HRP's local space (front = -Z): size, offset of its center
 --   aim  = point (HRP local) used to choose the zone when several hurtboxes overlap
@@ -27,28 +28,28 @@ CombatConfig.DODGE_GRACE = 0.15 -- a dodge this late after an attack's active st
 CombatConfig.Frames = {
 	Vanguard = {
 		Light1 = {
-			clip = "Light1", startup = 0.18, active = 0.12, recovery = 0.30, damage = 40, poise = 15, energy = 0,
+			clip = "Light1", startup = 0.35, active = 0.20, recovery = 0.45, damage = 40, poise = 15, energy = 0,
 			chain = "Light2", cancelRecovery = true,
 			box = { size = V(24, 30, 26) * S, offset = V(0, -2, -15) * S }, aim = V(0, -5, -20) * S,
 		},
 		Light2 = {
-			clip = "Light2", startup = 0.16, active = 0.12, recovery = 0.30, damage = 45, poise = 15, energy = 0,
+			clip = "Light2", startup = 0.32, active = 0.20, recovery = 0.45, damage = 45, poise = 15, energy = 0,
 			chain = "Light3", cancelRecovery = true,
 			box = { size = V(24, 30, 26) * S, offset = V(0, -2, -15) * S }, aim = V(0, -5, -20) * S,
 		},
 		Light3 = {
-			clip = "Light3", startup = 0.24, active = 0.16, recovery = 0.50, damage = 70, poise = 30, energy = 0,
+			clip = "Light3", startup = 0.45, active = 0.25, recovery = 0.70, damage = 70, poise = 30, energy = 0,
 			cancelRecovery = true,
 			box = { size = V(12, 34, 30) * S, offset = V(0, -3, -17) * S }, aim = V(0, -11, -24) * S,
 		},
 		Heavy = {
-			clip = "Heavy", startup = 0.55, active = 0.18, recovery = 0.70, damage = 140, poise = 50, energy = 0,
-			cancelRecovery = true, dodgeCancelBefore = 0.35,
-			lunge = { distance = 12 * S, from = 0.40, to = 0.60 },
+			clip = "Heavy", startup = 0.90, active = 0.28, recovery = 0.90, damage = 140, poise = 50, energy = 0,
+			cancelRecovery = true, dodgeCancelBefore = 0.60,
+			lunge = { distance = 12 * S, from = 0.70, to = 1.00 },
 			box = { size = V(34, 30, 30) * S, offset = V(0, -2, -14) * S }, aim = V(0, -1, -20) * S,
 		},
 		Special = {
-			clip = "Special_PileDriver", startup = 0.40, active = 0.10, recovery = 0.80, damage = 90, poise = 120,
+			clip = "Special_PileDriver", startup = 0.60, active = 0.15, recovery = 1.00, damage = 90, poise = 120,
 			energy = 50, cooldown = 6.0, cancelRecovery = false,
 			box = { size = V(10, 12, 26) * S, offset = V(-4, -7, -16) * S }, aim = V(-3, -9, -24) * S,
 		},

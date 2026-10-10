@@ -88,100 +88,100 @@ return {
 		-- sweep one long arc at chest height; with the idle wrist the blade stood up and the swing read as a punch.
 		-- Right to left.
 		Light1 = {
-			duration = 0.60, blendIn = 0.06, blendOut = 0.12,
+			duration = 1.00, blendIn = 0.10, blendOut = 0.12,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.18, ease = "QuadOut", pose = {
+				{ t = 0.35, ease = "QuadOut", pose = {
 					Waist = r(0, -45, 0), RightShoulder = r(30, 0, 80), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
 				} },
-				{ t = 0.24, ease = "Linear", pose = { Waist = r(0, 0, 0), RightShoulder = r(80, 0, 20), RightElbow = r(5), RightWrist = r(-85) } },
-				{ t = 0.30, ease = "Linear", pose = {
+				{ t = 0.45, ease = "Linear", pose = { Waist = r(0, 0, 0), RightShoulder = r(80, 0, 20), RightElbow = r(5), RightWrist = r(-85) } },
+				{ t = 0.55, ease = "Linear", pose = {
 					Waist = r(0, 50, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
 				} },
-				{ t = 0.60, ease = "QuadInOut", pose = "Idle" },
+				{ t = 1.00, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
-				{ t = 0.16, name = "TrailOn" }, { t = 0.17, name = "Whoosh" }, { t = 0.18, name = "HitboxStart" },
-				{ t = 0.30, name = "HitboxEnd" }, { t = 0.32, name = "TrailOff" },
+				{ t = 0.32, name = "TrailOn" }, { t = 0.33, name = "Whoosh" }, { t = 0.35, name = "HitboxStart" },
+				{ t = 0.55, name = "HitboxEnd" }, { t = 0.58, name = "TrailOff" },
 			},
 		},
 		-- Left to right, back along the same arc.
 		Light2 = {
-			duration = 0.58, blendIn = 0.06, blendOut = 0.12,
+			duration = 0.97, blendIn = 0.10, blendOut = 0.12,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.16, ease = "QuadOut", pose = {
+				{ t = 0.32, ease = "QuadOut", pose = {
 					Waist = r(0, 50, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
 				} },
-				{ t = 0.22, ease = "Linear", pose = { Waist = r(0, 5, 0), RightShoulder = r(85, 0, 5), RightElbow = r(5), RightWrist = r(-85) } },
-				{ t = 0.28, ease = "Linear", pose = {
+				{ t = 0.42, ease = "Linear", pose = { Waist = r(0, 5, 0), RightShoulder = r(85, 0, 5), RightElbow = r(5), RightWrist = r(-85) } },
+				{ t = 0.52, ease = "Linear", pose = {
 					Waist = r(0, -45, 0), RightShoulder = r(45, 0, 75), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
 				} },
-				{ t = 0.58, ease = "QuadInOut", pose = "Idle" },
+				{ t = 0.97, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
-				{ t = 0.14, name = "TrailOn" }, { t = 0.15, name = "Whoosh" }, { t = 0.16, name = "HitboxStart" },
-				{ t = 0.28, name = "HitboxEnd" }, { t = 0.30, name = "TrailOff" },
+				{ t = 0.29, name = "TrailOn" }, { t = 0.30, name = "Whoosh" }, { t = 0.32, name = "HitboxStart" },
+				{ t = 0.52, name = "HitboxEnd" }, { t = 0.55, name = "TrailOff" },
 			},
 		},
 		-- Overhead smash.
 		Light3 = {
-			duration = 0.90, blendIn = 0.06, blendOut = 0.15,
+			duration = 1.40, blendIn = 0.10, blendOut = 0.15,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.24, ease = "QuadOut", pose = {
+				{ t = 0.45, ease = "QuadOut", pose = {
 					Root = p(0, 0.5, 0), Waist = r(12), RightShoulder = r(170, 0, 10), RightElbow = r(40),
 					LeftShoulder = r(150, 0, -10), LeftElbow = r(40),
 				} },
-				{ t = 0.32, ease = "Linear", pose = crouch(21, {
+				{ t = 0.58, ease = "Linear", pose = crouch(21, {
 					Root = p(0, -1.2, 0), Waist = r(-25), RightShoulder = r(60, 0, 5), RightElbow = r(10), RightWrist = r(-70),
 					LeftShoulder = r(50, 0, -5),
 				}) },
-				{ t = 0.40, ease = "Linear", pose = crouch(24, { Root = p(0, -1.5, 0) }) },
-				{ t = 0.90, ease = "QuadInOut", pose = "Idle" },
+				{ t = 0.70, ease = "Linear", pose = crouch(24, { Root = p(0, -1.5, 0) }) },
+				{ t = 1.40, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
-				{ t = 0.22, name = "TrailOn" }, { t = 0.23, name = "Whoosh" }, { t = 0.24, name = "HitboxStart" },
-				{ t = 0.36, name = "GroundImpact" }, { t = 0.40, name = "HitboxEnd" }, { t = 0.42, name = "TrailOff" },
+				{ t = 0.42, name = "TrailOn" }, { t = 0.43, name = "Whoosh" }, { t = 0.45, name = "HitboxStart" },
+				{ t = 0.64, name = "GroundImpact" }, { t = 0.70, name = "HitboxEnd" }, { t = 0.73, name = "TrailOff" },
 			},
 		},
-		-- Spinning cleave. Root motion (12 studs forward, 0.40-0.60) is applied by FrameController.
+		-- Spinning cleave. Root motion (12 studs forward, 0.70-1.00) is applied by FrameController.
 		Heavy = {
-			duration = 1.43, blendIn = 0.08, blendOut = 0.15,
+			duration = 2.08, blendIn = 0.08, blendOut = 0.15,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.35, ease = "QuadOut", pose = crouch(24, {
+				{ t = 0.60, ease = "QuadOut", pose = crouch(24, {
 					Root = p(0, -1.5, 0), Waist = r(0, -70, 0), RightShoulder = r(15, 0, 85), RightElbow = r(25), RightWrist = r(-85),
 					LeftShoulder = r(20, 0, -20),
 				}) },
-				{ t = 0.55, ease = "Linear", pose = {} }, -- holds the windup until the release
-				{ t = 0.64, ease = "Linear", pose = { Waist = r(0, 10, 0), RightShoulder = r(80, 0, 25), RightElbow = r(0), RightWrist = r(-88) } },
-				{ t = 0.73, ease = "Linear", pose = {
+				{ t = 0.90, ease = "Linear", pose = {} }, -- holds the windup until the release
+				{ t = 1.04, ease = "Linear", pose = { Waist = r(0, 10, 0), RightShoulder = r(80, 0, 25), RightElbow = r(0), RightWrist = r(-88) } },
+				{ t = 1.18, ease = "Linear", pose = {
 					Waist = r(0, 70, 0), RightShoulder = r(70, 0, -45), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-20, 0, -8),
 				} },
-				{ t = 1.43, ease = "QuadInOut", pose = "Idle" },
+				{ t = 2.08, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
-				{ t = 0.50, name = "TrailOn" }, { t = 0.53, name = "Whoosh" }, { t = 0.55, name = "HitboxStart" },
-				{ t = 0.73, name = "HitboxEnd" }, { t = 0.76, name = "TrailOff" },
+				{ t = 0.84, name = "TrailOn" }, { t = 0.87, name = "Whoosh" }, { t = 0.90, name = "HitboxStart" },
+				{ t = 1.18, name = "HitboxEnd" }, { t = 1.22, name = "TrailOff" },
 			},
 		},
 		Special_PileDriver = {
-			duration = 1.30, blendIn = 0.08, blendOut = 0.15, upperBodyOnly = true,
+			duration = 1.75, blendIn = 0.08, blendOut = 0.15, upperBodyOnly = true,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.40, ease = "QuadOut", pose = crouch(20, {
+				{ t = 0.60, ease = "QuadOut", pose = crouch(20, {
 					Root = p(0, -1, 0), Waist = r(0, 30, 0), LeftShoulder = r(-30, 0, -10), LeftElbow = r(90), PileDriver = p(0, 0, 0),
 				}) },
-				{ t = 0.45, ease = "Linear", pose = { Waist = r(-18, -20, 0), LeftShoulder = r(55, 0, -5), LeftElbow = r(5) } }, -- punches low (D-037)
-				{ t = 0.46, ease = "Linear", pose = { PileDriver = p(0, -6, 0) } },
-				{ t = 0.50, ease = "Linear", pose = { PileDriver = p(0, -6, 0) } },
-				{ t = 0.90, ease = "SineInOut", pose = { PileDriver = p(0, 0, 0) } },
-				{ t = 1.30, ease = "QuadInOut", pose = "Idle" },
+				{ t = 0.67, ease = "Linear", pose = { Waist = r(-18, -20, 0), LeftShoulder = r(55, 0, -5), LeftElbow = r(5) } }, -- punches low (D-037)
+				{ t = 0.68, ease = "Linear", pose = { PileDriver = p(0, -6, 0) } },
+				{ t = 0.75, ease = "Linear", pose = { PileDriver = p(0, -6, 0) } },
+				{ t = 1.25, ease = "SineInOut", pose = { PileDriver = p(0, 0, 0) } },
+				{ t = 1.75, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
-				{ t = 0.40, name = "HitboxStart" }, { t = 0.46, name = "Clank" }, { t = 0.47, name = "SteamBurst" },
-				{ t = 0.50, name = "HitboxEnd" },
+				{ t = 0.60, name = "HitboxStart" }, { t = 0.68, name = "Clank" }, { t = 0.69, name = "SteamBurst" },
+				{ t = 0.75, name = "HitboxEnd" },
 			},
 		},
 		Dodge_F = dodge({ Waist = r(-15) }),

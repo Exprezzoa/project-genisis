@@ -84,20 +84,20 @@ function Check.Run()
 	-- Sampling.
 	local light1 = set.clips.Light1
 	expect(near(PoseAnimator.sample(light1, 0).RightElbow.rot, Vector3.new(35, 0, 0)), "Light1 at 0 isn't the Idle pose")
-	expect(near(PoseAnimator.sample(light1, 0.18).Waist.rot, Vector3.new(0, -45, 0)), "Light1 at 0.18 isn't the windup key")
-	expect(near(PoseAnimator.sample(light1, 0.24).LeftShoulder.rot, Vector3.new(15, 0, -15)), "a joint missing in a key didn't keep the previous value")
-	expect(near(PoseAnimator.sample(light1, 0.27).Waist.rot, Vector3.new(0, 25, 0)), "linear sampling between two keys is off")
+	expect(near(PoseAnimator.sample(light1, 0.35).Waist.rot, Vector3.new(0, -45, 0)), "Light1 at 0.35 isn't the windup key")
+	expect(near(PoseAnimator.sample(light1, 0.45).LeftShoulder.rot, Vector3.new(15, 0, -15)), "a joint missing in a key didn't keep the previous value")
+	expect(near(PoseAnimator.sample(light1, 0.50).Waist.rot, Vector3.new(0, 25, 0)), "linear sampling between two keys is off")
 	expect(near(PoseAnimator.sample(light1, 5).LeftShoulder.rot, Vector3.new(5, 0, -6)), "past its end a clip isn't in its last key")
-	expect(near(PoseAnimator.sample(set.clips.Light3, 0.9).Root.pos, Vector3.zero), "a named pose key didn't reset the joints it doesn't list")
+	expect(near(PoseAnimator.sample(set.clips.Light3, 1.4).Root.pos, Vector3.zero), "a named pose key didn't reset the joints it doesn't list")
 	expect(near(PoseAnimator.sample(set.clips.Light3, 0).LeftElbow.rot, Vector3.new(15, 0, 0)), "Light3 at 0 isn't Idle")
-	expect(near(PoseAnimator.sample(set.clips.Special_PileDriver, 0.48).PileDriver.pos, Vector3.new(0, -6, 0)), "the spike isn't out during the thrust")
+	expect(near(PoseAnimator.sample(set.clips.Special_PileDriver, 0.70).PileDriver.pos, Vector3.new(0, -6, 0)), "the spike isn't out during the thrust")
 	expect(near(PoseAnimator.sample(set.clips.Idle, 7.3).Waist.rot, Vector3.new(-3, 0, 0)), "a looping clip doesn't wrap")
 
 	-- Weights.
-	expect(near(PoseAnimator.weight(light1, 0.03), 0.5), "blendIn weight")
+	expect(near(PoseAnimator.weight(light1, 0.05), 0.5), "blendIn weight")
 	expect(near(PoseAnimator.weight(light1, 0.3), 1), "full weight in the middle")
-	expect(near(PoseAnimator.weight(light1, 0.66), 0.5), "blendOut weight")
-	expect(near(PoseAnimator.weight(light1, 1), 0), "weight after the blend out")
+	expect(near(PoseAnimator.weight(light1, 1.06), 0.5), "blendOut weight")
+	expect(near(PoseAnimator.weight(light1, 1.2), 0), "weight after the blend out")
 	expect(near(PoseAnimator.weight(set.clips.Disabled, 60), 1), "a hold clip lets go")
 	expect(near(PoseAnimator.weight(set.clips.KneelIdle, 60), 1), "a loop clip lets go")
 
@@ -125,7 +125,7 @@ function Check.Run()
 
 	-- Compose.
 	local idle = set.poses.Idle
-	local action = PoseAnimator.sample(set.clips.Special_PileDriver, 0.45)
+	local action = PoseAnimator.sample(set.clips.Special_PileDriver, 0.67)
 	step = PoseAnimator.gait(params, 1, 0, "Right")
 	local pose = PoseAnimator.compose(idle, step, nil, action, 1, true)
 	expect(near(pose.LeftHip.rot, Vector3.new(22, 0, 0)), "upperBodyOnly: the action took the legs")
@@ -147,7 +147,7 @@ function Check.Run()
 
 	-- Events.
 	local fired = {}
-	PoseAnimator.crossed(light1.events, 0.16, 0.18, function(name)
+	PoseAnimator.crossed(light1.events, 0.32, 0.35, function(name)
 		table.insert(fired, name)
 	end)
 	expect(#fired == 2 and fired[1] == "Whoosh" and fired[2] == "HitboxStart", "crossed() fired " .. table.concat(fired, ","))
