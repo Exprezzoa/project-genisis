@@ -13,6 +13,7 @@ GameConfig.Character = {
 	CAMERA_MIN_ZOOM = 6,
 	CAMERA_MAX_ZOOM = 22,
 	CAMERA_FOV = 70,
+	RESPAWN_DELAY = 2, -- seconds between losing the character (fall, reset) and the respawn
 }
 
 -- Server polling (docs/13 §5: triggers are checked every 0.2 s; zones use the same rate).
@@ -24,6 +25,24 @@ GameConfig.Tick = {
 GameConfig.Interaction = {
 	-- Added to a prompt's MaxActivationDistance when the server re-checks the distance (latency allowance).
 	DISTANCE_SLACK = 4,
+}
+
+-- Saving (docs/17_saving_progression_monetization.md §2-5).
+GameConfig.Data = {
+	STORE = "PG_Profiles_v1",
+	KEY_PREFIX = "u_",
+	-- 5 attempts; the delay (plus 0..RETRY_JITTER s) is waited after a failed attempt.
+	RETRY_DELAYS = { 1, 2, 4, 8, 16 },
+	RETRY_JITTER = 0.5,
+	LOCK_TIMEOUT = 600, -- a session lock older than this is ignored
+	LOCK_WAIT = 5, -- seconds between tries while another server holds the lock
+	LOCK_TRIES = 6, -- then the lock is stolen (about 30 s)
+	AUTOSAVE_INTERVAL = 120,
+	MIN_SAVE_INTERVAL = 6, -- never more than one write per key in this many seconds
+	MIN_BUDGET = 2, -- autosaves are deferred while the UpdateAsync budget is below this
+	CLOSE_TIMEOUT = 25, -- BindToClose waits this long for the final saves
+	SNAPSHOT_INTERVAL = 0.5, -- Profile_Snapshot at most 2 per second
+	DEFAULT_SPAWN = "SPAWN_Q3_DESK",
 }
 
 -- Player settings: defaults from the profile schema (docs/17 §2), ranges from the Settings menu (docs/14 §8).
