@@ -448,3 +448,22 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 - A Frame still steps up about 3 studs on something at the hangar's south wall (seen in step 6).
 
 **Next:** step 8 (Frame HUD: integrity and energy bars, ability panel with cooldowns, refusal flashes; feel: dust, blade trail, shake, FOV punches), then step 9 (debug commands, the Training door, Unit 03, the Phase 2 acceptance tests).
+
+**Session 5, continued: blade swings (user feedback) and step 8 (Frame HUD and feel)**
+
+**Done:** D-050: `Light1`, `Light2` and `Heavy` reworked so they read as blade slashes (the user saw "punching with a sword"). `Client/Controllers/FrameHUDController` (integrity, energy, ability slots with cooldowns, banner, system panel, reticle, refusal feedback, slide-in). `Client/Controllers/VFXController` (dust, blade trail, thruster flame, steam, ground ring, hit sparks, shake and FOV punches). `CameraController.shake` / `punch`. D-051.
+
+**Tested (how → result):**
+- Swings: blade tip positions computed for every key (Light1 goes from 55 right / 37 behind, through 52 in front, to 49 left, at 27–33 high on the 40-stud rig); three-phase previews of `Light1` and `Heavy` looked at in edit mode → wide horizontal arcs with the blade in line with the arm. `PoseCheck` PASS after its three Light1 expectations were updated.
+- HUD in the hangar (play-mode screenshot) → bars full, "1000 / 1000", banner "WEAPONS LOCKED — HANGAR SAFETY", all four slots dimmed, glyphs LMB / RMB / Q / SPACE.
+- HUD in the Training Yard after three lights and a Pile Driver (screenshot) → energy at 2 of 4 segments, the SPECIAL slot amber on its shadow with "5.4" counting down, the others available, banner gone.
+- Effects, counted on the client over that sequence → 3 blade trails, 4 hit sparks, 1 ground ring (Light3), 5 shakes; walking gave 2 dust puffs and 2 footstep shakes. Output clean.
+- All files match Studio by checksum.
+
+**Bugs found and fixed here:** the DODGE slot showed as active whenever nothing was running; slot names spilled out of 72-wide leaning slabs (now 92).
+
+**Not tested:** how the swings, trail, dust, flame and shake look in motion (only stills and counts); the no-energy flash and the cooldown twitch seen on screen; `Light2`, `Light3`, dodges and the kneel by eye; touch layout of the HUD; small screens.
+
+**Known:** the hangar is still unlit, so the HUD sits over a dark scene there. From behind, the Frame hides the training Titan it is facing at the default camera distance.
+
+**Next:** step 9: debug commands (`/frame`, `/tp`, `/god`), the Training door opening for Frames, Unit 03 in Bay 3, then the eight Phase 2 acceptance tests.

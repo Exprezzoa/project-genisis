@@ -7,6 +7,8 @@
 --   setFrame(model?)         start or stop following a Frame (nil = back to the on-foot camera)
 --   getYaw() -> radians      the camera's heading; FrameController turns the move input by it
 --   setStride(on)            the wider stride field of view
+--   shake(magnitude, duration)     a rotational shake that fades out (x the Camera Shake setting)
+--   punch(degrees, duration)       a field-of-view kick that eases back
 --   getState() -> { yaw, pitch, distance, wanted, fov }      -- for tests
 --
 -- Angles: yaw 0 looks along -Z and grows turning left; pitch is the camera's elevation above the pivot.
@@ -28,6 +30,8 @@ local Feel = CameraFeel.Frame
 local STEP_NAME = "PG_FrameCamera"
 local ZOOM_STEP = 0.1 -- share of the zoom range per wheel notch
 local STICK_DEADZONE = 0.15
+local SHAKE_ANGLE = math.rad(4) -- the swing of a shake of magnitude 1
+local SHAKE_SPEED = 28 -- how fast the noise runs
 
 local CameraController = {}
 
@@ -42,6 +46,8 @@ local fov = Feel.fov.base
 local stick = Vector2.zero
 local lookTouch: InputObject? = nil
 local params = RaycastParams.new()
+local shakes: { { magnitude: number, start: number, duration: number } } = {}
+local punches: { { degrees: number, start: number, duration: number } } = {}
 
 local function sensitivity(): number
 	return SettingsController.get("camSensitivity") or 1
@@ -116,9 +122,38 @@ local function update(dt: number)
 	local target = if stride then Feel.fov.stride else Feel.fov.base
 	fov += (target - fov) * math.min(1, dt / Feel.fov.strideBlend * 3)
 
+	-- Shake: every running shake adds its fading magnitude; noise turns the sum into a small rotation.
+	local clock = os.clock()
+	local magnitude = 0
+	for index = #shakes, 1, -1 do
+		local entry = shakes[index]
+		local age = (clock - entry.start) / entry.duration
+		if age >= 1 then
+			table.remove(shakes, index)
+		else
+			magnitude += entry.magnitude * (1 - age)
+		end
+	end
+	local jolt = CFrame.identity
+	if magnitude > 0 then
+		local swing = magnitude * SHAKE_ANGLE * (SettingsController.get("cameraShake") or 1)
+		local n = clock * SHAKE_SPEED
+		jolt = CFrame.Angles(math.noise(n, 1.5) * swing, math.noise(n, 7.5) * swing, math.noise(n, 13.5) * swing * 0.5)
+	end
+	local kick = 0
+	for index = #punches, 1, -1 do
+		local entry = punches[index]
+		local age = (clock - entry.start) / entry.duration
+		if age >= 1 then
+			table.remove(punches, index)
+		else
+			kick += entry.degrees * (1 - age) ^ 2
+		end
+	end
+
 	camera.CameraType = Enum.CameraType.Scriptable
-	camera.CFrame = CFrame.new(pivot + rotation * Vector3.new(Feel.shoulder, 0, distance)) * rotation
-	camera.FieldOfView = fov
+	camera.CFrame = CFrame.new(pivot + rotation * Vector3.new(Feel.shoulder, 0, distance)) * rotation * jolt
+	camera.FieldOfView = fov + kick
 	camera.Focus = CFrame.new(pivot)
 end
 
@@ -128,6 +163,18 @@ end
 
 function CameraController.setStride(on: boolean)
 	stride = on
+end
+
+function CameraController.shake(magnitude: number, duration: number?)
+	if frame then
+		table.insert(shakes, { magnitude = magnitude, start = os.clock(), duration = duration or 0.2 })
+	end
+end
+
+function CameraController.punch(degrees: number, duration: number?)
+	if frame then
+		table.insert(punches, { degrees = degrees, start = os.clock(), duration = duration or 0.2 })
+	end
 end
 
 function CameraController.getState()
@@ -146,6 +193,8 @@ function CameraController.setFrame(model: Model?)
 	root = if model then model.PrimaryPart else nil
 	stride = false
 	lookTouch = nil
+	table.clear(shakes)
+	table.clear(punches)
 	if model and root then
 		-- Start behind the Frame.
 		local look = root.CFrame.LookVector

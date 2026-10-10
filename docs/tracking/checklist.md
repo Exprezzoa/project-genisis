@@ -32,7 +32,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [x] FrameService (spawn, park, board, dismount, ownership, state machine, energy) — play-tested (journal Session 5); the action states live in `CombatService`
 - [x] FrameController + Frame camera — walk, stride, acceleration, turn rate, camera orbit, zoom and collision play-tested with simulated keys (journal Session 5); mouse, gamepad and touch look not tried by hand; root motion, separation, lock-on and shake come with combat
 - [x] Combat requests, timelines, hitbox sampling vs. simulacrum — play-tested (journal Session 5): lock in the hangar, light chain, heavy with lunge, special with cost and cooldown, dodge, dodge-cancel, zones and damage, separation; lock-on and Core Strike wait for Titans
-- [ ] Frame HUD + feel (dust, trails, hitstop, shake)
+- [x] Frame HUD + feel (dust, trails, hitstop, shake) — play-tested with screenshots (journal Session 5); effects counted, not judged in motion; no sounds
 - [x] Training Yard blockout + simulacrum — `HubCheck` passes, hurtboxes read back (journal Session 5); not yet walked in play mode
 - [ ] Phase 2 acceptance tests all PASS
 
