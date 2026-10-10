@@ -22,7 +22,7 @@ local REQUIRED = {
 local QUERYABLE = { Hatch = true }
 
 local function near(a, b, tolerance)
-	return (a - b).Magnitude <= (tolerance or 0.01)
+	return (a - b).Magnitude <= (tolerance or 0.02)
 end
 
 local function isPureOffset(cframe)
@@ -33,6 +33,7 @@ function Check.Run()
 	local DT = game:GetService("ServerStorage").DevTools
 	local Builder = require(DT.Builders.Rigs.Vanguard:Clone())
 	local fails, info = {}, {}
+	local scale = Builder.SCALE
 	local function fail(message)
 		table.insert(fails, message)
 	end
@@ -71,8 +72,8 @@ function Check.Run()
 				end
 			end
 		end
-		if math.abs(top - 40) > 0.01 then
-			fail(("%s: main parts top out at %.2f, expected 40"):format(tag, top))
+		if math.abs(top - 40 * scale) > 0.02 then
+			fail(("%s: main parts top out at %.2f, expected %.2f"):format(tag, top, 40 * scale))
 		end
 
 		-- Joints.
@@ -100,11 +101,11 @@ function Check.Run()
 			end
 		end
 		local hinge = model:FindFirstChild("HatchHinge", true)
-		if hinge and not (near(hinge.C0.Position, V(0, 4.5, -5)) and near(hinge.C1.Position, V(0, 3, 0.3)) and isPureOffset(hinge.C0) and isPureOffset(hinge.C1)) then
+		if hinge and not (near(hinge.C0.Position, V(0, 4.5, -5) * scale) and near(hinge.C1.Position, V(0, 3, 0.3) * scale) and isPureOffset(hinge.C0) and isPureOffset(hinge.C1)) then
 			fail(tag .. ": HatchHinge C0/C1 differ from docs/08 §3.1")
 		end
 		local slide = model:FindFirstChild("PileDriver", true)
-		if slide and not (near(slide.C0.Position, V(-4.1, -3.5, 0)) and isPureOffset(slide.C0) and near(slide.C1.Position, V(0, 0, 0))) then
+		if slide and not (near(slide.C0.Position, V(-4.1, -3.5, 0) * scale) and isPureOffset(slide.C0) and near(slide.C1.Position, V(0, 0, 0))) then
 			fail(tag .. ": PileDriver C0/C1 differ from docs/09 §2")
 		end
 
@@ -128,7 +129,7 @@ function Check.Run()
 		if not humanoid then
 			fail(tag .. ": Humanoid missing")
 		else
-			if humanoid.HipHeight ~= Builder.HIP_HEIGHT or humanoid.AutoRotate or humanoid.JumpPower ~= 0 or humanoid.MaxSlopeAngle ~= 50 or humanoid.BreakJointsOnDeath or humanoid.RequiresNeck or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+			if math.abs(humanoid.HipHeight - Builder.HIP_HEIGHT) > 0.01 or humanoid.AutoRotate or humanoid.JumpPower ~= 0 or humanoid.MaxSlopeAngle ~= 50 or humanoid.BreakJointsOnDeath or humanoid.RequiresNeck or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
 				fail(tag .. ": Humanoid settings differ from docs/08 §2.6")
 			end
 			if model:FindFirstChildWhichIsA("Animator", true) then
@@ -190,6 +191,9 @@ function Check.Run()
 			if not model:FindFirstChild(name, true) then
 				fail(tag .. ": " .. name .. " missing")
 			end
+		end
+		if math.abs(model:GetScale() - scale) > 1e-3 then
+			fail(("%s: model scale %.3f, expected %.3f"):format(tag, model:GetScale(), scale))
 		end
 		if model:GetAttribute("Unit") ~= unit or model:GetAttribute("Class") ~= "Vanguard" then
 			fail(tag .. ": Unit/Class attributes wrong")

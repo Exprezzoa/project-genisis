@@ -73,7 +73,7 @@ function Preview.show(templateName, clipName, t, opts)
 		local part = table.remove(queue)
 		for _, motor in ipairs(children[part] or {}) do
 			local entry = pose[motor.Name]
-			local transform = if entry then PoseAnimator.toCFrame(entry) else CFrame.identity
+			local transform = if entry then PoseAnimator.toCFrame(entry, model:GetScale()) else CFrame.identity
 			world[motor.Part1] = world[part] * motor.C0 * transform * motor.C1:Inverse()
 			table.insert(queue, motor.Part1)
 		end

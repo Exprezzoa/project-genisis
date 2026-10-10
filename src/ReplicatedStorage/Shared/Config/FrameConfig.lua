@@ -6,20 +6,25 @@
 
 local FrameConfig = {}
 
+-- The Vanguard was specified at 40 studs and is built 1.6 times that, 64 studs (user direction, D-044).
+-- Lengths below are written as <the 40-stud number> * S, so they can still be compared with the docs.
+local S = 1.6
+
 FrameConfig.Vanguard = {
 	rig = "Vanguard", -- ServerStorage.Templates.Frames.<rig>_<unit>, Shared.Poses.<rig>
-	height = 40,
-	hipHeight = 14,
+	scale = S, -- the rig builder scales the model by this; pose offsets (Root, PileDriver) are multiplied by it
+	height = 40 * S,
+	hipHeight = 14 * S,
 	integrity = 1000,
 	energy = { max = 100, regen = 18, regenDelay = 1.0 },
-	walkSpeed = 30,
-	strideSpeed = 48,
-	acceleration = 70,
-	deceleration = 90,
+	walkSpeed = 30 * S,
+	strideSpeed = 48 * S,
+	acceleration = 70 * S,
+	deceleration = 90 * S,
 	turnRate = { free = 150, locked = 220, stride = 110 }, -- degrees per second
 	limp = { threshold = 0.15, walkScale = 0.75 }, -- under 15% integrity: walk x0.75, no stride
 	-- Body target for enemy attacks: a vertical cylinder centered on the HRP's XZ.
-	body = { radius = 8, height = 40 },
+	body = { radius = 8 * S, height = 40 * S },
 	-- Damage states by integrity fraction (docs/09 §5), highest first.
 	damageStates = {
 		{ name = "Pristine", above = 0.67 },
@@ -28,7 +33,7 @@ FrameConfig.Vanguard = {
 		{ name = "Critical", above = 0 },
 		{ name = "Disabled", above = -1 },
 	},
-	pilotSeat = Vector3.new(0, 29, 0), -- model space
+	pilotSeat = Vector3.new(0, 29, 0) * S, -- model space
 	boardDistance = 10, -- docs/08 §5.4: the pilot must be this close to the prompt
 	hatch = { openAngle = -100, time = 0.6 },
 }

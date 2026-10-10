@@ -38,7 +38,8 @@ local DISABLED_STATES = { "Dead", "Ragdoll", "FallingDown", "Climbing", "Swimmin
 local ENERGY_PUBLISH = 0.1 -- seconds between Energy attribute updates while it regenerates
 -- Where the "Board Frame" prompt of a kneeling Frame sits, relative to the root: on the ground under the hand
 -- the Kneel pose holds out. (Poses only exist on clients, so on the server the hand itself is still at rest.)
-local BOARD_POINT = CFrame.new(14, -16, -18)
+-- (14, -16, -18) on the 40-stud rig; the 64-stud rig's root is 30.4 up, so -27.4 is 3 studs above the ground.
+local BOARD_POINT = CFrame.new(22.4, -27.4, -28.8)
 
 local FrameService = {}
 

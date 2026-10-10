@@ -142,7 +142,7 @@ All coordinates are world space (Ops Hall center = origin). Walls on centerlines
 - Access: the hangar **west door** (map_02 §4) at Z −140…−80; an on-foot pedestrian gate at (−130, 0, −50) from the hub exterior.
 - **Titan Simulacrum** (`07` §6) at (−320, 0, −170) facing east, with hurtboxes (same table as the Strider standing state). This is the Phase 2 test target.
 - 4 **Frame-scale training dummies** at (−260, 0, −250), (−260, 0, −90), (−380, 0, −250), (−380, 0, −90).
-- **Dismount pad** `PAD_TRAINING` center (−200, 0, −110), radius 14, ExitPoint (−186, 0, −110) facing +X.
+- **Dismount pad** `PAD_TRAINING` center (−200, 0, −110), radius 22, ExitPoint (−174, 0, −110) facing +X (radius 14 and X −186 before the Frames grew, D-044).
 - Observation booth at (−405, 0, −60) (a small 12 × 10 × 10 room with windows; decor).
 - Locked until `CH1_COMPLETE` (except in debug). Before that, the west hangar door stays closed.
 

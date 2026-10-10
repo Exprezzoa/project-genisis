@@ -92,7 +92,7 @@ This file is short on purpose. The full specification lives in `docs/`. **Read t
 
 ## 7. Conventions (quick reference; full detail in the docs)
 
-- **Units:** 1 stud = 0.33 m. Human = 5.5 studs tall. Vanguard Frame = 40. Strider Titan = 56. Watcher = 68.
+- **Units:** 1 stud = 0.33 m. Human = 5.5 studs tall. Vanguard Frame = **64** (specified at 40, built ×1.6: D-044). Strider Titan = 56. Watcher = 68. The user's Shifter (`AttackTitan`) = 80.
 - **Axes:** North = −Z, South = +Z, East = +X, West = −X. Ground floor top surface = Y 0.
 - **Map coordinates** in the map docs are wall **centerlines**. Exterior walls are 2 studs thick, interior walls 1, hangar walls 3.
 - **Naming:** PascalCase for instances (`Bay2_AccessBridge`), `UPPER_SNAKE` for config keys and flags (`CH1_BRIEFED`), camelCase for Luau locals and functions.

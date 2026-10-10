@@ -5,17 +5,20 @@
 
 local CameraFeel = {}
 
+-- Lengths are the 40-stud Vanguard's numbers of docs/11 times the rig's scale (D-044).
+local S = require(script.Parent.FrameConfig).Vanguard.scale
+
 -- Frame camera (docs/11 §4).
 CameraFeel.Frame = {
-	pivotHeight = 18, -- above the HRP
-	distance = { default = 62, min = 40, max = 80 },
+	pivotHeight = 18 * S, -- above the HRP
+	distance = { default = 62 * S, min = 40 * S, max = 80 * S },
 	pitch = { default = 12, min = -20, max = 60 }, -- degrees of elevation
-	shoulder = 6, -- studs to the right; 0 while locked on
+	shoulder = 6 * S, -- studs to the right; 0 while locked on
 	shoulderBlend = 0.3,
 	sensitivity = { mouse = 0.25, gamepad = 220, touch = 0.35 }, -- deg/px, deg/s, deg/px
-	collision = { radius = 2, pad = 2, minDistance = 12, zoomOutSpeed = 30 },
+	collision = { radius = 2, pad = 2, minDistance = 12 * S, zoomOutSpeed = 30 * S },
 	fov = { base = 70, stride = 78, strideBlend = 0.3, dodgeKick = 6, dodgeKickTime = 0.2 },
-	lock = { yawBlend = 6, offset = 25, offsetDecay = 0.6, range = 220, lostSightTime = 2 },
+	lock = { yawBlend = 6, offset = 25 * S, offsetDecay = 0.6, range = 220 * S, lostSightTime = 2 },
 }
 
 -- Events: shake magnitude, duration (s), hitstop (s), fovPunch (degrees).

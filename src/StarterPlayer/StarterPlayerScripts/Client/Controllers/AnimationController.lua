@@ -123,7 +123,7 @@ function AnimationController.register(model)
 	local state = {
 		model = model, root = root, set = set, motors = motors, loco = Locomotion[class],
 		phase = 0, amplitude = 0, speed = 0, shuffle = 0, clock = 0, weight = 0, lookYaw = 0, lookPitch = 0,
-		slowClock = 0, gaitParams = nil, offsets = {}, pose = {}, hatch = 0, hatchSpec = FrameConfig[class] and FrameConfig[class].hatch,
+		slowClock = 0, gaitParams = nil, offsets = {}, pose = {}, scale = model:GetScale(), hatch = 0, hatchSpec = FrameConfig[class] and FrameConfig[class].hatch,
 	}
 	rigs[model] = state
 	state.connections = {
@@ -305,7 +305,7 @@ local function step(state, dt)
 
 	for name, motor in pairs(state.motors) do
 		local entry = pose[name]
-		motor.Transform = if entry then PoseAnimator.toCFrame(entry) else CFrame.identity
+		motor.Transform = if entry then PoseAnimator.toCFrame(entry, state.scale) else CFrame.identity
 	end
 end
 

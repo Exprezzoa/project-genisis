@@ -33,6 +33,15 @@
 - **Hazard placards** on each bay's front supports: "DANGER — FRAME BAY — STAY BEHIND THE LINE".
 - Bays are walkable on foot (only the catwalk route reaches the cockpit).
 
+> **Changes for the 64-stud Frames (D-044); these override the numbers below and in §5, §9 and §11:**
+> - Catwalk, walkway and bridge **deck top Y 45** (was 28): the height of the hatch, whose center is now at Y 49.6.
+> - **Cockpit access bridges at Z −195…−191** (were −200…−196), just in front of the Frames' chests. Nav nodes and `WP_BAY2_BRIDGE` follow: Y 45, and Z −193 for the bridge nodes.
+> - **Main stair:** still from (Z −144, Y 0) to (Z −186, Y 45), so its foot stays clear of the Training door; 45 steps of rise 1 and run 14/15 (steep).
+> - **Crane:** the hanging plate at Y 70–74, hook block at Y 76 (was 48–52 / 54), above the Frames (64, 68 with the head fin).
+> - **Pendant high-bays** hang to Y 78 (was 55). **Bay floodlights** at Y 47 (was 30).
+> - Camera points that look at a Frame's chest look at Y 46–54 (were 29–34).
+> - A Frame is about 51 wide and fills its 50-wide bay; the doors (70 tall) and the trusses (Y 88) still clear it.
+
 ## 3. Catwalks, stairs, bridges (deck top Y 28, `DiamondPlate` `STEEL_MID`, railings 3.5 tall)
 | Element | Spec |
 |---|---|

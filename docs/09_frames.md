@@ -6,10 +6,12 @@ Base rig dimensions and joints: `08_rigs_and_animation.md` §3.1. Colors: `06_ar
 
 ## 1. Vanguard — design brief
 
+> **Scale note (user direction 2026-10-10, D-044).** The Vanguard is built **1.6 × the size written in this document: 64 studs tall** instead of 40. Every length, position, speed, range and box given here for the Vanguard is the 40-stud number; the game uses it × 1.6. The config files write it that way (`30 * S`), and the rig builder builds the 40-stud model and scales it. Times, angles, damage, energy and poise are unchanged.
+
 - **Role:** balanced close-range melee. The most accessible Frame.
 - **Silhouette:** heavy blocky torso, **oversized pauldrons**, thick forearms, digitigrade-free straight legs with big feet, a small sensor head with a single horizontal **amber visor**, the **Breaker Blade** (a giant industrial cleaver) in the right hand, and a **Pile Driver** spike launcher on the left forearm.
 - **Personality in motion:** deliberate, grounded, every step a thud. Attacks have clear windups. When it stops, it settles (0.2 s of Root bob overshoot).
-- **Height 40 studs.** Width ~30 with pauldrons. **Budget ≤ 1,500 parts** (raised from 450 for the detail pass, D-041; the first build is 1,291).
+- **Height 64 studs** (40 × 1.6, see the scale note). Width ~50 with pauldrons. **Budget ≤ 1,500 parts** (raised from 450 for the detail pass, D-041; the first build is 1,291).
 
 ## 2. Part-by-part build (`builders/rigs/Vanguard/`)
 

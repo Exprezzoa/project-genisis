@@ -6,6 +6,10 @@
 --   Build({ BK = BK, unit = "02" })  -> stats     builds ServerStorage.Templates.Frames.Vanguard_<unit>
 --   Builder.MAIN, Builder.JOINTS                  the tables of docs/08 §3.1 (RigCheck reads them)
 --
+-- Scale (D-044): everything in this folder is written for the 40-stud Vanguard of the docs. Build() makes
+-- that model and then scales it by Builder.SCALE (64 studs). Builder.MAIN, HRP, JOINTS and HIP_HEIGHT are the
+-- scaled, final numbers; Builder.DESIGN holds the unscaled ones.
+--
 -- Model space: origin on the ground under the HRP, facing -Z, +X = the rig's right. The main parts are the
 -- rig's bones: they keep the sizes and centers of docs/08 but are invisible (D-041). Everything you see is a
 -- detail welded to a bone, built by Legs, Torso and Arms out of the shapes in Kit.
@@ -20,8 +24,10 @@ Builder.UNITS = {
 	["02"] = { accent = "VG_ACCENT_ELIAS" },
 }
 
+Builder.SCALE = 1.6
+
 -- name = { size, center }   (docs/08 §3.1; sx = -1 left, +1 right is applied to X)
-Builder.MAIN = {
+local MAIN = {
 	LowerTorso = { V(12, 4, 8), V(0, 22, 0) },
 	UpperTorso = { V(16, 11, 10), V(0, 29.5, 0) },
 	Head = { V(5, 5, 5.5), V(0, 37.5, 0) },
@@ -32,11 +38,11 @@ Builder.MAIN = {
 	LowerLeg = { V(5, 9, 5.5), V(3.75, 7.5, 0) },
 	Foot = { V(6, 3, 10), V(3.75, 1.5, -1.5) },
 }
-Builder.HRP = { V(10, 10, 6), V(0, 19, 0) }
-Builder.HIP_HEIGHT = 14
+local HRP = { V(10, 10, 6), V(0, 19, 0) }
+local HIP_HEIGHT = 14
 
 -- { joint, part0, part1, joint position }; "L/R" entries are expanded for both sides.
-Builder.JOINTS = {
+local JOINTS = {
 	{ "Root", "HumanoidRootPart", "LowerTorso", V(0, 22, 0) },
 	{ "Waist", "LowerTorso", "UpperTorso", V(0, 24, 0) },
 	{ "Neck", "UpperTorso", "Head", V(0, 35, 0) },
@@ -47,6 +53,17 @@ Builder.JOINTS = {
 	{ "Knee", "UpperLeg", "LowerLeg", V(3.75, 12, 0), sided = true },
 	{ "Ankle", "LowerLeg", "Foot", V(3.75, 3, 0), sided = true },
 }
+
+Builder.DESIGN = { MAIN = MAIN, HRP = HRP, JOINTS = JOINTS, HIP_HEIGHT = HIP_HEIGHT }
+Builder.MAIN, Builder.JOINTS = {}, {}
+for name, spec in pairs(MAIN) do
+	Builder.MAIN[name] = { spec[1] * Builder.SCALE, spec[2] * Builder.SCALE }
+end
+for index, entry in ipairs(JOINTS) do
+	Builder.JOINTS[index] = { entry[1], entry[2], entry[3], entry[4] * Builder.SCALE, sided = entry.sided }
+end
+Builder.HRP = { HRP[1] * Builder.SCALE, HRP[2] * Builder.SCALE }
+Builder.HIP_HEIGHT = HIP_HEIGHT * Builder.SCALE
 
 local SIDES = { { "Left", -1 }, { "Right", 1 } }
 
@@ -72,7 +89,7 @@ function Builder.Build(opts)
 	----------------------------------------------------------------------------------------------------------------
 	-- Bones and joints
 	----------------------------------------------------------------------------------------------------------------
-	local hrp = K.raw("part", model, "HumanoidRootPart", Builder.HRP[1], CFrame.new(Builder.HRP[2]), P.VG_FRAME, "SmoothPlastic", {
+	local hrp = K.raw("part", model, "HumanoidRootPart", HRP[1], CFrame.new(HRP[2]), P.VG_FRAME, "SmoothPlastic", {
 		Transparency = 1, CanCollide = true, Massless = false, CastShadow = false,
 	})
 	hrp.RootPriority = 127
@@ -83,7 +100,7 @@ function Builder.Build(opts)
 	local function bone(name, size, center)
 		main[name] = K.raw("part", model, name, size, CFrame.new(center), P.VG_FRAME, "Metal", { Transparency = 1, CastShadow = false })
 	end
-	for name, spec in pairs(Builder.MAIN) do
+	for name, spec in pairs(MAIN) do
 		if spec[2].X == 0 then
 			bone(name, spec[1], spec[2])
 		else
@@ -103,7 +120,7 @@ function Builder.Build(opts)
 		motor.Parent = part1
 		return motor
 	end
-	for _, entry in ipairs(Builder.JOINTS) do
+	for _, entry in ipairs(JOINTS) do
 		if entry.sided then
 			for _, side in ipairs(SIDES) do
 				local function sided(partName)
@@ -132,7 +149,7 @@ function Builder.Build(opts)
 	----------------------------------------------------------------------------------------------------------------
 	local humanoid = Instance.new("Humanoid")
 	humanoid.RigType = Enum.HumanoidRigType.R15
-	humanoid.HipHeight = Builder.HIP_HEIGHT
+	humanoid.HipHeight = HIP_HEIGHT -- ScaleTo below scales it with the model
 	humanoid.AutoRotate = false
 	humanoid.UseJumpPower = true
 	humanoid.JumpPower = 0
@@ -158,6 +175,15 @@ function Builder.Build(opts)
 	align.CFrame = CFrame.new()
 	align.Enabled = false
 	align.Parent = hrp
+
+	-- Grow the finished 40-stud model to its real size, keeping its feet on the ground.
+	model:ScaleTo(Builder.SCALE)
+	for _, descendant in ipairs(model:GetDescendants()) do
+		if descendant:IsA("Light") then
+			descendant.Range *= Builder.SCALE -- ScaleTo leaves light ranges alone
+		end
+	end
+	model:PivotTo(CFrame.new(Builder.HRP[2]))
 
 	model.Parent = templates
 	return BK.report(model, startClock)

@@ -15,12 +15,12 @@ function Builder.Build(opts)
 	BK.trigger(G, "TRG_HANGAR_REVEAL", V(-15, 0, -80), V(15, 20, -70), "TRG_HANGAR_REVEAL")
 	BK.trigger(G, "TRG_DEPLOY_DOOR", V(70, 0, -190), V(118, 60, -110), "TRG_DEPLOY_DOOR")
 
-	BK.camPoint(G, "CAM_HANGAR_REVEAL_1", V(0, 3, -150), V(0, 34, -205))
-	BK.camPoint(G, "CAM_HANGAR_REVEAL_2", V(-30, 26, -175), V(0, 30, -205))
+	BK.camPoint(G, "CAM_HANGAR_REVEAL_1", V(0, 3, -150), V(0, 54, -205))
+	BK.camPoint(G, "CAM_HANGAR_REVEAL_2", V(-30, 42, -165), V(0, 48, -205))
 	BK.camPoint(G, "CAM_DOOR_EXT", V(260, 40, -150), V(120, 35, -150))
 	BK.camPoint(G, "CAM_DOOR_REVEAL", V(60, 46, -150), V(600, 40, -150))
 	-- "-> Unit 02": at launch it stands on the platform center; the look-at is its chest height there.
-	BK.camPoint(G, "CAM_LAUNCH_A", V(180, 20, -100), V(160, 29, -150))
+	BK.camPoint(G, "CAM_LAUNCH_A", V(180, 20, -100), V(160, 46, -150))
 	BK.camPoint(G, "CAM_LAUNCH_B", V(200, 110, -60), V(440, 40, -150))
 
 	-- FrameBarriers (40 tall). Bays 1 and 3 are rings, so the Frames parked inside aren't pushed out.

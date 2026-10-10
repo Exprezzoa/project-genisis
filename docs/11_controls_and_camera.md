@@ -2,6 +2,8 @@
 
 All bindings live in `Shared/Config/Bindings.lua` and are bound through **ContextActionService** by the client `InputController`. **Input contexts:** `OnFoot`, `Frame`, `Dialogue`, `Cinematic`, `Menu`. Exactly one gameplay context (`OnFoot` or `Frame`) is active; `Dialogue`, `Cinematic` and `Menu` temporarily suspend it (gameplay actions are unbound, and movement is disabled via the PlayerModule `ControlModule:Disable()`, always restored in a guaranteed cleanup path).
 
+> **Scale note (user direction 2026-10-10, D-044).** The Vanguard is built **1.6 × the size written in this document: 64 studs tall** instead of 40. Every length, position, speed, range and box given here for the Vanguard is the 40-stud number; the game uses it × 1.6. The config files write it that way (`30 * S`), and the rig builder builds the 40-stud model and scales it. Times, angles, damage, energy and poise are unchanged.
+
 ## 1. Bindings
 
 ### On foot

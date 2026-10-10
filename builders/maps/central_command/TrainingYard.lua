@@ -136,7 +136,7 @@ function Builder.Build(opts)
 		Builder.dummy(BK, G, "TrainingDummy" .. index, BK.lookAlong(position, V(1, 0, 0)))
 	end
 
-	BK.dismountPad(G, "PAD_TRAINING", V(-200, 0, -110), 14, BK.lookAlong(V(-186, 0, -110), V(1, 0, 0)))
+	BK.dismountPad(G, "PAD_TRAINING", V(-200, 0, -110), 22, BK.lookAlong(V(-174, 0, -110), V(1, 0, 0)))
 	C.standIn(ctx, "ObservationBooth", V(-411, 0, -65), V(-399, 10, -55))
 
 	C.placeRegistry(ctx)

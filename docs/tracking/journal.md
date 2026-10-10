@@ -370,3 +370,19 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Known:** curved armor (SmoothPlastic) is a shade lighter than flat armor (Metal) of the same color. The unit number on the chest side sits in the armpit, as before. `AttackTitan` sinks about 27 studs when play starts (unanchored, D-042).
 
 **Next:** step 6 (FrameController: movement, facing, stride, root motion, separation; CameraController Frame mode), checking the new armor in motion on the way; then combat.
+
+**Session 5, continued: Frames grow to 64 studs; the user's Shifter (user direction)**
+
+**Done:** D-043 (push over loopback), D-044 (Frames 64 studs: rig scaled ×1.6, configs written as `number * S`, animator scales pose offsets, catwalks to Y 45, bridges to Z −195…−191, steeper main stair, bigger dismount pad), D-045 (`AttackTitan` is a Shifter in the game, scaled to 80 studs, moved to `ServerStorage.Reference`; Shifters are a reveal). Q-013 answered, Q-014 opened.
+
+**Tested (how → result):**
+- Rebuilt Units 02 and 01 → 1,291 / 1,292 parts, model scale 1.60, bounding box 51.2 × 67.8 (with fin and antenna), main parts top out at 64.00, HipHeight 22.4. `RigCheck`, `PoseCheck`, `HubCheck`, `NavCheck` all PASS after the rebuild of `Catwalks`, the hangar `Gameplay` folder and the `TrainingYard`.
+- Edit mode, Frame previewed in Bay 2 → stands inside the bay, the catwalk and bridge meet it at chest height (screenshot; the hangar has no lamps yet, so it is dark).
+- Play mode → both Frames park with the root at Y 30.40; standing on the Bay 2 bridge (Y 48.3) the hatch is 5.5 studs away and the prompt allows boarding; boarding took 1.81 s; dismount on `PAD_TRAINING` put the pilot at the new exit point (−174, 3.3, −110) and the Frame kneeling; re-boarding from the board point (on the ground at Y 3.0) worked, weapons unlocked in the yard. Output clean.
+- All changed files match Studio by checksum.
+
+**Not tested:** walking up the steeper stair as a player (45 steps, 47°); the kneel and the other poses seen at the new size; the scaled attack boxes and camera numbers (nothing uses them yet); NPC routes over the raised catwalks beyond `NavCheck`.
+
+**Known:** the Frame is 51.2 wide in a 50-wide bay (the pauldron hubs touch the painted lines). The Breaker Blade is now 45 long and sticks far out of the bay, as it did before in proportion.
+
+**Next:** step 6 (FrameController and the Frame camera), then combat.

@@ -13,7 +13,7 @@
 --   gait(params, amplitude, phase, bladeArm, out) -> out the procedural step offsets at a phase (0..1)
 --   compose(base, offsets, bob, action, w, upperBodyOnly, out) -> out
 --                                                        base + offsets, replaced by action where it has joints
---   toCFrame(entry) -> CFrame                            CFrame.new(pos) * CFrame.Angles(rad(rot))
+--   toCFrame(entry, scale?) -> CFrame                    CFrame.new(pos * scale) * CFrame.Angles(rad(rot))
 --   crossed(events, t0, t1, fire)                        calls fire(name) for events in (t0, t1]
 
 local Easing = require(script.Parent.Easing)
@@ -222,9 +222,10 @@ function PoseAnimator.compose(base, offsets, bob, action, w, upperBodyOnly, out)
 	return out
 end
 
-function PoseAnimator.toCFrame(entry)
+-- scale = the rig's scale: pose offsets are written for the unscaled rig (D-044).
+function PoseAnimator.toCFrame(entry, scale)
 	local rot = entry.rot
-	return CFrame.new(entry.pos) * CFrame.Angles(math.rad(rot.X), math.rad(rot.Y), math.rad(rot.Z))
+	return CFrame.new(entry.pos * (scale or 1)) * CFrame.Angles(math.rad(rot.X), math.rad(rot.Y), math.rad(rot.Z))
 end
 
 function PoseAnimator.crossed(events, t0, t1, fire)
