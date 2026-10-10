@@ -120,7 +120,7 @@ All coordinates are world space (Ops Hall center = origin). Walls on centerlines
 - West wall opening to the Ops Hall: Z −10…10.
 - East wall doors: Equipment Z −24…−16; Medical Z 16…24.
 - North end (Z −60…−48) turns east into the **Research Corridor**.
-- South end Z 40: door (X 66…74) into the **Stairwell** (X 60…80, Z 40…60): flight 1 X 61…69 from Z 42 (Y 0) to Z 57 (Y 10); landing Z 57…59, X 61…79; flight 2 X 71…79 from Z 57 (Y 10) to Z 42 (Y 20); top landing X 71…79, Z 40…42; **exit door** in the east wall (X 80, Z 42…50, Y 20…28) onto a short **roof bridge** (X 80…92, Z 40…50, deck top Y 20) leading onto the Observation Deck. Railings throughout.
+- South end Z 40: door (X 66…74) into the **Stairwell** (X 60…80, Z 40…62; layout revised 2026-10-09, Q-009 / D-027): flight 1 X 67…73 (6 wide, in line with the door) from Z 42.5 (Y 0) to Z 57.5 (Y 10); landing Z 57.5…61, X 61…73; flight 2 X 61…67 from Z 57.5 (Y 10) to Z 42.5 (Y 20); top landing X 61…67, Z 40.5…42.5; a **gallery** at Y 20 (X 67…79, Z 40.5…46 along the north wall, then X 74…79, Z 46…51 along the east wall) leads to the **exit door** in the east wall (X 80, Z 42…50, Y 20…28) and onto a short **roof bridge** (X 80…92, Z 40…50, deck top Y 20) leading onto the Observation Deck. Railings throughout.
 - Signs: "MEDICAL", "EQUIPMENT", "OBSERVATION DECK ↑", "RESTRICTED →" (at the north end).
 
 ## 10. Research Corridor (restricted; X 80…200, Z −60…−48, ceiling 12) and Voss Lab
@@ -170,8 +170,10 @@ All coordinates are world space (Ops Hall center = origin). Walls on centerlines
 | NAV_BRF_IN | (−90, 0, −20) | NAV_BRF_DOOR, NAV_BRF_AISLE |
 | NAV_BRF_AISLE | (−103, 1, −20) | NAV_BRF_IN |
 | NAV_OPS_W | (−52, 0, 0) | NAV_WC_MID, NAV_OPS_C |
-| NAV_OPS_C | (−14, 0, 8) | NAV_OPS_W, NAV_OPS_E, NAV_OPS_N, NAV_OPS_S |
-| NAV_OPS_N | (0, 0, −32) | NAV_OPS_C, NAV_GATE_S |
+| NAV_OPS_C | (−14, 0, 8) | NAV_OPS_W, NAV_OPS_SE, NAV_OPS_NW, NAV_OPS_S |
+| NAV_OPS_NW | (−16, 0, −16) | NAV_OPS_C, NAV_OPS_N (added 2026-10-09, Q-010: goes around the holo-table) |
+| NAV_OPS_SE | (0, 0, 16) | NAV_OPS_C, NAV_OPS_E (added 2026-10-09, Q-010) |
+| NAV_OPS_N | (0, 0, −32) | NAV_OPS_NW, NAV_GATE_S |
 | NAV_GATE_S | (0, 0, −42) | NAV_OPS_N, NAV_GATE_N |
 | NAV_GATE_N | (0, 0, −68) | NAV_GATE_S, NAV_HG_S |
 | NAV_HG_S | (0, 0, −80) | NAV_GATE_N, NAV_HG_VIEW, NAV_HG_SW |
@@ -185,7 +187,7 @@ All coordinates are world space (Ops Hall center = origin). Walls on centerlines
 | NAV_CW_B2 | (−35, 28, −227) | NAV_CW_W, NAV_CW_B2S |
 | NAV_CW_B2S | (−35, 28, −198) | NAV_CW_B2, NAV_BAY2_HATCH |
 | NAV_BAY2_HATCH | (−4, 28, −198) | NAV_CW_B2S |
-| NAV_OPS_E | (52, 0, 0) | NAV_OPS_C, NAV_EC_MID |
+| NAV_OPS_E | (52, 0, 0) | NAV_OPS_SE, NAV_EC_MID |
 | NAV_EC_MID | (70, 0, 0) | NAV_OPS_E, NAV_EC_EQ, NAV_EC_MED, NAV_EC_N |
 | NAV_EC_EQ | (70, 0, −20) | NAV_EC_MID, NAV_EQ_DOOR |
 | NAV_EQ_DOOR | (84, 0, −20) | NAV_EC_EQ, NAV_EQ_IN |
@@ -195,16 +197,19 @@ All coordinates are world space (Ops Hall center = origin). Walls on centerlines
 | NAV_MED_IN | (100, 0, 20) | NAV_MED_DOOR, NAV_MED_ARCH |
 | NAV_MED_ARCH | (113, 0, 20) | NAV_MED_IN |
 | NAV_EC_S | (70, 0, 36) | NAV_EC_MED, NAV_STAIR_B |
-| NAV_STAIR_B | (65, 0, 44) | NAV_EC_S, NAV_STAIR_L |
-| NAV_STAIR_L | (70, 10, 58) | NAV_STAIR_B, NAV_STAIR_T |
-| NAV_STAIR_T | (75, 20, 41) | NAV_STAIR_L, NAV_DECK_BR |
-| NAV_DECK_BR | (86, 20, 45) | NAV_STAIR_T, NAV_DECK |
+| NAV_STAIR_B | (70, 0, 40) | NAV_EC_S, NAV_STAIR_L |
+| NAV_STAIR_L | (70, 10, 59.25) | NAV_STAIR_B, NAV_STAIR_L2 |
+| NAV_STAIR_L2 | (64, 10, 59.25) | NAV_STAIR_L, NAV_STAIR_T |
+| NAV_STAIR_T | (64, 20, 42) | NAV_STAIR_L2, NAV_STAIR_G |
+| NAV_STAIR_G | (76.5, 20, 44) | NAV_STAIR_T, NAV_DECK_BR |
+| NAV_DECK_BR | (86, 20, 45) | NAV_STAIR_G, NAV_DECK |
 | NAV_DECK | (105, 20, 0) | NAV_DECK_BR |
 | NAV_EC_N | (70, 0, −54) | NAV_EC_MID, NAV_RC_DOOR |
 | NAV_RC_DOOR | (97, 0, −54) | NAV_EC_N |
 | NAV_OPS_S | (0, 0, 36) | NAV_OPS_C, NAV_CONC |
-| NAV_CONC | (0, 0, 60) | NAV_OPS_S, NAV_ARR |
-| NAV_ARR | (0, 0, 100) | NAV_CONC |
+| NAV_CONC | (0, 0, 60) | NAV_OPS_S, NAV_ARR_IN |
+| NAV_ARR_IN | (6, 0, 84) | NAV_CONC, NAV_ARR (added 2026-10-09, Q-010: goes around the canopy column) |
+| NAV_ARR | (0, 0, 100) | NAV_ARR_IN |
 
 **Ambient routes:** Officer route A: NAV_OPS_C → NAV_OPS_E → NAV_EC_MID → NAV_EC_EQ → back. Hangar technician routes in `map_02` §9.
 

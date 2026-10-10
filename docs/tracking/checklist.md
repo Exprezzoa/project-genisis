@@ -21,10 +21,10 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [x] Central Command blockout (all areas) + hangar shell + launch platform blockout — HubCheck and NavCheck pass; not yet checked by eye (screenshots failed); stairwell layout provisional (Q-009); Training Yard is Phase 2 (D-026)
 - [x] Gameplay objects placed (spawns, triggers, prompts, nav nodes, waypoints) — 3 helper nav nodes pending Q-010
 - [x] Elias StarterCharacter; default animations verified; AnimationIds captured
-- [ ] UI foundation (style, components, fade, on-foot HUD, prompts, Mission Log shell, Settings, loading screen)
-- [ ] Lighting presets + controller
-- [ ] DebugService/Controller
-- [ ] Phase 1 acceptance tests (roadmap) all PASS
+- [x] UI foundation (style, components, fade, on-foot HUD, prompts, Mission Log shell, Settings, loading screen) — tested on the keyboard and mouse path; touch and gamepad wait for acceptance test 6
+- [x] Lighting presets + controller
+- [x] DebugService/Controller
+- [ ] Phase 1 acceptance tests (roadmap) all PASS — 1, 2, 3, 4, 5, 7 pass (journal Sessions 2 and 3); **6 (touch emulator, gamepad) needs the user**
 
 ## Phase 2 — Frame prototype
 - [ ] Vanguard rig (Units 01/02/03) within budget

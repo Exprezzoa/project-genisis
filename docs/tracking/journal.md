@@ -165,3 +165,45 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 - **Save and publish now** (Ctrl+S, File → Publish to Roblox): the hub blockout exists and the Baseplate is gone; publishing creates the version to roll back to.
 - Answer Q-009 (stairwell layout) and Q-010 (three helper nav nodes).
 - Send 4–6 screenshots: Q-3, Ops Hall from the south door, the mezzanine stairs, the stairwell gallery, the hangar from the south entrance, the catwalk stair.
+
+### Session 3 — 2026-10-09 — Phase 1 (steps 11–14; acceptance tests 1–5 and 7 pass, 6 needs the user)
+**Goal this session:** finish the Phase 1 build order: lighting, UI foundation, hub thoughts, debug commands; then the acceptance tests.
+
+**Studio state found at start:** as left by Session 2 (same Studio session). The user answered **yes** to Q-009 and Q-010 → D-025 and D-027 are final; `map_01` §9 and §13.2 now describe the built stairwell and nav graph. The cloud copy had been updated 15 min before the session.
+
+**Done:**
+- Step 11: `Config/LightingPresets` (5 presets), `LightingController` (zone-driven, `Lighting_Set`, 1.5 s tween or instant), client half of the test bridge (`StarterPlayerScripts.DevTests`, `PlayerScripts.DevBridge`).
+- Step 12: `Config/UIStyle`, `Config/Bindings`, `UI/Components`, `UIController` (7 layers + scale rule + the one fade), `InputController`, `SettingsController`, `CharacterController` (sprint, control lock, FOV), `HUDController` (objective tracker, toasts, subtitles), `InteractionController` (custom prompt billboards), `MenuController` (pause + 12 settings rows), `MissionLogController` (shell, 3 tabs), `MobileControlsController` (SPRINT, LOG, menu), `ReplicatedFirst.LoadingScreen`.
+- Step 13: `Dialogue/Speakers`, `Dialogue/CH1_Hub` (8 thought lines, text exactly as `05`), `Sequence/StaticInteractions`, handlers in `InteractionService`.
+- Step 14: `Config/Debug`, `DebugService`, `DebugController` (F2 panel; `/tp /zone /flags /flag /save /wipe /dsfail /lighting /fps /nav /help`).
+- Totals: 48 game scripts, 5,281 lines (longest: PlayerDataService, 475); map 871 parts.
+
+**Tested (how → result):**
+- Lighting → PASS: 25 MORNING values read back from `Lighting` equal `06` §5 (expected values typed separately from the config); tween to EVENING (ClockTime 13.1 mid-way, 18.9 at the end); instant NIGHT; `Lighting_Set` from the server; `/lighting`. First run FAILED at boot: game scripts can't write `LightingStyle` → moved out of the runtime presets (D-030).
+- UI → PASS (client bridge, 859 × 392 viewport): layers HUD 10 / Prompts 15 / Dialogue 20 / Cards 30 / Menu 40 / Letterbox 50 / Fade 90 / Loading 100; scale 0.747 = 0.65 × 1.15 (phone rule); loading screen hid after 1.6 s with `Server_Ready`; objective + optional line; 4 toasts → 3 kept, gone after 3.5 s; radio subtitle `[OVERWATCH]` in the speaker color, cleared after its duration; fade to black and back; Menu/Tab open and close screens, switch the context to `Menu`, lock and restore movement, blur only on the Mission Log; sprint 14 ↔ 22.
+- **Acceptance test 3** → PASS: photo (first line, then the repeat line), locker (line, flag `CH1_TOOK_PATCH`, prompt gone for good), window, poster, holo-table, status wall and research door (line once, "ACCESS DENIED" toast every time) each showed the script's text as an italic thought subtitle. Prompts only appear while on screen; two of my teleport tests first looked like failures for that reason.
+- **Acceptance test 4** → PASS through the real path: `SettingsController.set` (subtitle size M, music 35%, invert Y on) → server profile → Stop/Play → the values came back, the subtitle label used 22 px, the Settings rows showed "M", "35%", "ON". The locker prompt stayed off after the rejoin.
+- **Acceptance test 5** → PASS with a caveat: `Kick()` saved the profile and released the lock within 2 s; the rejoin (Stop/Play through the MCP) came **16 s** after the save, not within 10 s; the profile loaded at once with the flag, no lock wait. The held-lock case was measured in Session 2 (6 × 5 s, then stolen).
+- Debug → PASS: every Phase 1 command gave the expected result (teleports, unknown spawn, unbuilt zone, flag on/off, bad flag name, lighting, `/dsfail on` → 3 failed attempts, `/dsfail off` → the retry wrote, later-phase commands refused, `/fps` "FPS 240 | ping 1 ms | parts 913 | physics 60 Hz", `/nav` 51 nodes + 50 links, `/wipe` asks for confirm).
+- **Acceptance test 7** → PASS: Output clean in every play session, except lines a test provoked on purpose (simulated save failures, rejected payloads).
+- Regression in edit mode after the last change → BuildKitCheck 29/29, SharedCheck 12/12, HubCheck pass, NavCheck pass (51 nodes, 50 links). All pushed files checksum-equal to the local files.
+- Screenshots work again: hub overview and Ops Hall interior look as specified (mezzanine, stairs, offices, openings, columns). The interiors are dim (no fixtures in the blockout pass), and a thin line of daylight shows where the 1-thick Ops Hall side walls meet the corridor roofs.
+
+**Not tested:**
+- **Acceptance test 6 (touch emulator, gamepad menus): untested.** The MCP can't switch the device emulator or send gamepad input. The touch buttons and the gamepad selection code exist; only the keyboard/mouse path was exercised.
+- The on-foot camera in small rooms and the look of the UI were not judged by eye in play mode (screenshots are edit-mode only).
+
+**Known bugs:** none open. (The Session 2 note about a character found 17 studs from its spawn did not recur in 8 further play sessions.)
+
+**Decisions made:** D-030. Q-009 and Q-010 closed.
+
+**Next steps:**
+- User: acceptance test 6 and a hands-on walk (below). If both are fine, Phase 1 is complete and the end-of-phase report can be written.
+- Decide whether the hub should get its ceiling light fixtures now (they are structure-pass items) or stay dim until the structure pass.
+- Then Phase 2 (read `08`, `09`, `11` §4–5, `12` §1–5 and §9–11, `14` §5, `map_02`, `map_01` Training Yard).
+
+**User actions needed:**
+- **Save and publish** (Ctrl+S, File → Publish to Roblox).
+- Test 6: in Studio's Test tab choose Device → a phone (landscape), press Play: check that SPRINT, LOG and ≡ appear, that ≡ opens the menu, Settings rows can be changed by tapping, and a prompt (photo in Q-3) works by tapping. Then with a gamepad (if you have one): D-pad Up opens the menu, the stick/D-pad moves the amber selection, A activates, B goes back.
+- Walk from Q-3 to the hangar and up the catwalk; try the Q-3 prompts; press F2 and type `/help`.
+- The profile was wiped at the end of the tests, so you start fresh.
