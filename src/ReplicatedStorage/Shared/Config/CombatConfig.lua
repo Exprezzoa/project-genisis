@@ -110,6 +110,14 @@ CombatConfig.SpeedCheck = {
 -- Action validation tolerances (docs/12 §10).
 CombatConfig.Tolerance = { coreStrikeRange = 4 * S, facing = 10 }
 
+-- The dodge clip for a direction in the Frame's own space (front = -Z).
+function CombatConfig.dodgeClip(localDirection: Vector3): string
+	if math.abs(localDirection.X) > math.abs(localDirection.Z) then
+		return if localDirection.X > 0 then "Dodge_R" else "Dodge_L"
+	end
+	return if localDirection.Z > 0 then "Dodge_B" else "Dodge_F"
+end
+
 function CombatConfig.total(move: { startup: number, active: number, recovery: number }): number
 	return move.startup + move.active + move.recovery
 end

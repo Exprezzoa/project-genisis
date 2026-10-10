@@ -421,3 +421,30 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 - `CharacterController.getControls` waits for the same missing `PlayerModule`, so its control lock (menus, dialogue) may not stop on-foot movement; found here, not fixed, to be checked.
 
 **Next:** step 7 (combat: `Frame_Action` requests, server timelines, hitboxes against the simulacrum, root motion, separation), then the Frame HUD and feel.
+
+**Session 5, continued: step 7 (combat)**
+
+**Done:** `Server/Services/CombatService` (request validation, action timelines on server time, light chain, heavy, special with energy and cooldown, dodge with cancel rules, hitbox sampling at 20 Hz, zone choice, damage and poise, training targets, speed check). `Client/Controllers/CombatController` (input buffer, prediction, following the server, rejection and timeout handling, hitstop, root motion for the dodge and the lunge). `FrameController`: movement lock during actions, root-motion drive, separation. `Bindings.Frame`: Light, Heavy, Dodge, Special, CoreStrike. `CombatConfig.dodgeClip`. Training dummies got `FrameBarrier` boxes. D-049.
+
+**Tested (how → result), play mode, Unit 02, inputs sent with the MCP keyboard and mouse tools, results logged on the server:**
+- Light attack in the hangar → nothing starts (weapons locked).
+- Training Yard, 30 studs from the simulacrum's side. One light → `Light1`, hit after 0.18 s on ArmR for 36 (40 × 0.9), poise 12, back to Idle after 0.60 s.
+- Three lights 0.25 s apart → `Light1` → `Light2` after 0.40 s → `Light3` after another 0.38 s (recovery start + 0.10 s each); hits 36, 40 and, for `Light3`, AnkleR 56 (70 × 0.8) with poise 48 (30 × 1.6); chain over after 0.90 s.
+- Heavy → hit after 0.55 s on Body for 140, poise 50; the lunge carried the Frame forward until separation stopped it 21.8 studs from the simulacrum (13 of its 19.2 studs).
+- Special → energy 100 → 50, hit after 0.40 s for 81 (90 × 0.9), poise 96 (120 × 0.8); a second press 1.8 s later did nothing (cooldown 6 s).
+- Dodge with no input → backstep, about 90 studs (config 88), energy −25. Dodge while holding D → to the camera's right.
+- Heavy, then dodge 0.2 s in → the dodge replaces the heavy (allowed before 0.35 s).
+- Real mouse clicks (left, right) → `Light1`, `Heavy`. Wheel up twice → camera distance 99.2 → 86.4.
+- Separation → a Frame dropped 10 studs from the simulacrum's center was pushed out to 21.8.
+- No speed-check warnings in normal play; Output clean.
+
+**Bugs found and fixed here:** the Frame walked up onto the simulacrum's foot and onto a training dummy (root 36 studs too high), because a Frame's root floats 22 studs up and its Humanoid steps onto what doesn't block it → separation for the simulacrum, `FrameBarrier` boxes for the dummies.
+
+**Not tested:** mouse look (the mouse tool doesn't move the locked cursor); gamepad sticks and touch; the attack, dodge and hit-stop animations seen by eye; rejection feedback on screen (there is no HUD yet); lock-on and Core Strike (they need Titans); a second player.
+
+**Known:**
+- The speed check tripped once in a test where the test script itself teleported the Frame twice within 3 s and the Frame was on top of a dummy; it did not trip again after the barrier fix. Worth watching.
+- A dodge travels about 2 studs further than its 88.
+- A Frame still steps up about 3 studs on something at the hangar's south wall (seen in step 6).
+
+**Next:** step 8 (Frame HUD: integrity and energy bars, ability panel with cooldowns, refusal flashes; feel: dust, blade trail, shake, FOV punches), then step 9 (debug commands, the Training door, Unit 03, the Phase 2 acceptance tests).

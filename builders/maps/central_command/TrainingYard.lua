@@ -134,6 +134,9 @@ function Builder.Build(opts)
 	Builder.simulacrum(BK, G, BK.lookAlong(center, V(1, 0, 0)))
 	for index, position in ipairs(Builder.DUMMIES) do
 		Builder.dummy(BK, G, "TrainingDummy" .. index, BK.lookAlong(position, V(1, 0, 0)))
+		-- A Frame's root floats 22 studs up, so it would walk onto a 36-stud dummy instead of into it (seen in
+		-- play, D-049): every dummy gets a FrameBarrier box.
+		BK.barrier(G, "FrameBarrier_Dummy" .. index, position + V(-6, 0, -10), position + V(6, 40, 10), "FrameBarrier")
 	end
 
 	BK.dismountPad(G, "PAD_TRAINING", V(-200, 0, -110), 22, BK.lookAlong(V(-174, 0, -110), V(1, 0, 0)))

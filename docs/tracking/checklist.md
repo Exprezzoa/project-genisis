@@ -29,9 +29,9 @@ Tick an item only after it was **tested** and the journal records how. Full task
 ## Phase 2 — Frame prototype
 - [ ] Vanguard rig (Units 01/02/03) within budget — Units 02 and 01 built, `RigCheck` passes (320 / 321 parts); Unit 03 (static prop) comes with the hangar bay Detail pass done (D-041): rounded armor, pistons, hoses and cables, 1,291 parts.
 - [x] PoseAnimator + AnimationController — `PoseCheck` 102 cases; play test with a server-driven copy of Unit 02 (journal Session 5); looks not judged by eye yet
-- [ ] FrameService (spawn, park, board, dismount, ownership, state machine, energy) — everything except the action state machine is built and play-tested (journal Session 5); the state machine comes with combat
+- [x] FrameService (spawn, park, board, dismount, ownership, state machine, energy) — play-tested (journal Session 5); the action states live in `CombatService`
 - [x] FrameController + Frame camera — walk, stride, acceleration, turn rate, camera orbit, zoom and collision play-tested with simulated keys (journal Session 5); mouse, gamepad and touch look not tried by hand; root motion, separation, lock-on and shake come with combat
-- [ ] Combat requests, timelines, hitbox sampling vs. simulacrum
+- [x] Combat requests, timelines, hitbox sampling vs. simulacrum — play-tested (journal Session 5): lock in the hangar, light chain, heavy with lunge, special with cost and cooldown, dodge, dodge-cancel, zones and damage, separation; lock-on and Core Strike wait for Titans
 - [ ] Frame HUD + feel (dust, trails, hitstop, shake)
 - [x] Training Yard blockout + simulacrum — `HubCheck` passes, hurtboxes read back (journal Session 5); not yet walked in play mode
 - [ ] Phase 2 acceptance tests all PASS

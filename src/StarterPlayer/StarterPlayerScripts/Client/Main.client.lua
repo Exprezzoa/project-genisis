@@ -37,6 +37,7 @@ local ORDER = {
 	"AnimationController",
 	"NPCAnimator",
 	"FrameController",
+	"CombatController",
 	"FrameHUDController",
 	"VFXController",
 	"AmbientController",

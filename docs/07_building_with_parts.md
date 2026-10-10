@@ -237,7 +237,7 @@ Workspace
 | `NoCollide` | nothing |
 
   Players ↔ FrameRoot, Players ↔ TitanRoot, FrameRoot ↔ TitanRoot and NPCs ↔ Players **do not collide**. Frame/Titan separation is handled in code (`12_combat_system.md` §9).
-- **Frame-scale blocking:** a Frame's HRP spans Y 14–24, so anything lower than 14 studs won't block it physically. Put an invisible `FrameBarrier` box over every building, vehicle cluster or prop group a Frame shouldn't walk through (height 40), and around mission bounds.
+- **Frame-scale blocking:** a Frame's HRP spans Y 22.4–38.4 (64-stud Frames, D-044; it was 14–24), so anything lower than 22 studs won't block it physically, **and a Frame walks up onto anything lower than itself that it isn't blocked by** (it stood on a 36-stud training dummy in play, D-049). Put an invisible `FrameBarrier` box over every building, vehicle cluster or prop group a Frame shouldn't walk through (height 40), and around mission bounds.
 - **Budgets:**
 
 | Area | Max parts | Max lights (any) | Max shadowed lights |

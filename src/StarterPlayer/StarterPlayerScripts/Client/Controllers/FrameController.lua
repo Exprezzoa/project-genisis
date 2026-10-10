@@ -10,16 +10,19 @@
 -- on it. (This place has no PlayerModule in PlayerScripts to ask for a move vector.)
 --
 --   getFrame() -> Model?          the Frame this player pilots
+--   setAction(busy, velocity?)    CombatController: no walking while an action runs; velocity = its root motion
 --   isStriding() -> boolean
 --   getState() -> { speed, target, heading, striding }       -- for tests
 --   Piloting: Signal(frame?)      fired when the player starts or stops piloting
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Bindings = require(Shared.Config.Bindings)
+local CombatConfig = require(Shared.Config.CombatConfig)
 local FrameConfig = require(Shared.Config.FrameConfig)
 local Signal = require(Shared.Modules.Signal)
 
@@ -30,6 +33,7 @@ local SettingsController = require(script.Parent.SettingsController)
 -- Frame states in which the pilot may walk (docs/09 §4). Attacks get their own rules with combat.
 local MOVING_STATES = { Idle = true }
 local INPUT_EPSILON = 0.05
+local SEPARATION_REFRESH = 1 -- seconds between looks for the bodies to keep away from
 
 local FrameController = {}
 
@@ -47,6 +51,11 @@ local heading = 0 -- radians, same convention as the camera's yaw
 local moveDirection = Vector3.zero
 local striding = false
 local watched: { [Model]: RBXScriptConnection } = {}
+local busy = false -- an action runs: no walking, no turning
+local rootVelocity: Vector3? = nil -- the action's root motion (dodge, lunge), world XZ
+local rootMotion: LinearVelocity? = nil
+local bodies: { { root: BasePart, radius: number } } = {}
+local bodiesAt = 0
 
 -- The pilot sits inside the chest: hidden on their own screen, and never able to jump out of the seat.
 local function setPilotHidden(hidden: boolean)
@@ -75,12 +84,67 @@ local function turnToward(from: number, to: number, step: number): number
 	return from + math.clamp(delta, -step, step)
 end
 
+-- Separation (docs/12 §9): Titans and other standing Frames push this Frame out of their bodies; they never
+-- move for it. A Titan is any model with a TargetId and hurtboxes (the training simulacrum counts).
+local function refreshBodies(own: Model)
+	table.clear(bodies)
+	local seen: { [Model]: boolean } = {}
+	for _, hurtbox in ipairs(CollectionService:GetTagged("Hurtbox")) do
+		local model = hurtbox:FindFirstAncestorWhichIsA("Model")
+		if model and not seen[model] and model:GetAttribute("TargetId") ~= nil and model.PrimaryPart then
+			seen[model] = true
+			table.insert(bodies, { root = model.PrimaryPart, radius = CombatConfig.Separation.titanRadius })
+		end
+	end
+	local folder = own.Parent
+	for _, other in ipairs(if folder then folder:GetChildren() else {}) do
+		if other ~= own and other:IsA("Model") and other.PrimaryPart and other:GetAttribute("State") ~= "Parked" then
+			table.insert(bodies, { root = other.PrimaryPart, radius = CombatConfig.Separation.allyRadius })
+		end
+	end
+end
+
+local function separation(own: Model, position: Vector3): Vector3
+	if os.clock() - bodiesAt > SEPARATION_REFRESH then
+		bodiesAt = os.clock()
+		refreshBodies(own)
+	end
+	local push = Vector3.zero
+	for _, body in ipairs(bodies) do
+		if body.root.Parent then
+			local away = (position - body.root.Position) * Vector3.new(1, 0, 1)
+			local distance = away.Magnitude
+			if distance < body.radius and distance > 0.01 then
+				push += away.Unit * math.min(CombatConfig.Separation.maxPush, (body.radius - distance) * CombatConfig.Separation.gain)
+			end
+		end
+	end
+	return push
+end
+
 local function update(dt: number)
 	local model, pilotHumanoid, rootPart = frame, humanoid, root
 	if not (model and pilotHumanoid and rootPart and rootPart.Parent) then
 		return
 	end
-	local canMove = MOVING_STATES[model:GetAttribute("State")] == true and InputController.getContext() == "Frame"
+	local canMove = not busy and MOVING_STATES[model:GetAttribute("State")] == true and InputController.getContext() == "Frame"
+
+	-- Root motion (docs/11 §5.6): the action moves the Frame, not the legs.
+	local push, drive = rootVelocity, rootMotion
+	if drive then
+		drive.Enabled = push ~= nil
+		if push then
+			local apart = separation(model, rootPart.Position)
+			drive.PlaneVelocity = Vector2.new(push.X + apart.X, push.Z + apart.Z)
+			speed, target = 0, 0
+			pilotHumanoid.WalkSpeed = 0
+			pilotHumanoid:Move(Vector3.zero, false)
+			if facing then
+				facing.CFrame = CFrame.Angles(0, heading, 0)
+			end
+			return
+		end
+	end
 
 	local input = Vector3.zero
 	local character = player.Character
@@ -118,9 +182,11 @@ local function update(dt: number)
 		facing.CFrame = CFrame.Angles(0, heading, 0)
 	end
 
-	-- While it slows down with no input the Frame keeps going the way it went.
-	pilotHumanoid.WalkSpeed = speed
-	pilotHumanoid:Move(if speed > 0.01 then moveDirection else Vector3.zero, false)
+	-- While it slows down with no input the Frame keeps going the way it went. Separation is added on top.
+	local velocity = moveDirection * speed + separation(model, rootPart.Position)
+	local pace = velocity.Magnitude
+	pilotHumanoid.WalkSpeed = pace
+	pilotHumanoid:Move(if pace > 0.01 then velocity.Unit else Vector3.zero, false)
 end
 
 local function stop()
@@ -129,6 +195,11 @@ local function stop()
 		return
 	end
 	RunService:UnbindFromRenderStep("PG_FrameMove")
+	if rootMotion then
+		rootMotion:Destroy()
+		rootMotion = nil
+	end
+	busy, rootVelocity = false, nil
 	if oldHumanoid and oldHumanoid.Parent then
 		oldHumanoid.WalkSpeed = 0
 		oldHumanoid:Move(Vector3.zero, false)
@@ -160,6 +231,18 @@ local function start(model: Model)
 	speed, target, striding = 0, 0, false
 	moveDirection = rootPart.CFrame.LookVector
 	heading = yawOf(moveDirection)
+	-- The root-motion drive: a velocity in the ground plane, on while an action asks for one.
+	local drive = Instance.new("LinearVelocity")
+	drive.Name = "RootMotion"
+	drive.Attachment0 = rootPart:FindFirstChild("FacingAttachment") :: Attachment?
+	drive.RelativeTo = Enum.ActuatorRelativeTo.World
+	drive.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+	drive.PrimaryTangentAxis = Vector3.xAxis
+	drive.SecondaryTangentAxis = Vector3.zAxis
+	drive.MaxForce = math.huge
+	drive.Enabled = false
+	drive.Parent = rootPart
+	rootMotion = drive
 	setPilotHidden(true)
 	InputController.setContext("Frame")
 	CameraController.setFrame(model)
@@ -188,6 +271,10 @@ end
 
 function FrameController.getFrame(): Model?
 	return frame
+end
+
+function FrameController.setAction(isBusy: boolean, velocity: Vector3?)
+	busy, rootVelocity = isBusy, velocity
 end
 
 function FrameController.isStriding(): boolean
