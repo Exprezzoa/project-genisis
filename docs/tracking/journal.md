@@ -93,3 +93,39 @@ No open bugs.
 - The user answered **yes** to Q-005, Q-006 and Q-008 → D-018 (lighting: `LightingStyle = Realistic` + `PrioritizeLightingQuality = true`, checked against the Roblox reference, `06` §5 updated, **not applied in Studio yet**), D-019 (remove Baseplate and SpawnLocation in Phase 1), D-020 (Git).
 - Git: repository initialized on branch `master`; commit `427ffbd` = the verified Phase 0 state (65 files); a second commit holds this follow-up.
 - This follow-up changed nothing in the place.
+
+### Session 2 — 2026-10-09 — Phase 1 (in progress)
+**Goal this session:** Phase 1 in the build order given to the user (15 steps: shared modules → bootstrap → services → saving → hub blockout → Elias → lighting → UI → interactions → debug → acceptance tests).
+
+**Studio state found at start:** exactly the end of Phase 0 (no game code, Baseplate and SpawnLocation present, `LightingStyle = Soft`, StarterPlayer defaults). Same Studio session as Session 1.
+
+**Done so far (each pushed, checksum-equal to the local file, committed):**
+- Step 1: `Shared/Modules` Log, Signal, Trove, Easing, MathUtil, TableUtil, RateLimiter, StateMachine, Types, Net (+ `Net/Validate`, `Net/Definitions`: all 25 remotes of `16` §5), `Config/GameConfig`. Check: `DevTools.Checks.SharedCheck`.
+- Step 2: `Shared/Modules/Loader`, `Server/Main.server`, `Client/Main.client`; empty `Services`, `Controllers`, `UI`, `Sequence`, `Titans` folders in Studio.
+- Step 4a: `CollisionService`, `ZoneService`, `TriggerService`, `InteractionService`, `Config/Zones`.
+- `ServerScriptService.DevTests` (Studio-only test bridge, `ServerStorage.DevBridge`; gated by `DevTools` attribute `RunTests`, now true).
+
+**Tested so far (how → result):**
+- `SharedCheck.Full()` in edit mode → PASS 12/12, twice (signals, Trove cleanup order, 9 eases, token buckets with a fake clock, state machine, payload validators incl. NaN/infinity/non-unit vectors/65-char strings/unknown keys, handler wrap, Loader order and failure messages).
+- Bootstrap in play mode → PASS: `ServerReady` set, 25 remotes on server and client, `Client_Ready` → `Server_Ready`, player attribute `ClientReady`.
+- Boot failure → PASS: a temporary broken `DebugService` stopped the boot with `[Main] DebugService.Init failed: ...` plus a stack; `ServerReady` stayed nil. Module removed afterwards.
+- Collision matrix → PASS: all 45 group pairs equal `07` §5 (read back with `CollisionGroupsAreCollidable`).
+- Zones → PASS: origin = `OpsHall`, Q-3 = `Quarters`, hangar, bunker, void = nil; `Zone` attribute replicated.
+- Triggers → PASS: walking into and out of a test box fired `Entered`/`Exited(…, foot)` once each; `isInside` correct.
+- Interactions → PASS: prompt in range accepted (`Interacted` fired); `Once` prompt disabled for that player only (`PromptOff_<id>` attribute); `canInteract` refuses Frame-only on foot, too far, disabled, dead character, unknown id.
+- Output after each play test → no errors, no warnings.
+
+**Known bugs:**
+```
+BUG-2: "Once per session" rate limit let a second Client_Ready through
+Where: Shared/Modules/RateLimiter   Severity: major
+Repro: 1) play 2) fire Client_Ready again from the client a few seconds after boot
+Expected: dropped   Actual: accepted (a second Server_Ready came back)
+Notes / suspected cause: buckets were kept in a weak-keyed table; a Player key with no other Luau reference was collected, so the player got a fresh bucket.
+Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemoving; play test: 2 extra Client_Ready calls both dropped)
+```
+
+**Notes:**
+- MCP snippets run in a different script context than game scripts, so `require` returns a separate copy of each module. Running services are reached through the DevBridge instead.
+- The engine only fires `ProximityPrompt.Triggered` for the prompt it currently shows, so server-side refusals are tested through `InteractionService.canInteract`.
+- Per `map_00` §2 order, the top of the east stairwell (Y > 21) resolves to `Arrival`, not `ObservationDeck`. Both zones have identical lighting/reverb/weapons, so nothing changes; left as specified.
