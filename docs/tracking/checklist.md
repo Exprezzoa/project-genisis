@@ -14,13 +14,13 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [x] Workspace settings applied (StreamingEnabled false, etc.) — SignalBehavior isn't scriptable; verified Deferred by behavior (D-015)
 
 ## Phase 1 — Foundation
-- [ ] Shared modules (Net, Signal, Trove, Log, RateLimiter, StateMachine, Easing, MathUtil)
-- [ ] Bootstrap (server/client Main) with Init/Start ordering
-- [ ] CollisionService, ZoneService, TriggerService, InteractionService, CharacterService
-- [ ] PlayerDataService v1 (+ session lock, retries, memory-only fallback), FlagService, settings persistence
-- [ ] Central Command blockout (all areas) + hangar shell + launch platform blockout
-- [ ] Gameplay objects placed (spawns, triggers, prompts, nav nodes, waypoints)
-- [ ] Elias StarterCharacter; default animations verified; AnimationIds captured
+- [x] Shared modules (Net, Signal, Trove, Log, RateLimiter, StateMachine, Easing, MathUtil) — SharedCheck 12/12 (journal Session 2)
+- [x] Bootstrap (server/client Main) with Init/Start ordering — play-tested incl. a failing service
+- [x] CollisionService, ZoneService, TriggerService, InteractionService, CharacterService — play-tested; the client side of the control lock and sprint comes with the UI step
+- [x] PlayerDataService v1 (+ session lock, retries, memory-only fallback), FlagService, settings persistence — verified at server level (5 play sessions); the Settings menu itself is part of the UI item
+- [x] Central Command blockout (all areas) + hangar shell + launch platform blockout — HubCheck and NavCheck pass; not yet checked by eye (screenshots failed); stairwell layout provisional (Q-009); Training Yard is Phase 2 (D-026)
+- [x] Gameplay objects placed (spawns, triggers, prompts, nav nodes, waypoints) — 3 helper nav nodes pending Q-010
+- [x] Elias StarterCharacter; default animations verified; AnimationIds captured
 - [ ] UI foundation (style, components, fade, on-foot HUD, prompts, Mission Log shell, Settings, loading screen)
 - [ ] Lighting presets + controller
 - [ ] DebugService/Controller

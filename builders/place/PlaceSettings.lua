@@ -21,6 +21,7 @@ local WANTED = {
 	{ "StarterPlayer", "DevCameraOcclusionMode", Enum.DevCameraOcclusionMode.Zoom },
 	{ "StarterPlayer", "AutoJumpEnabled", true },
 	{ "StarterPlayer", "EnableMouseLockOption", false },
+	{ "StarterPlayer", "LoadCharacterAppearance", false }, -- the StarterCharacter (Elias) keeps its own look
 	{ "Players", "CharacterAutoLoads", false },
 	{ "Lighting", "LightingStyle", Enum.LightingStyle.Realistic },
 	{ "Lighting", "PrioritizeLightingQuality", true },

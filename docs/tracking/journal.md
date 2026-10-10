@@ -129,3 +129,39 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 - MCP snippets run in a different script context than game scripts, so `require` returns a separate copy of each module. Running services are reached through the DevBridge instead.
 - The engine only fires `ProximityPrompt.Triggered` for the prompt it currently shows, so server-side refusals are tested through `InteractionService.canInteract`.
 - Per `map_00` §2 order, the top of the east stairwell (Y > 21) resolves to `Arrival`, not `ObservationDeck`. Both zones have identical lighting/reverb/weapons, so nothing changes; left as specified.
+
+**Session 2, continued (same day):**
+
+**Done:**
+- Step 4b/5: `PlayerDataService` v1 (load with session lock, migrate/reconcile, autosave, leave and shutdown saves, read-only and memory-only modes, `Profile_Snapshot`, `Settings_Update`), `FlagService`, `CharacterService` (spawn after profile load, respawn at last spawn, teleport, control-lock attribute), `tools/checksum.ps1`.
+- Steps 6–8: 17 map builders + `builders/maps/Common.lua` (marker and nav registries). Blockout of all hub areas (Ops Hall with mezzanine, both corridors, Quarters, Briefing, Equipment, Medical, Observation Deck, stairwell, Research + Voss Lab shell, Arrival, exterior ground + perimeter) and of the hangar (shell, bay markings, catwalks/main stair/bridges, gate corridor, launch platform deck). Gameplay objects: 28 markers, 9 prompts, 4 triggers, 9 cam points, 3 doors, 51 nav nodes, FrameBarriers and PlayerBarriers. **871 parts** (hub 505, hangar 366), 0 lights.
+- Checks: `DevTools.Checks.HubCheck`, `DevTools.Checks.NavCheck`.
+- Step 9: `builders/place/PlaceSettings.lua` applied (D-028); **Baseplate and SpawnLocation removed** (D-019).
+- Step 10: `R15Base` in `Templates.Rigs`; `CharacterKit` + `Elias` → `StarterPlayer.StarterCharacter` (16 body parts + 25 gear parts); `Config/AnimationIds` read from the live Animate script.
+
+**Tested (how → result):**
+- Saving, 5 play sessions → PASS: fresh profile loaded in < 1.5 s and the character spawned at `SPAWN_Q3_DESK` facing −Z; a flag and a `Settings_Update` (camSensitivity 1.5, subtitleSize L) were in the raw DataStore entry with this session's lock (`saveCount` 1); after Stop the entry had `_lock = nil`, `saveCount` 2; after Play again both values were back (**acceptance test 4 at server level**). An out-of-range setting (9) was rejected. `player:Kick()` → entry saved with the new flag, lock released, `Saved(…, leave)` (**first half of acceptance test 5**). A foreign lock written 12 s before joining → 6 tries × 5 s, then stolen with a warning, flags intact (30 s; a lock that is released normally is taken on the next try). `TestDataStoreFailure` → 5 logged attempts, read-only session, toast "Couldn't load your save…", play continued, stored entry byte-identical afterwards. `TestMemoryOnly` → the exact warning of `17` §1, character spawned, nothing written. Autosave fired at 120 s.
+- CharacterService → PASS: teleport to `SPAWN_OPS`; killing the character respawned it there after 2.9 s; characters are in the `Players` group; the `PlayerBarrier` stopped the character (X −27.5 against a face at −28) while a `FrameBarrier` didn't.
+- `HubCheck` → PASS: every registry id exactly once (deferred ids absent), 17 door openings, smallest 5 × 8 (**acceptance test 2**), 13 area bounds within 1 stud, budgets 505/9,000 and 366/6,000.
+- `NavCheck` → PASS: 51 nodes, 50 links, floor + headroom on every node, every link walkable both ways, graph connected. First runs failed on the doc's stairwell and on three links (Q-009, Q-010) and found a railing collider leaning over the landing (fixed in the builder).
+- Play-mode walk test → PASS: from Q-3, all 50 links walked with `Humanoid:MoveTo` at walk speed in 5 routes, 1,787 studs, never stuck, worst delay over the straight-line time 0.22 s; zones and `TRG_BRIEFING_ENTER` / `TRG_HANGAR_REVEAL` fired on the way (**acceptance test 1**, server-driven; a hands-on walk by the user is still worth doing).
+- Without Baseplate → PASS: removed during a play session first; the character stayed at Y 3.06 on `SmoothPlastic`, then walked all routes.
+- Elias → PASS: spawns as the built character (suit, skin, gloves, boots colors read back), 0 avatar accessories, default `Animate` present, idle track while standing, `WalkAnim`/`RunAnim` tracks while walking.
+- Output after every play test → no errors; warnings only where a test provoked them (failed loads, lock steal, rejected payload).
+
+**Not tested / limitations:**
+- **Screenshots: untested.** `screen_capture` returned a black viewport twice this session, so nothing built today was checked by eye. Please look at the hub and send screenshots.
+- Once, a client snippet found the fresh character 17 studs from the spawn (in the Quarters hallway). Not reproduced: an 8-second position trace after spawn in the next session stayed on the spawn. Possibly keyboard input in the play window. To watch.
+- The interiors have no light fixtures yet (blockout pass); with the roofs on they will be dim until the lighting step.
+
+**Next steps (Phase 1, remaining):**
+- Step 11: `Config/LightingPresets` + `LightingController` (MORNING), verified against `06` §5; decide with screenshots whether the blockout needs the fixture lights of the structure pass.
+- Step 12: UI foundation (`UIStyle`, components, fade, HUD with objective/toasts/subtitles, custom prompts, Mission Log shell, Settings menu, loading screen), `InputController`, `CharacterController` (sprint, control lock).
+- Step 13: static interaction handlers (photo, locker, window, poster, holo, status wall, research door) → thought subtitles.
+- Step 14: `DebugService` / `DebugController`.
+- Step 15: acceptance tests 3, 5 (rejoin part), 6, 7 and the regression list; end-of-phase report.
+
+**User actions needed:**
+- **Save and publish now** (Ctrl+S, File → Publish to Roblox): the hub blockout exists and the Baseplate is gone; publishing creates the version to roll back to.
+- Answer Q-009 (stairwell layout) and Q-010 (three helper nav nodes).
+- Send 4–6 screenshots: Q-3, Ops Hall from the south door, the mezzanine stairs, the stairwell gallery, the hangar from the south entrance, the catwalk stair.
