@@ -386,3 +386,13 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Known:** the Frame is 51.2 wide in a 50-wide bay (the pauldron hubs touch the painted lines). The Breaker Blade is now 45 long and sticks far out of the bay, as it did before in proportion.
 
 **Next:** step 6 (FrameController and the Frame camera), then combat.
+
+**Session 5, continued: boarding bug; the Watcher**
+
+**Done:** D-046 (Frame sank into the floor on boarding: Humanoid states are now disabled on clients too), D-047 (the Watcher is the user's `AttackTitan` model, 80 studs). Q-014 answered, Q-015 opened (cyan glow on the model).
+
+**Tested (how → result):** play mode, the Frame's root height sampled on the client every rendered frame during boarding. Before the fix: 30.4 → 8.0 within 0.4 s of being unanchored, held for 2.5 s, back to 30.4; the client's Humanoid went `FallingDown → GettingUp → Running`. After the fix: the client's Humanoid starts in `Running`, the root stays between 30.39 and 30.40 through the whole boarding, no state changes. Output clean. `FrameConfig`, `FrameService`, `AnimationController` match Studio by checksum.
+
+**Not tested:** the same on a second player's client (one-player Studio test only); re-boarding a kneeling Frame after this change (it uses the same path).
+
+**Next:** step 6 (FrameController and the Frame camera), then combat.

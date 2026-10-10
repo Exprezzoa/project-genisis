@@ -45,6 +45,11 @@ FrameConfig.Units = {
 	-- Unit 03 is a static repair prop (no rig, no joints); the hangar builder places it.
 }
 
+-- Humanoid states a giant rig must never enter (docs/08 §2.6). Disabling a state doesn't replicate, so the
+-- server and every client switch them off for each rig. Found in play: a parked Frame's Humanoid was
+-- "FallingDown" on the client, so on boarding the Frame dropped onto its root and took 3 s to get up (D-046).
+FrameConfig.DisabledStates = { "Dead", "Ragdoll", "FallingDown", "GettingUp", "Climbing", "Swimming", "Jumping", "Seated", "PlatformStanding" }
+
 -- Facing control (docs/08 §2.1).
 FrameConfig.Align = { responsiveness = 40 }
 

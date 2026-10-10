@@ -114,6 +114,14 @@ function AnimationController.register(model)
 		Log.warn(TAG, "can't animate %s: no pose set for class %s or no root", model.Name, tostring(class))
 		return
 	end
+	-- A giant rig never falls over or gets up; this has to be switched off on every client too (D-046).
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid and FrameConfig[class] then
+		for _, name in ipairs(FrameConfig.DisabledStates) do
+			humanoid:SetStateEnabled(Enum.HumanoidStateType[name], false)
+		end
+		humanoid:ChangeState(Enum.HumanoidStateType.Running)
+	end
 	local motors = {}
 	for _, descendant in ipairs(model:GetDescendants()) do
 		if descendant:IsA("Motor6D") then

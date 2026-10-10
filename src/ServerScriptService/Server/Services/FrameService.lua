@@ -34,7 +34,7 @@ local ZoneService = require(script.Parent.ZoneService)
 
 local TAG = "FrameService"
 local FOLDER = "Frames"
-local DISABLED_STATES = { "Dead", "Ragdoll", "FallingDown", "Climbing", "Swimming", "Jumping" }
+local DISABLED_STATES = FrameConfig.DisabledStates
 local ENERGY_PUBLISH = 0.1 -- seconds between Energy attribute updates while it regenerates
 -- Where the "Board Frame" prompt of a kneeling Frame sits, relative to the root: on the ground under the hand
 -- the Kneel pose holds out. (Poses only exist on clients, so on the server the hand itself is still at rest.)
@@ -149,6 +149,7 @@ function FrameService.spawnFrame(unitId, spawnId)
 	for _, state in ipairs(DISABLED_STATES) do
 		humanoid:SetStateEnabled(Enum.HumanoidStateType[state], false)
 	end
+	humanoid:ChangeState(Enum.HumanoidStateType.Running)
 	-- A Humanoid switches collisions back on for its torso parts every frame, whatever CanCollide says, so every
 	-- part except the root goes into the group that collides with nothing.
 	CollisionService.assignModel(frame, "NoCollide")
