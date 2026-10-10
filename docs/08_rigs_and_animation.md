@@ -167,6 +167,8 @@ return {
 }
 ```
 - Missing joints in a key **inherit the previous key's value** for that joint (not identity), so keys can be sparse. The first key should be a full named pose.
+- A key whose `pose` is a **name** is a full pose: joints that pose doesn't list go back to rest (otherwise a root drop from an earlier key would stay forever). A key with an inline pose stays sparse (D-037).
+- Clip flags: `loop`, `upperBodyOnly`, and `hold` (the clip stays in its last key at full weight until another clip replaces it: `Kneel`, `Disabled`).
 - Ease names: `Linear, SineIn, SineOut, SineInOut, QuadIn, QuadOut, QuadInOut, CubicOut, BackOut`.
 - **Event names are visual-only on clients** (trails, sounds, particles, shakes). **Gameplay timing (hitboxes) is driven by the server from `CombatConfig`**, which uses the same numbers. Keep both in sync; `CombatConfig` is authoritative.
 
@@ -177,6 +179,7 @@ Final `Transform` per joint each frame:
 - **Action layer:** the current clip (attack, dodge, kneel...). `actionWeight` fades 0→1 over `blendIn` and 1→0 over `blendOut`. If an action clip covers a joint, it **replaces** locomotion for that joint at weight 1, except leg joints during `upperBodyOnly` clips (flag on the clip; Light1–3 are `upperBodyOnly = false`, but the Pile Driver is `upperBodyOnly = true` when moving).
 - **Additive layer:** breathing (Waist ±1.5° X at 0.25 Hz), head look-at (Neck yaw/pitch toward `LookTarget`, clamped ±60°/±30°), hit flinches, the anomaly head override.
 - Implementation: `Shared/Modules/PoseAnimator.lua` (pure math, no Roblox services) plus the client `AnimationController` that runs it in `RunService.PreSimulation` for every animated rig.
+- A rig is animated when its Model carries the tag **`PoseRig`** and the attribute `Class` (the name of its pose set). When a clip starts while another is still showing, the action layer cross-fades from the old pose over the new clip's `blendIn`.
 
 ### 4.4 Network sync
 - The server owns **what** a rig is doing. It sets attributes on the rig Model:
@@ -242,6 +245,13 @@ Timing must equal `CombatConfig` (`12_combat_system.md` §3). Values below are s
 | `Disabled` | 1.8 | end pose: Root (0,−9,0), L/R Hip (80,0,0), L/R Knee (−110,0,0), Waist (−30,0,0), Neck (−40,0,0), shoulders (10,0,±5), elbows (5,0,0); the visor goes dark (event `VisorOff` 1.2) |
 | `HeadTurnAnomaly` | 2.5 (hold) | additive Neck yaw toward a world direction (computed), max ±70°, SineInOut |
 | `TapIdleHangar` | loop | Idle with weapons lowered (blade tip angled down 30° more) for in-hangar movement |
+
+**Tuned while building (D-037; checked with PosePreview by measuring where the feet, blade tip and spike end up):**
+- **Feet stay on the floor.** Every key that drops the Root also folds the legs: hips +a, knees −2a, ankles +a, where the body sinks 17 × (1 − cos a) studs (a = 20° for −1, 21° for −1.2, 24° for −1.5, 34° for −3). This replaces `Heavy`'s knees (−30, 0, 0).
+- `Light3`: RightWrist (−70, 0, 0) from the 0.32 key, so the blade tip reaches the ground for `GroundImpact` (with the listed angles alone it stopped 25 studs up).
+- `Special_PileDriver` thrust (0.45): Waist (−18, −20, 0), LS (55, 0, −5) instead of Waist (0, −20, 0), LS (85, 0, −5): the spike tip lands at about (−8, 9, −24) in front of the Frame, at the move's low aim point, instead of 30 studs up.
+- `Kneel`: Root (0, −7, 0), LH (80, 0, 0), LK (−80, 0, 0): the front foot stands on the floor. `Disabled`: Root (0, −8, 0) plus ankles (30, 0, 0).
+- `Dodge_*` lasts 0.45 (0.35 + 0.10 settle); the legs tuck without a root drop, so the Frame hops on its thrusters.
 
 ### 5.2 Strider
 | Clip | Duration | Notes |

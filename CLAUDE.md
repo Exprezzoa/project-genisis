@@ -96,7 +96,7 @@ This file is short on purpose. The full specification lives in `docs/`. **Read t
 - **Axes:** North = −Z, South = +Z, East = +X, West = −X. Ground floor top surface = Y 0.
 - **Map coordinates** in the map docs are wall **centerlines**. Exterior walls are 2 studs thick, interior walls 1, hangar walls 3.
 - **Naming:** PascalCase for instances (`Bay2_AccessBridge`), `UPPER_SNAKE` for config keys and flags (`CH1_BRIEFED`), camelCase for Luau locals and functions.
-- **Tags (CollectionService):** `Interactable`, `DismountPad`, `Trigger`, `AmbientMover`, `Hurtbox`, `CinematicCam`, `SpawnPoint`, `EvidenceItem`, `NoCollideCamera`.
+- **Tags (CollectionService):** `Interactable`, `DismountPad`, `Trigger`, `AmbientMover`, `Hurtbox`, `CinematicCam`, `SpawnPoint`, `EvidenceItem`, `NoCollideCamera`, `PoseRig`.
 - **Colors:** use only palette hex values from `docs/06_art_direction.md`.
 - **Colors are meaning:** amber = Directorate/UI. Orange-red glow = feral Titans. **Cyan (#7FE3F0) = Lattice resonance / Shifters. Use cyan nowhere else.**
 

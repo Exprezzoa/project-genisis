@@ -301,3 +301,19 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 **Known:** the first RigCheck run reported every part as not joined (`GetConnectedParts` returns nothing outside Workspace); the check now walks the joints itself and caps its messages at 20.
 
 **Next:** step 3 (PoseAnimator, `Shared/Poses/Vanguard`, PosePreview, AnimationController).
+
+**Session 5, continued: step 3 (pose animator)**
+
+**Done:** `Shared/Modules/PoseAnimator` (compile, sample, weight, gait, compose), `Shared/Poses/Vanguard` (19 clips), `builders/tools/PosePreview` (edit-mode forward kinematics), `builders/checks/PoseCheck`, `Client/Controllers/AnimationController` (locomotion, action layer with cross-fade, breathing, head look, attribute sync, prediction hooks, hitstop, distance LOD, clip and footfall signals). Rojo declined by the user (Q-004 closed): code stays MCP-only.
+
+**Tested (how → result):**
+- Checksums local vs Studio → all 5 files match.
+- `PoseCheck` in edit mode → PASS, 102 cases: every clip of `08` §5.1 exists, every pose joint is a rig joint, clip durations and HitboxStart/End equal `CombatConfig` for all 5 moves, dodge and Core Strike timings, sampling, inherited joints, weights, gait at phases 0, 0.25, 0.5, speed blend, upperBodyOnly, rotation convention, events.
+- PosePreview, measured in the rig's space for 12 poses → feet within 0.1 stud of the floor in every attack pose (Kneel 0.4, Disabled 0.7 into the floor); Light1 swings the blade tip from the right (26, 46, −25) to the left (−35, 20, −5); Light3 raises it overhead and ends with the tip at ground level; the spike tip reaches (−8, 9, −24).
+- Play mode with a test copy of Unit 02 in the Training Yard area, server-owned → the rig stands (HRP 19.0 above the ground, upright, Running state, mass 420). The client saw the server's clips 0.01 s after they were set; Light1 turned the waist from −35° to +35° (past −30° at 0.12 s, past +30° at 0.29 s); the spike was fully out 0.46 s into the Pile Driver; the action layer cleared after Light1 ended; walking at 30 studs/s ran the gait at full amplitude; Kneel ended held at weight 1 with the root 7 studs down. Output clean.
+
+**Fixed on the way:** the clip's playback rate and the rig's walking speed shared one field, so clips froze while the Frame stood still (first play test: waist stayed within ±5°).
+
+**Not tested:** how the poses and the walk look to the eye. Viewport captures came back black three times in a row while the previews stood there (the first two rig captures earlier had worked), so the poses were judged from measured positions only. Prediction (`playLocal`, `cancelLocal`), hitstop and the LOD distances have no caller yet.
+
+**Next:** step 4 (Training Yard blockout, Titan Simulacrum, dismount pad), then FrameService.

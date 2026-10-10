@@ -28,7 +28,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 
 ## Phase 2 — Frame prototype
 - [ ] Vanguard rig (Units 01/02/03) within budget — Units 02 and 01 built, `RigCheck` passes (320 / 321 parts); Unit 03 (static prop) comes with the hangar bay
-- [ ] PoseAnimator + AnimationController
+- [x] PoseAnimator + AnimationController — `PoseCheck` 102 cases; play test with a server-driven copy of Unit 02 (journal Session 5); looks not judged by eye yet
 - [ ] FrameService (spawn, park, board, dismount, ownership, state machine, energy)
 - [ ] FrameController + Frame camera
 - [ ] Combat requests, timelines, hitbox sampling vs. simulacrum
