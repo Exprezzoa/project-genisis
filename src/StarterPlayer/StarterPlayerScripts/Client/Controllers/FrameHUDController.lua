@@ -233,10 +233,10 @@ local function buildSystem()
 	panel.BackgroundTransparency = 1
 	panel.AnchorPoint = Vector2.new(0, 0.5)
 	panel.Position = UDim2.new(0, 32, 0.45, 0)
-	panel.Size = UDim2.fromOffset(240, 66)
+	panel.Size = UDim2.fromOffset(240, 88)
 	panel.Parent = root
 	Components.slab(panel, { color = UIStyle.Accent, slant = false }, { Name = "Edge", Size = UDim2.new(0, 2, 1, 0) })
-	for index, name in ipairs({ "Sync", "Armor", "Thrusters" }) do
+	for index, name in ipairs({ "Sync", "Armor", "Thrusters", "Aim" }) do
 		systemLines[name] = Components.label(panel, "", { font = "Mono", size = UIStyle.TextSize.Tiny, color = UIStyle.TextSecondary }, {
 			Name = name, Position = UDim2.fromOffset(12, (index - 1) * 22), Size = UDim2.new(1, -12, 0, 20),
 		})
@@ -392,6 +392,9 @@ local function update()
 	systemLines.Armor.TextColor3 = if integrity < LOW then UIStyle.Danger else UIStyle.TextSecondary
 	systemLines.Thrusters.Text = "THRUSTERS " .. (if thrusters then "RECHARGING" else "READY")
 	systemLines.Thrusters.TextColor3 = if thrusters then UIStyle.Accent else UIStyle.TextSecondary
+	local aim = FrameController.isShiftLocked()
+	systemLines.Aim.Text = "AIM LOCK " .. (if aim then "ON" else "OFF") .. "  [" .. InputController.glyph("ShiftLock") .. "]"
+	systemLines.Aim.TextColor3 = if aim then UIStyle.Accent else UIStyle.TextSecondary
 	reticle.Visible = not locked
 end
 

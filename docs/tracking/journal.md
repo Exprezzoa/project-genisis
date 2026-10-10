@@ -499,3 +499,17 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 - A test batch that aborted left a key held down, which made one run walk the Frame backwards; a reminder to release keys after a failed input batch.
 
 **Next:** Phase 2 is complete except test 7's stick and touch part, which needs the user. Then Phase 3 (the Strider): first the redesigned, human-looking Strider part list for the user's approval (D-039).
+
+**Session 5, continued: full-body swings, moving while attacking, aim lock, cockpit tint, pilot mask (user feedback, D-055)**
+
+**Tested (how → result):**
+- Stances: previews of `Light1` at 0.35 / 0.45 / 0.55 → wide stance turned right, crouch, stance on the other foot turned left; both feet at Y 2.3–2.5 in every phase (2.4 = flat on the floor). `PoseCheck` PASS with two expectations updated.
+- Play mode, Training Yard: walking at 48, a light attack started → speed 29 for the whole attack (0.6 × 48), 48 again after; heading unchanged during it.
+- Aim lock: Left Ctrl with the Frame facing 90° off the camera → it turned to the camera's heading in about 0.4 s (220°/s); holding D then moved it sideways at 48 with the heading fixed. Ctrl again switched it off. The HUD line read `AIM LOCK OFF [CTRL]`.
+- Tint: `Lighting.PG_CockpitTint` at `#FFE7BF` while piloting; a play-mode screenshot shows the warm view.
+- Mask: three-view preview → no skin visible on the head; visor, rebreather and filters read from the front. `StarterCharacter` rebuilt, 94 parts.
+- Output clean. All changed files match Studio by checksum.
+
+**Not tested:** how the stances and the walking-while-swinging look in motion; the tint under the hangar's lighting; aim lock with a real mouse turning the camera; the mask on a moving character in play; the tint going away on dismount (the tween is the same code path as coming on).
+
+**Known:** feet slide a little between the two stances (there is no foot planting). The touch `AIM` button doesn't exist yet.

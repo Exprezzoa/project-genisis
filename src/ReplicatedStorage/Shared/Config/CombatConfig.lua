@@ -17,6 +17,7 @@ CombatConfig.PREDICTION_TIMEOUT = 0.25 -- the client drops a predicted action th
 CombatConfig.CHAIN_DELAY = 0.15 -- a queued light starts this long after the previous light's recovery begins
 CombatConfig.RECOVERY_CANCEL = 0.5 -- fraction of a Light/Heavy recovery after which Dodge may cancel it
 CombatConfig.MERCY = 0.4 -- seconds of invulnerability after being hit
+CombatConfig.ATTACK_MOVE_SCALE = 0.6 -- share of the walk speed a Frame keeps while it attacks (user direction, D-055)
 CombatConfig.DODGE_GRACE = 0.15 -- a dodge this late after an attack's active start still counts
 
 -- Moves per Frame class (docs/12 §3). Slowed to about 1.7 x the first numbers on the user's direction (D-052):

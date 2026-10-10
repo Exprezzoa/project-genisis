@@ -84,9 +84,9 @@ function Check.Run()
 	-- Sampling.
 	local light1 = set.clips.Light1
 	expect(near(PoseAnimator.sample(light1, 0).RightElbow.rot, Vector3.new(35, 0, 0)), "Light1 at 0 isn't the Idle pose")
-	expect(near(PoseAnimator.sample(light1, 0.35).Waist.rot, Vector3.new(0, -45, 0)), "Light1 at 0.35 isn't the windup key")
+	expect(near(PoseAnimator.sample(light1, 0.35).Waist.rot, Vector3.new(0, -40, 0)), "Light1 at 0.35 isn't the windup key")
 	expect(near(PoseAnimator.sample(light1, 0.45).LeftShoulder.rot, Vector3.new(15, 0, -15)), "a joint missing in a key didn't keep the previous value")
-	expect(near(PoseAnimator.sample(light1, 0.50).Waist.rot, Vector3.new(0, 25, 0)), "linear sampling between two keys is off")
+	expect(near(PoseAnimator.sample(light1, 0.50).Waist.rot, Vector3.new(0, 21, 0)), "linear sampling between two keys is off")
 	expect(near(PoseAnimator.sample(light1, 5).LeftShoulder.rot, Vector3.new(5, 0, -6)), "past its end a clip isn't in its last key")
 	expect(near(PoseAnimator.sample(set.clips.Light3, 1.4).Root.pos, Vector3.zero), "a named pose key didn't reset the joints it doesn't list")
 	expect(near(PoseAnimator.sample(set.clips.Light3, 0).LeftElbow.rot, Vector3.new(15, 0, 0)), "Light3 at 0 isn't Idle")

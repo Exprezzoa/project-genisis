@@ -18,6 +18,9 @@ CameraFeel.Frame = {
 	sensitivity = { mouse = 0.25, gamepad = 220, touch = 0.35 }, -- deg/px, deg/s, deg/px
 	collision = { radius = 2, pad = 2, minDistance = 12 * S, zoomOutSpeed = 30 * S },
 	fov = { base = 70, stride = 78, strideBlend = 0.3, dodgeKick = 6, dodgeKickTime = 0.2 },
+	-- The cockpit glass: the whole view is tinted warm while piloting (user direction, D-055). color is AMBER_LAMP;
+	-- amount is how far the tint goes from white toward it; time is the fade in and out.
+	tint = { color = Color3.fromHex("#FFD38A"), amount = 0.55, time = 0.5 },
 	lock = { yawBlend = 6, offset = 25 * S, offsetDecay = 0.6, range = 220 * S, lostSightTime = 2 },
 }
 

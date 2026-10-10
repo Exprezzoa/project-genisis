@@ -21,6 +21,7 @@ return {
 	},
 	Frame = {
 		Stride = { K.LeftShift, K.ButtonL3 },
+		ShiftLock = { K.LeftControl, K.DPadDown }, -- the Frame faces where the camera looks (D-055)
 		Light = { M.MouseButton1, K.ButtonR1 },
 		Heavy = { M.MouseButton2, K.ButtonR2 },
 		Dodge = { K.Space, K.ButtonB },
@@ -43,8 +44,8 @@ return {
 
 	-- Glyph text per device for the UI (docs/11 §1 "Device glyphs").
 	Glyphs = {
-		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", MissionLog = "TAB", Menu = "P" },
-		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", MissionLog = "VIEW", Menu = "D-PAD" },
-		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", MissionLog = "LOG", Menu = "≡" },
+		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", ShiftLock = "CTRL", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", MissionLog = "TAB", Menu = "P" },
+		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", ShiftLock = "D-PAD DOWN", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", MissionLog = "VIEW", Menu = "D-PAD" },
+		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", ShiftLock = "AIM", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", MissionLog = "LOG", Menu = "≡" },
 	},
 }

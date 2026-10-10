@@ -28,6 +28,17 @@ local function crouch(angle, pose)
 	return pose
 end
 
+-- A fighting stance (D-055): one foot forward and one back, both flat on the floor, the body 1.5 studs lower
+-- and the whole machine turned by `yaw` degrees. The swings step from one stance into the other, so the legs
+-- and hips drive the blade instead of the arm alone.
+local function stance(front, yaw, pose)
+	local back = if front == "Left" then "Right" else "Left"
+	pose[front .. "Hip"], pose[front .. "Knee"], pose[front .. "Ankle"] = r(35), r(-38), r(3)
+	pose[back .. "Hip"], pose[back .. "Knee"], pose[back .. "Ankle"] = r(-20), r(-8), r(28)
+	pose.Root = rp({ 0, yaw, 0 }, { 0, -1.5, 0 })
+	return pose
+end
+
 local KNEEL = {
 	Root = p(0, -7, 0), LeftHip = r(80), LeftKnee = r(-80), RightHip = r(-10), RightKnee = r(-100), RightAnkle = r(40),
 	Waist = r(-15), RightShoulder = r(60, 0, 10), RightElbow = r(40), Neck = r(-15),
@@ -88,16 +99,18 @@ return {
 		-- sweep one long arc at chest height; with the idle wrist the blade stood up and the swing read as a punch.
 		-- Right to left.
 		Light1 = {
-			duration = 1.00, blendIn = 0.10, blendOut = 0.12,
+			duration = 1.00, blendIn = 0.10, blendOut = 0.12, upperBodyOnly = true,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.35, ease = "QuadOut", pose = {
-					Waist = r(0, -45, 0), RightShoulder = r(30, 0, 80), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
-				} },
-				{ t = 0.45, ease = "Linear", pose = { Waist = r(0, 0, 0), RightShoulder = r(80, 0, 20), RightElbow = r(5), RightWrist = r(-85) } },
-				{ t = 0.55, ease = "Linear", pose = {
-					Waist = r(0, 50, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
-				} },
+				{ t = 0.35, ease = "QuadOut", pose = stance("Left", -14, {
+					Waist = r(0, -40, 0), RightShoulder = r(30, 0, 80), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
+				}) },
+				{ t = 0.45, ease = "Linear", pose = crouch(18, {
+					Root = p(0, -0.85, 0), Waist = r(0, 0, 0), RightShoulder = r(80, 0, 20), RightElbow = r(5), RightWrist = r(-85),
+				}) },
+				{ t = 0.55, ease = "Linear", pose = stance("Right", 14, {
+					Waist = r(0, 42, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
+				}) },
 				{ t = 1.00, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
@@ -107,16 +120,18 @@ return {
 		},
 		-- Left to right, back along the same arc.
 		Light2 = {
-			duration = 0.97, blendIn = 0.10, blendOut = 0.12,
+			duration = 0.97, blendIn = 0.10, blendOut = 0.12, upperBodyOnly = true,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.32, ease = "QuadOut", pose = {
-					Waist = r(0, 50, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
-				} },
-				{ t = 0.42, ease = "Linear", pose = { Waist = r(0, 5, 0), RightShoulder = r(85, 0, 5), RightElbow = r(5), RightWrist = r(-85) } },
-				{ t = 0.52, ease = "Linear", pose = {
-					Waist = r(0, -45, 0), RightShoulder = r(45, 0, 75), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
-				} },
+				{ t = 0.32, ease = "QuadOut", pose = stance("Right", 14, {
+					Waist = r(0, 42, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
+				}) },
+				{ t = 0.42, ease = "Linear", pose = crouch(18, {
+					Root = p(0, -0.85, 0), Waist = r(0, 5, 0), RightShoulder = r(85, 0, 5), RightElbow = r(5), RightWrist = r(-85),
+				}) },
+				{ t = 0.52, ease = "Linear", pose = stance("Left", -14, {
+					Waist = r(0, -40, 0), RightShoulder = r(45, 0, 75), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
+				}) },
 				{ t = 0.97, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
@@ -126,7 +141,7 @@ return {
 		},
 		-- Overhead smash.
 		Light3 = {
-			duration = 1.40, blendIn = 0.10, blendOut = 0.15,
+			duration = 1.40, blendIn = 0.10, blendOut = 0.15, upperBodyOnly = true,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
 				{ t = 0.45, ease = "QuadOut", pose = {
@@ -147,18 +162,19 @@ return {
 		},
 		-- Spinning cleave. Root motion (12 studs forward, 0.70-1.00) is applied by FrameController.
 		Heavy = {
-			duration = 2.08, blendIn = 0.08, blendOut = 0.15,
+			duration = 2.08, blendIn = 0.08, blendOut = 0.15, upperBodyOnly = true,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.60, ease = "QuadOut", pose = crouch(24, {
-					Root = p(0, -1.5, 0), Waist = r(0, -70, 0), RightShoulder = r(15, 0, 85), RightElbow = r(25), RightWrist = r(-85),
-					LeftShoulder = r(20, 0, -20),
+				{ t = 0.60, ease = "QuadOut", pose = stance("Left", -24, {
+					Waist = r(0, -55, 0), RightShoulder = r(15, 0, 85), RightElbow = r(25), RightWrist = r(-85), LeftShoulder = r(20, 0, -20),
 				}) },
 				{ t = 0.90, ease = "Linear", pose = {} }, -- holds the windup until the release
-				{ t = 1.04, ease = "Linear", pose = { Waist = r(0, 10, 0), RightShoulder = r(80, 0, 25), RightElbow = r(0), RightWrist = r(-88) } },
-				{ t = 1.18, ease = "Linear", pose = {
-					Waist = r(0, 70, 0), RightShoulder = r(70, 0, -45), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-20, 0, -8),
-				} },
+				{ t = 1.04, ease = "Linear", pose = crouch(24, {
+					Root = p(0, -1.5, 0), Waist = r(0, 10, 0), RightShoulder = r(80, 0, 25), RightElbow = r(0), RightWrist = r(-88),
+				}) },
+				{ t = 1.18, ease = "Linear", pose = stance("Right", 24, {
+					Waist = r(0, 55, 0), RightShoulder = r(70, 0, -45), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-20, 0, -8),
+				}) },
 				{ t = 2.08, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {

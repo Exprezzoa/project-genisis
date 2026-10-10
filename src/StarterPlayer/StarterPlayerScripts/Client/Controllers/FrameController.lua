@@ -10,7 +10,9 @@
 -- on it. (This place has no PlayerModule in PlayerScripts to ask for a move vector.)
 --
 --   getFrame() -> Model?          the Frame this player pilots
---   setAction(busy, velocity?)    CombatController: no walking while an action runs; velocity = its root motion
+--   setAction(busy, velocity?, moveScale?)   CombatController: while an action runs the Frame walks at moveScale
+--                                 of its speed (0 = not at all); velocity = the action's root motion
+--   isShiftLocked() -> boolean    aim lock: the Frame faces where the camera looks and strafes (Left Ctrl)
 --   isStriding() -> boolean
 --   getState() -> { speed, target, heading, striding }       -- for tests
 --   Piloting: Signal(frame?)      fired when the player starts or stops piloting
@@ -31,7 +33,7 @@ local InputController = require(script.Parent.InputController)
 local SettingsController = require(script.Parent.SettingsController)
 
 -- Frame states in which the pilot may walk (docs/09 §4). Attacks get their own rules with combat.
-local MOVING_STATES = { Idle = true }
+local MOVING_STATES = { Idle = true, Attack = true }
 local INPUT_EPSILON = 0.05
 local SEPARATION_REFRESH = 1 -- seconds between looks for the bodies to keep away from
 
@@ -51,7 +53,9 @@ local heading = 0 -- radians, same convention as the camera's yaw
 local moveDirection = Vector3.zero
 local striding = false
 local watched: { [Model]: RBXScriptConnection } = {}
-local busy = false -- an action runs: no walking, no turning
+local busy = false -- an action runs: no turning toward the movement, no stride
+local moveScale = 1 -- share of the speed the running action leaves
+local shiftLock = false
 local rootVelocity: Vector3? = nil -- the action's root motion (dodge, lunge), world XZ
 local rootMotion: LinearVelocity? = nil
 local bodies: { { root: BasePart, radius: number } } = {}
@@ -127,7 +131,7 @@ local function update(dt: number)
 	if not (model and pilotHumanoid and rootPart and rootPart.Parent) then
 		return
 	end
-	local canMove = not busy and MOVING_STATES[model:GetAttribute("State")] == true and InputController.getContext() == "Frame"
+	local canMove = moveScale > 0 and MOVING_STATES[model:GetAttribute("State")] == true and InputController.getContext() == "Frame"
 
 	-- Root motion (docs/11 §5.6): the action moves the Frame, not the legs.
 	local push, drive = rootVelocity, rootMotion
@@ -162,10 +166,10 @@ local function update(dt: number)
 	end
 
 	local limping = (model:GetAttribute("Integrity") or 1) / (model:GetAttribute("IntegrityMax") or 1) < config.limp.threshold
-	local stride = striding and amount > 0 and not limping
+	local stride = striding and amount > 0 and not limping and not busy
 	CameraController.setStride(stride)
 
-	target = (if stride then config.strideSpeed else config.walkSpeed) * amount * (if limping then config.limp.walkScale else 1)
+	target = (if stride then config.strideSpeed else config.walkSpeed) * amount * (if limping then config.limp.walkScale else 1) * moveScale
 	if speed < target then
 		speed = math.min(target, speed + config.acceleration * dt)
 	else
@@ -174,7 +178,12 @@ local function update(dt: number)
 
 	if amount > 0 then
 		moveDirection = input.Unit
-		-- Free mode: the Frame turns toward where it walks, at its turn rate.
+	end
+	if shiftLock then
+		-- Aim lock: the Frame faces where the camera looks and strafes, also while it attacks.
+		heading = turnToward(heading, CameraController.getYaw(), math.rad(config.turnRate.locked) * dt)
+	elseif amount > 0 and not busy then
+		-- Free mode: the Frame turns toward where it walks, at its turn rate. A running attack keeps its aim.
 		local rate = math.rad(if stride then config.turnRate.stride else config.turnRate.free)
 		heading = turnToward(heading, yawOf(moveDirection), rate * dt)
 	end
@@ -199,7 +208,7 @@ local function stop()
 		rootMotion:Destroy()
 		rootMotion = nil
 	end
-	busy, rootVelocity = false, nil
+	busy, rootVelocity, moveScale, shiftLock = false, nil, 1, false
 	if oldHumanoid and oldHumanoid.Parent then
 		oldHumanoid.WalkSpeed = 0
 		oldHumanoid:Move(Vector3.zero, false)
@@ -273,8 +282,13 @@ function FrameController.getFrame(): Model?
 	return frame
 end
 
-function FrameController.setAction(isBusy: boolean, velocity: Vector3?)
+function FrameController.setAction(isBusy: boolean, velocity: Vector3?, scale: number?)
 	busy, rootVelocity = isBusy, velocity
+	moveScale = if isBusy then (scale or 0) else 1
+end
+
+function FrameController.isShiftLocked(): boolean
+	return shiftLock
 end
 
 function FrameController.isStriding(): boolean
@@ -282,11 +296,15 @@ function FrameController.isStriding(): boolean
 end
 
 function FrameController.getState()
-	return { speed = speed, target = target, heading = heading, striding = striding, piloting = frame ~= nil }
+	return { speed = speed, target = target, heading = heading, striding = striding, piloting = frame ~= nil, shiftLock = shiftLock }
 end
 
 function FrameController.Start()
 	InputController.ActionPressed:Connect(function(action: string, began: boolean, input: InputObject?)
+		if frame and action == "ShiftLock" and began then
+			shiftLock = not shiftLock
+			return
+		end
 		-- "Sprint" is the on-screen touch button, which stays where it is while piloting.
 		if not frame or (action ~= "Stride" and action ~= "Sprint") then
 			return

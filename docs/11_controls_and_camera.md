@@ -23,6 +23,7 @@ All bindings live in `Shared/Config/Bindings.lua` and are bound through **Contex
 | Move | WASD | Left stick | Thumbstick |
 | Camera | Mouse (cursor locked to center) | Right stick | Drag on the empty right half of the screen |
 | Stride | Hold Left Shift (setting: toggle) | L3 (toggle) | `STRIDE` toggle |
+| Aim lock (user direction, D-055): the Frame faces where the camera looks and strafes | Left Ctrl (toggle) | D-pad Down | `AIM` (not built yet) |
 | Light attack (combo) | Left mouse | RB (`ButtonR1`) | `LIGHT` (big button) |
 | Heavy attack | Right mouse | RT (`ButtonR2`) | `HEAVY` |
 | Dodge (toward move input; backstep with no input) | Space | B | `DODGE` |
@@ -90,9 +91,9 @@ Buttons: tilted (−8°) ink squares (were circles before the angular restyle, `
 
 1. Read the move input: the seated pilot's own `Humanoid.MoveDirection`. Roblox's control script fills it from the keyboard, gamepad or touch stick with its deadzone, and a seated Humanoid doesn't act on it (D-048; this place has no `PlayerModule` to ask for a move vector).
 2. It is already turned by the camera, so it is the world direction `dir`; its length is the input amount.
-3. Target speed = (stride ? 48 : 30) × `|input|` (×0.75 when limping, 0 during non-moving actions).
+3. Target speed = (stride ? 48 : 30) × `|input|` (×0.75 when limping). **While attacking the Frame keeps 60% of its walk speed** and can't stride (user direction, D-055; it was 0); a dodge is root motion only.
 4. Current speed approaches the target at 70 studs/s² (accelerate) / 90 studs/s² (decelerate). Write `frameHumanoid.WalkSpeed = currentSpeed` and call `frameHumanoid:Move(dir)` each frame (works because the pilot owns the Frame's physics).
-5. **Facing:** free mode, so turn toward `dir` at 150°/s (stride 110°/s) via AlignOrientation. Locked mode: face the target at 220°/s; movement strafes.
+5. **Facing:** free mode, so turn toward `dir` at 150°/s (stride 110°/s) via AlignOrientation; a running attack keeps its heading. **Aim lock** (D-055): face the camera's heading at 220°/s, also while attacking, and strafe. Locked mode: face the target at 220°/s; movement strafes.
 6. **Root-motion actions** (Heavy lunge, Dodge, HitReact knockback, Core Strike step-in) use a temporary `LinearVelocity` (Plane mode, world XZ) on the HRP for the action's movement window, owned by the pilot client.
 7. **Separation and barriers:** `12_combat_system.md` §9.
 

@@ -8,8 +8,10 @@
 -- textures (rbxasset://), no asset IDs.
 --
 --   getCounts() -> { dust, trails, sparks, rings, shakes }      -- how often each effect ran, for tests
+-- While this player pilots, Lighting.PG_CockpitTint tints the whole view warm (the cockpit glass, D-055).
 
 local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -40,6 +42,7 @@ local player = Players.LocalPlayer
 local counts = { dust = 0, trails = 0, sparks = 0, rings = 0, shakes = 0 }
 local effects -- Folder for loose effect parts
 local watchedFrame, watchConnection = nil, nil
+local cockpit -- ColorCorrectionEffect: the warm tint of the cockpit glass
 
 local function scaleOf(rig)
 	return rig:GetScale()
@@ -263,6 +266,11 @@ local function watch(frame)
 		watchConnection = nil
 	end
 	watchedFrame = frame
+	-- Through the cockpit glass the world is warm; on foot it isn't.
+	local tint = CameraFeel.Frame.tint
+	TweenService:Create(cockpit, TweenInfo.new(tint.time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		TintColor = if frame then Color3.new(1, 1, 1):Lerp(tint.color, tint.amount) else Color3.new(1, 1, 1),
+	}):Play()
 	if frame then
 		watchConnection = frame:GetAttributeChangedSignal("Action"):Connect(function()
 			if frame:GetAttribute("Action") == "Dodge" then
@@ -280,6 +288,9 @@ function VFXController.Init()
 	effects = Instance.new("Folder")
 	effects.Name = "Effects"
 	effects.Parent = workspace
+	cockpit = Instance.new("ColorCorrectionEffect")
+	cockpit.Name = "PG_CockpitTint"
+	cockpit.Parent = Lighting
 end
 
 function VFXController.Start()

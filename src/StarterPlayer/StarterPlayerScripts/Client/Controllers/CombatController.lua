@@ -212,7 +212,9 @@ local function update()
 		buffered = nil
 	end
 	current = action
-	FrameController.setAction(current ~= nil, if current then rootMotion(model, current) else nil)
+	-- Attacks leave part of the walk speed; a dodge is all root motion.
+	local scale = if current and current.kind == "attack" then CombatConfig.ATTACK_MOVE_SCALE else 0
+	FrameController.setAction(current ~= nil, if current then rootMotion(model, current) else nil, scale)
 end
 
 function CombatController.getAction()

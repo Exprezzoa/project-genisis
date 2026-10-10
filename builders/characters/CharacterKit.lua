@@ -100,6 +100,25 @@ function Kit.pilotSuit(accent)
 	return list
 end
 
+-- The pilot's mask (user direction, D-055): a faceplate over the whole face with an amber visor band, a
+-- rebreather on the mouth with a filter on each cheek, and a chin guard. Pilots are never seen without it.
+function Kit.pilotMask()
+	return {
+		-- A hood under the hair and the faceplate, so no skin shows anywhere on the head.
+		piece("Head", "Mask_Hood", V(1.27, 1.14, 1.27), CFrame.new(0, -0.06, 0), SUIT_DARK, { shape = "CylinderY" }),
+		piece("Head", "Mask_Faceplate", V(1.16, 1.06, 0.62), CFrame.new(0, -0.04, -0.36), SUIT_DARK, { shape = "Egg" }),
+		piece("Head", "Mask_Brow", V(1.06, 0.16, 0.3), CFrame.new(0, 0.3, -0.52), PLATE, { shape = "CylinderX" }),
+		piece("Head", "Mask_Visor", V(0.98, 0.26, 0.2), CFrame.new(0, 0.12, -0.6), "#FFB347", { shape = "Egg", material = "Neon", transparency = 0.1 }),
+		piece("Head", "Mask_Rebreather", V(0.36, 0.34, 0.3), CFrame.new(0, -0.3, -0.62), PLATE, { shape = "CylinderZ" }),
+		piece("Head", "Mask_RebreatherCap", V(0.22, 0.22, 0.08), CFrame.new(0, -0.3, -0.79), GLOVE, { shape = "CylinderZ" }),
+		piece("Head", "Mask_FilterL", V(0.24, 0.24, 0.24), CFrame.new(-0.36, -0.32, -0.5) * CFrame.Angles(0, RAD(-35), 0), HYDRAULIC, { shape = "CylinderX" }),
+		piece("Head", "Mask_FilterR", V(0.24, 0.24, 0.24), CFrame.new(0.36, -0.32, -0.5) * CFrame.Angles(0, RAD(35), 0), HYDRAULIC, { shape = "CylinderX" }),
+		piece("Head", "Mask_Chin", V(0.7, 0.2, 0.36), CFrame.new(0, -0.52, -0.42), PLATE, { shape = "Egg" }),
+		piece("Head", "Mask_StrapL", V(0.08, 0.14, 0.9), CFrame.new(-0.6, 0.02, -0.02), STRAP),
+		piece("Head", "Mask_StrapR", V(0.08, 0.14, 0.9), CFrame.new(0.6, 0.02, -0.02), STRAP),
+	}
+end
+
 -- Short hair built from rounded pieces: a cap, a swept fringe, sides and a nape (docs/03).
 function Kit.shortHair(color)
 	local function lock(name, size, at)
