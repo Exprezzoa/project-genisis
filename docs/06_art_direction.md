@@ -149,7 +149,7 @@ Three words: **Heavy. Worn. Warm-under-grey.**
 
 ## 5. Lighting presets (`Config/LightingPresets`)
 
-Applied by the client `LightingController`, tweened over 1.5 s (instant during a fade to black). All presets use `Lighting.Technology = Future`, `GlobalShadows = true`, and a default `Sky` (Roblox built-in; don't set skybox IDs).
+Applied by the client `LightingController`, tweened over 1.5 s (instant during a fade to black). All presets use `Lighting.LightingStyle = Realistic` with `PrioritizeLightingQuality = true` (the scriptable replacement for `Technology = Future`, which scripts can't read or set in current Studio; D-018), `GlobalShadows = true`, and a default `Sky` (Roblox built-in; don't set skybox IDs).
 
 | Property | MORNING (hub) | OVERCAST (outpost) | EVENING (return) | NIGHT (post-ch1) | MEMORY (anomaly) |
 |---|---|---|---|---|---|

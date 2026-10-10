@@ -7,7 +7,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 ## Phase 0 — Audit and setup ✅ (2026-10-09)
 - [x] MCP tools listed; Studio connection confirmed
 - [x] Existing place inspected and summarized in the journal
-- [x] User: place published; Studio API access on; Max Players = 1 — published and API read access verified by script; Max Players confirmed by the user only (Q-007)
+- [x] User: place published; Studio API access on; Max Players = 1 — published and API read access verified by script; Max Players confirmed by the user only (Q-007, re-confirmed after the session); cloud save of the final Phase 0 state verified (D-021)
 - [x] Local `src/` and `builders/` skeletons created
 - [x] Studio folders created (Map, Runtime, DevTools, Templates)
 - [x] BuildKit and Palette written, pushed, smoke-tested (plus a 29-case self-test, all passing)
