@@ -78,3 +78,4 @@ bridge.OnInvoke = function(command: string, serviceName: string?, key: string?, 
 	error("DevBridge: unknown command " .. tostring(command))
 end
 bridge.Parent = ServerStorage
+ReplicatedStorage:SetAttribute("DevTests", true) -- switches the client half on (StarterPlayerScripts.DevTests)
