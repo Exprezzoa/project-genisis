@@ -33,7 +33,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [ ] FrameController + Frame camera
 - [ ] Combat requests, timelines, hitbox sampling vs. simulacrum
 - [ ] Frame HUD + feel (dust, trails, hitstop, shake)
-- [ ] Training Yard blockout + simulacrum
+- [x] Training Yard blockout + simulacrum — `HubCheck` passes, hurtboxes read back (journal Session 5); not yet walked in play mode
 - [ ] Phase 2 acceptance tests all PASS
 
 ## Phase 3 — Titan encounter

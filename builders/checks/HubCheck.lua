@@ -24,7 +24,7 @@ local IDS = {
 			"WP_HANGAR_ENTRANCE", "WP_BRIEFING_DOOR", "WP_MEDICAL_ARCH", "WP_QUARTERS", "WP_DECK",
 			"MARK_MARA_DECK", "MARK_VOSS_MED", "MARK_TAMSIN", "WP_BAY2_BRIDGE", "WP_DEPLOY_DOOR",
 			"WP_LAUNCH_CENTER", "MARK_HOLLIS_START", "MARK_HOLLIS_TALK", "MARK_MARA_VIEW", "MARK_VALE_RETURN",
-			"MARK_RHEIN_RETURN",
+			"MARK_RHEIN_RETURN", "SPAWN_TRAINING",
 		},
 	},
 	Interactable = {
@@ -51,9 +51,8 @@ local IDS = {
 	},
 }
 
--- Phase 2: Training Yard and Frames. Phase 5: NPCs. Later: the Bulwark gate.
+-- Phase 2: the boarding prompts (with FrameService). Phase 5: NPCs. Later: the Bulwark gate.
 local DEFERRED = {
-	SpawnId = { "SPAWN_TRAINING" },
 	InteractId = { "TALK_TAMSIN", "TALK_OKAFOR", "INT_BOARD_BAY1", "INT_BOARD_BAY2" },
 	DoorId = { "DOOR_BULWARK_GATE" },
 }
@@ -71,6 +70,7 @@ local BOUNDS = {
 	{ "CentralCommand", "Research", V(80, -1, -81), V(251, 17, -19) },
 	{ "CentralCommand", "Arrival", V(-80, -1, 40), V(80, 19, 130) },
 	{ "CentralCommand", "Exterior", V(-421, -4.1, -321), V(421, 60, 421) },
+	{ "CentralCommand", "TrainingYard", V(-421, -1, -301), V(-122, 56, -39) }, -- the simulacrum is 56 tall
 	{ "Hangar", "Shell", V(-121.5, -1, -231.5), V(121.5, 92, -68.5) },
 	{ "Hangar", "GateCorridor", V(-16, -1, -70), V(16, 17, -40) },
 	{ "Hangar", "LaunchPlatform", V(123, -0.1, -190), V(200, 0.5, -110) },

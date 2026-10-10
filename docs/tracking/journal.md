@@ -317,3 +317,16 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 **Not tested:** how the poses and the walk look to the eye. Viewport captures came back black three times in a row while the previews stood there (the first two rig captures earlier had worked), so the poses were judged from measured positions only. Prediction (`playLocal`, `cancelLocal`), hitstop and the LOD distances have no caller yet.
 
 **Next:** step 4 (Training Yard blockout, Titan Simulacrum, dismount pad), then FrameService.
+
+**Session 5, continued: step 4 (Training Yard blockout)**
+
+**Done:** `builders/maps/central_command/TrainingYard.lua` → `Workspace.Map.CentralCommand.TrainingYard` (100 parts): pad, lane lines and ring, 5 FrameBarrier walls open at the west door, the Titan Simulacrum (15 Strider-sized steel parts, 2 ankle targets, a core target, 6 hurtboxes), 4 training dummies, `PAD_TRAINING`, a stand-in for the observation booth, `SPAWN_TRAINING` (added to `Common.MARKERS`; `HubCheck` now expects it and the yard's bounds). D-038.
+
+**Tested (how → result):**
+- Checksums local vs Studio → the builder, `Common` and `HubCheck` match.
+- `HubCheck` in edit mode → PASS: 29 spawn points (was 28), yard bounds within 1 stud, 605 parts in Central Command.
+- Simulacrum read back in edit mode → root at (−320, 29.5, −170) facing +X, 56 tall; the 6 hurtboxes sit at the Standing offsets of `10` §1.2 (Body Y 35.5, Head 51.5, ankles 6.5, arms 23; its left side to the north), are tagged `Hurtbox` with their `Zone`, answer queries and don't collide; each covers its body part. `PAD_TRAINING`: radius 14, center (−200, 0, −110), exit (−186, 0, −110), tagged `DismountPad`. Barriers are in the `FrameBarrier` group.
+
+**Not tested:** anything in play mode (a Frame walking the yard, the barriers stopping it); no screenshot (viewport captures still come back black).
+
+**Next:** step 5, FrameService (park Units 01 and 02 in their bays, board from the Bay 2 bridge, dismount at the pad, ownership, the action state machine, energy), with Unit 03 as a static prop in Bay 3.

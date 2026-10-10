@@ -109,6 +109,8 @@ Common.MARKERS = {
 	{ "MARK_MARA_VIEW", "Hangar", 6, 0, -168, "-Z" },
 	{ "MARK_VALE_RETURN", "Hangar", -3, 0, -160, "-Z" },
 	{ "MARK_RHEIN_RETURN", "Hangar", 3, 0, -160, "-Z" },
+	-- map_00 §5, map_01 §12
+	{ "SPAWN_TRAINING", "TrainingYard", -200, 0, -110, "-X" },
 }
 
 ---------------------------------------------------------------------------------------------------
