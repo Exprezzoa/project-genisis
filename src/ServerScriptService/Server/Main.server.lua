@@ -32,6 +32,7 @@ local ORDER = {
 	"AllyFrameService",
 	"TitanService",
 	"CombatService",
+	"RetryService",
 	"DialogueService",
 	"CinematicService",
 	"SequenceService",

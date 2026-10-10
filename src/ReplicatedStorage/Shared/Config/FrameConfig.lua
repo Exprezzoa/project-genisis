@@ -25,14 +25,17 @@ FrameConfig.Vanguard = {
 	limp = { threshold = 0.15, walkScale = 0.75 }, -- under 15% integrity: walk x0.75, no stride
 	-- Body target for enemy attacks: a vertical cylinder centered on the HRP's XZ.
 	body = { radius = 8 * S, height = 40 * S },
-	-- Damage states by integrity fraction (docs/09 §5), highest first.
+	-- Damage states by integrity fraction (docs/09 §5), highest first: the state is the first whose `above` the
+	-- fraction reaches (Disabled at 0). plates = how many of `plates` have come off by then.
 	damageStates = {
-		{ name = "Pristine", above = 0.67 },
-		{ name = "Scuffed", above = 0.34 },
-		{ name = "Damaged", above = 0.15 },
-		{ name = "Critical", above = 0 },
-		{ name = "Disabled", above = -1 },
+		{ name = "Pristine", above = 0.67, plates = 0 },
+		{ name = "Scuffed", above = 0.34, plates = 1 },
+		{ name = "Damaged", above = 0.15, plates = 3 },
+		{ name = "Critical", above = 0, plates = 3 },
+		{ name = "Disabled", above = -1, plates = 3 },
 	},
+	-- The plates that come off, in order: the rig builder marks their parts with the attribute Plate.
+	plates = { "LeftPauldronStripe", "RightShinGuard", "LeftForearmSide" },
 	pilotSeat = Vector3.new(0, 29, 0) * S, -- model space
 	boardDistance = 10, -- docs/08 §5.4: the pilot must be this close to the prompt
 	hatch = { openAngle = -100, time = 0.6 },

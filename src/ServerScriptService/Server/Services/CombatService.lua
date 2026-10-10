@@ -98,6 +98,9 @@ local function begin(frame, player, name, seq, direction, target)
 		local strike = CombatConfig.CoreStrike[class]
 		action.kind, action.move, action.target = "core", strike, target
 		clip = strike.clip
+		-- The pilot's client steps the Frame into place (docs/11 §5.6); it may cover the strike's whole reach.
+		rootBudget[frame] = { distance = (strike.range + CombatConfig.Tolerance.coreStrikeRange) * ROOT_MOTION_MARGIN, expires = t0 + strike.stepTime + ROOT_MOTION_SLACK }
+		frame:SetAttribute("ActionTarget", target)
 	elseif name == "Dodge" then
 		local dodge = CombatConfig.Dodge[class]
 		action.kind, action.move, action.direction = "dodge", dodge, direction

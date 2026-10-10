@@ -29,6 +29,10 @@ CameraFeel.Frame = {
 	lock = { yawBlend = 6, offset = 25, offsetDecay = 0.6, range = 220 * S, lostSightTime = 2, side = 55, focus = 0.4, focusBlend = 5, pitch = 20 },
 }
 
+-- Core Strike camera (docs/11 §4): from the Frame's right, looking at the core, drifting forward round it.
+-- orbit = degrees it drifts over the strike; blendIn is as built (the doc only gives the way back, 0.3 s).
+CameraFeel.CoreStrike = { distance = 50 * S, height = 10 * S, orbit = 25, blendIn = 0.2, blendOut = 0.3 }
+
 -- Events: shake magnitude, duration (s), hitstop (s), fovPunch (degrees).
 CameraFeel.Events = {
 	FrameFootstep = { shake = 0.08, duration = 0.15 },

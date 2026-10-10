@@ -7,7 +7,7 @@
 --
 -- Everything a client needs is an attribute on the Frame Model:
 --   Unit, Class, Pilot (UserId or 0), State ("Parked" | "Idle" | "Kneeling" | action states), WeaponsLocked,
---   Integrity, IntegrityMax, Energy, EnergyMax, Anim, AnimT0, AnimSpeed, HatchOpen, Booted
+--   Integrity, IntegrityMax, DamageState, PlatesDetached, Energy, EnergyMax, Anim, AnimT0, AnimSpeed, HatchOpen, Booted
 --
 --   spawnFrame(unitId, spawnId?) -> Model      getFrame(unitId) -> Model?      getPiloted(player) -> Model?
 --   board(player, frame) -> ok, reason         dismount(player, padId) -> ok, reason
@@ -80,10 +80,25 @@ function FrameService.moveTo(frame, groundCFrame)
 end
 
 -- Integrity is the Frame's health (docs/09 §4-5). CombatService decides the damage; this only stores it.
+-- The damage state follows from it (docs/09 §5): clients show the state and shed the plates themselves.
 function FrameService.setIntegrity(frame, value)
-	local max = frame:GetAttribute("IntegrityMax") or configOf(frame).integrity
-	frame:SetAttribute("Integrity", math.clamp(value, 0, max))
-	return frame:GetAttribute("Integrity")
+	local config = configOf(frame)
+	local max = frame:GetAttribute("IntegrityMax") or config.integrity
+	local integrity = math.clamp(value, 0, max)
+	frame:SetAttribute("Integrity", integrity)
+	local states = config.damageStates
+	local state = states[#states]
+	if integrity > 0 then
+		for _, candidate in ipairs(states) do
+			if candidate.above >= 0 and integrity / max >= candidate.above then
+				state = candidate
+				break
+			end
+		end
+	end
+	frame:SetAttribute("PlatesDetached", state.plates)
+	frame:SetAttribute("DamageState", state.name)
+	return integrity
 end
 
 -- Every unit of FrameConfig.Units that exists right now.
@@ -190,6 +205,8 @@ function FrameService.spawnFrame(unitId, spawnId)
 	frame:SetAttribute("WeaponsLocked", true)
 	frame:SetAttribute("IntegrityMax", config.integrity)
 	frame:SetAttribute("Integrity", config.integrity)
+	frame:SetAttribute("PlatesDetached", 0)
+	frame:SetAttribute("DamageState", config.damageStates[1].name)
 	frame:SetAttribute("EnergyMax", config.energy.max)
 	frame:SetAttribute("Energy", config.energy.max)
 	frame:SetAttribute("Anim", "")

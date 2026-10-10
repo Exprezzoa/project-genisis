@@ -133,9 +133,9 @@ Palm 4 × 3 × 3.5; 4 finger blocks 0.9 × 2.2 × 1.2 curled (rotated 70° on X,
 | Acceleration / deceleration | 70 / 90 studs/s² |
 | Turn rate (free / locked-on / striding) | 150 / 220 / 110 deg/s |
 | Dodge | cost 25, duration 0.35 s, distance 55, i-frames 0.05–0.30 s, cooldown 0.8 s (from dodge start) |
-| Light 1 / 2 / 3 | dmg 40 / 45 / 70; poise 15 / 15 / 30 |
-| Heavy | dmg 140; poise 50 |
-| Pile Driver (special) | cost 50 energy, cooldown 6 s, dmg 90, poise 120 |
+| Light 1 / 2 / 3 | dmg 68 / 77 / 119; poise 26 / 26 / 51 (× 1.7 since D-061; first 40 / 45 / 70 and 15 / 15 / 30) |
+| Heavy | dmg 238; poise 85 (first 140; 50) |
+| Pile Driver (special) | cost 50 energy, cooldown 6 s, dmg 153, poise 204 (first 90; 120) |
 | Core Strike | 700 flat to HP; range 34 studs from the core, facing within 60° |
 | Body target (for enemy attacks) | vertical cylinder radius 8, height 40, centered on the HRP's XZ |
 | Limp threshold | Integrity < 15%: walk ×0.75, stride disabled |
@@ -151,6 +151,8 @@ Palm 4 × 3 × 3.5; 4 finger blocks 0.9 × 2.2 × 1.2 curled (rotated 70° on X,
 | 0 | Disabled | `Disabled` clip, the visor goes dark, all core lights off | Mission failure flow (`05_chapter1_script.md` S28) |
 
 Detached plates: clone the part, unweld, unanchor, collision group `Debris`, apply a small random impulse (client-side visual only: each client spawns its own debris from a `PlateDetached` attribute change; the server only sets attributes). On repair/reset, restore all plates (rebuild visual state from attributes).
+
+**As built (2026-10-10, D-063):** the server publishes `DamageState` and `PlatesDetached` (0, 1 or 3); `FrameDamageController` sheds the plates and runs the effects on each client. There is no alarm yet (no sound IDs) and the limp is the slower walk only. Until Phase 4's checkpoints, `RetryService` handles Disabled: the card for 2.5 s, fade, every Titan of the fight back to how it spawned, the Frame repaired and put back where it last stood clear of Titans.
 
 ## 6. Cockpit and pilot interface
 

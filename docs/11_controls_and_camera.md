@@ -87,7 +87,7 @@ Buttons: tilted (−8°) ink squares (were circles before the angular restyle, `
 
 **As built (2026-10-10, D-060):** the Frame is 64 studs and a Strider 56, so a camera straight behind the Frame hid the Titan. Locked on, the camera stands **55° off the line to the target**, looks at a point 40% of the way toward it, and lifts to at least 20° of elevation when the lock begins. While locked, **move input is read against the line to the target** (forward = toward it, sideways = circling), and the dodge follows that input. Range 220 × 1.6 = 352 studs. Keys: R / middle mouse / R3 to lock and release; C, the mouse wheel or D-pad left/right for the zone.
 
-**Core Strike camera (1.6 s):** side orbit from the Frame's right at distance 50, height +10, looking at the core. Returns to the gameplay camera over 0.3 s.
+**Core Strike camera (1.6 s):** side orbit from the Frame's right at distance 50, height +10, looking at the core. Returns to the gameplay camera over 0.3 s. *As built (D-062): 80 studs out and 16 above the core (× 1.6), drifting 25° forward round the core over the strike, in over 0.2 s.*
 
 ## 5. Frame movement (client-side on the pilot's machine)
 

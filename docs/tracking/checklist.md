@@ -39,10 +39,10 @@ Tick an item only after it was **tested** and the journal records how. Full task
 ## Phase 3 — Titan encounter
 - [x] Strider rig within budget — built from the user's Titan body (D-056), 55 parts, play-tested standing and taking hits (journal Session 6); look approved by the user 2026-10-10
 - [x] TitanService + StriderBehavior (full state machine) — D-057; play-tested state by state (journal Session 6, continued)
-- [ ] Hurtbox states, Core Strike, lock-on — hurtbox states, the Core Strike's validation and damage (D-057) and lock-on with zones (D-060) work; still to do: strike positioning, Core Strike camera; the lock marker is unseen (screenshots don't show BillboardGuis)
+- [x] Hurtbox states, Core Strike, lock-on — D-057, D-060, D-062; play-tested (the blade lands 0.9 studs from the core). The lock marker and the strike camera are verified by state only: the user's eyes are still wanted on both
 - [ ] Titan HUD, telegraph VFX, Ash Collapse — built and play-tested by state and screenshots (D-059); several effects not yet seen in motion (journal)
-- [ ] Frame damage states and Disabled flow
-- [ ] Phase 3 acceptance tests all PASS
+- [x] Frame damage states and Disabled flow — D-063; states, plates, card and retry play-tested by state (journal); not yet seen as pictures
+- [ ] Phase 3 acceptance tests all PASS — 2 to 8 pass (journal); **1 (three fights, 2–3.5 min) needs the user**
 
 ## Phase 4 — First mission flow
 - [ ] Outpost 07 blockout + structure (all areas)

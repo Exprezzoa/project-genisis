@@ -12,6 +12,7 @@
 --   setHurtboxState(model, "Standing" | "Downed" | "LungeRecover")
 --   playAnim(model, clip, speed?)     setState(model, state)     setCoreExposed(model, exposed)
 --   setHP(model, hp)      breakPoise(model)      publish(model)      setFrozen(on) / isFrozen()  (debug)
+--   reset(model) -> boolean           back to how it spawned (RetryService)
 --   Spawned / Hit / Died: Signals
 --
 -- Attributes on the model (docs/10 §1.6): TitanType, DisplayName, ClassTier, TargetId, HP, MaxHP, Poise,
@@ -186,7 +187,7 @@ function TitanService.spawn(typeName, groundCFrame, opts)
 
 	local entry = {
 		config = config, hp = config.hp, poise = config.poise.base, maxPoise = config.poise.base, lastHurt = 0, lastPoiseHurt = 0,
-		published = 0, hurtboxes = {}, id = id, typeName = typeName,
+		published = 0, hurtboxes = {}, id = id, typeName = typeName, spawn = groundCFrame,
 	}
 	model:SetAttribute("TitanType", typeName)
 	model:SetAttribute("DisplayName", config.displayName)
@@ -298,6 +299,30 @@ function TitanService.setHP(model, hp)
 		entry.hp = math.clamp(hp, 1, entry.config.hp)
 		TitanService.publish(model)
 	end
+end
+
+-- Back to how it spawned: full health and poise, on its spawn point, doing nothing. false for a dead Titan.
+function TitanService.reset(model)
+	local entry = titans[model]
+	if not entry or entry.dead then
+		return false
+	end
+	local config = entry.config
+	entry.hp, entry.poise, entry.maxPoise = config.hp, config.poise.base, config.poise.base
+	entry.lastHurt, entry.lastPoiseHurt, entry.anklePoise, entry.coreHeld = 0, 0, nil, nil
+	if entry.behavior and entry.behavior.reset then
+		entry.behavior:reset()
+	end
+	model:SetAttribute("Enraged", false)
+	TitanService.setCoreExposed(model, false)
+	TitanService.setHurtboxState(model, "Standing")
+	local root = model.PrimaryPart
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	model:PivotTo(entry.spawn * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0))
+	root.AssemblyLinearVelocity = Vector3.zero
+	TitanService.playAnim(model, "Idle")
+	TitanService.publish(model)
+	return true
 end
 
 -- Empties the Titan's poise as a hit would (debug: /titan down).

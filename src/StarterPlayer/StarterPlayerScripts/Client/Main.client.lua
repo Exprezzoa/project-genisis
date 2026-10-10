@@ -43,6 +43,7 @@ local ORDER = {
 	"LockOnController",
 	"TitanHUDController",
 	"TitanVFXController",
+	"FrameDamageController",
 	"AmbientController",
 	"DebugController",
 }

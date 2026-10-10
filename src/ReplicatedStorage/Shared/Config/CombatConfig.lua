@@ -21,7 +21,9 @@ CombatConfig.ATTACK_MOVE_SCALE = 0.6 -- share of the walk speed a Frame keeps wh
 CombatConfig.DODGE_GRACE = 0.15 -- a dodge this late after an attack's active start still counts
 
 -- Moves per Frame class (docs/12 §3). Slowed to about 1.7 x the first numbers on the user's direction (D-052):
--- a 64-stud machine swinging a 45-stud blade has to read as heavy. Times in seconds from the move's start:
+-- a 64-stud machine swinging a 45-stud blade has to read as heavy. Damage and poise were raised by the same 1.7 x
+-- afterwards (user decision, D-061), so each slower swing hits as much harder: 40/15, 45/15, 70/30, 140/50 and
+-- 90/120 became the numbers below. The Core Strike was never slowed and stays at 700. Times in seconds from the move's start:
 --   startup, active, recovery   total = startup + active + recovery
 --   box  = attack box in the HRP's local space (front = -Z): size, offset of its center
 --   aim  = point (HRP local) used to choose the zone when several hurtboxes overlap
@@ -29,28 +31,28 @@ CombatConfig.DODGE_GRACE = 0.15 -- a dodge this late after an attack's active st
 CombatConfig.Frames = {
 	Vanguard = {
 		Light1 = {
-			clip = "Light1", startup = 0.35, active = 0.20, recovery = 0.45, damage = 40, poise = 15, energy = 0,
+			clip = "Light1", startup = 0.35, active = 0.20, recovery = 0.45, damage = 68, poise = 26, energy = 0,
 			chain = "Light2", cancelRecovery = true,
 			box = { size = V(24, 30, 26) * S, offset = V(0, -2, -15) * S }, aim = V(0, -5, -20) * S,
 		},
 		Light2 = {
-			clip = "Light2", startup = 0.32, active = 0.20, recovery = 0.45, damage = 45, poise = 15, energy = 0,
+			clip = "Light2", startup = 0.32, active = 0.20, recovery = 0.45, damage = 77, poise = 26, energy = 0,
 			chain = "Light3", cancelRecovery = true,
 			box = { size = V(24, 30, 26) * S, offset = V(0, -2, -15) * S }, aim = V(0, -5, -20) * S,
 		},
 		Light3 = {
-			clip = "Light3", startup = 0.45, active = 0.25, recovery = 0.70, damage = 70, poise = 30, energy = 0,
+			clip = "Light3", startup = 0.45, active = 0.25, recovery = 0.70, damage = 119, poise = 51, energy = 0,
 			cancelRecovery = true,
 			box = { size = V(12, 34, 30) * S, offset = V(0, -3, -17) * S }, aim = V(0, -11, -24) * S,
 		},
 		Heavy = {
-			clip = "Heavy", startup = 0.90, active = 0.28, recovery = 0.90, damage = 140, poise = 50, energy = 0,
+			clip = "Heavy", startup = 0.90, active = 0.28, recovery = 0.90, damage = 238, poise = 85, energy = 0,
 			cancelRecovery = true, dodgeCancelBefore = 0.60,
 			lunge = { distance = 12 * S, from = 0.70, to = 1.00 },
 			box = { size = V(34, 30, 30) * S, offset = V(0, -2, -14) * S }, aim = V(0, -1, -20) * S,
 		},
 		Special = {
-			clip = "Special_PileDriver", startup = 0.60, active = 0.15, recovery = 1.00, damage = 90, poise = 120,
+			clip = "Special_PileDriver", startup = 0.60, active = 0.15, recovery = 1.00, damage = 153, poise = 204,
 			energy = 50, cooldown = 6.0, cancelRecovery = false,
 			box = { size = V(10, 12, 26) * S, offset = V(-4, -7, -16) * S }, aim = V(-3, -9, -24) * S,
 		},
@@ -63,7 +65,11 @@ CombatConfig.Dodge = {
 }
 
 CombatConfig.CoreStrike = {
-	Vanguard = { clip = "CoreStrike", duration = 1.6, damage = 700, impact = 0.62, range = 34 * S, facing = 60 },
+	-- stepTime: the Frame steps into place during the first part of the clip (the arms are still going up).
+	-- blade: where the middle of the blade comes down, in the Frame's own space in real studs, measured on the
+	-- CoreStrike clip at its Impact (19 to the right, 48 ahead, at the height of a downed Strider's core). The
+	-- step-in puts the Frame where that point is on the core.
+	Vanguard = { clip = "CoreStrike", duration = 1.6, damage = 700, impact = 0.62, range = 34 * S, facing = 60, stepTime = 0.5, blade = V(19, 0, -48) },
 }
 
 -- Titan attacks (docs/10 §1.4, docs/12 §7). Lengths are the Titan's own studs; the hit tests add the Frame's

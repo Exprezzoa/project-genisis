@@ -10,7 +10,7 @@
 -- on it. (This place has no PlayerModule in PlayerScripts to ask for a move vector.)
 --
 --   getFrame() -> Model?          the Frame this player pilots
---   setAction(busy, velocity?, moveScale?)   CombatController: while an action runs the Frame walks at moveScale
+--   setAction(busy, velocity?, moveScale?, faceYaw?)   CombatController: while an action runs the Frame walks at moveScale
 --                                 of its speed (0 = not at all); velocity = the action's root motion
 --   isShiftLocked() -> boolean    aim lock: the Frame faces where the camera looks and strafes (Left Ctrl)
 --   setLock(point?)               lock-on: the Frame faces point() and the move input is read against the line to it
@@ -61,6 +61,7 @@ local shiftLock = false
 local lockPoint: (() -> Vector3?)? = nil
 local intent = Vector3.zero -- where the pilot is steering (world)
 local rootVelocity: Vector3? = nil -- the action's root motion (dodge, lunge), world XZ
+local actionYaw: number? = nil -- the heading the running action turns the Frame to (Core Strike)
 local rootMotion: LinearVelocity? = nil
 local bodies: { { root: BasePart, radius: number, titan: Model? } } = {}
 local bodiesAt = 0
@@ -172,6 +173,9 @@ local function update(dt: number)
 			speed, target = 0, 0
 			pilotHumanoid.WalkSpeed = 0
 			pilotHumanoid:Move(Vector3.zero, false)
+			if actionYaw then
+				heading = turnToward(heading, actionYaw, math.rad(config.turnRate.locked) * dt)
+			end
 			if facing then
 				facing.CFrame = CFrame.Angles(0, heading, 0)
 			end
@@ -199,7 +203,10 @@ local function update(dt: number)
 	if amount > 0 then
 		moveDirection = input.Unit
 	end
-	if lockYaw then
+	if actionYaw then
+		-- The running action aims the Frame itself (a Core Strike lines the blade up with the core).
+		heading = turnToward(heading, actionYaw, math.rad(config.turnRate.locked) * dt)
+	elseif lockYaw then
 		-- Locked on: the Frame faces its target, also while it attacks, and strafes (docs/11 §5).
 		heading = turnToward(heading, lockYaw, math.rad(config.turnRate.locked) * dt)
 	elseif shiftLock then
@@ -232,7 +239,7 @@ local function stop()
 		rootMotion = nil
 	end
 	busy, rootVelocity, moveScale, shiftLock = false, nil, 1, false
-	lockPoint, intent = nil, Vector3.zero
+	lockPoint, intent, actionYaw = nil, Vector3.zero, nil
 	if oldHumanoid and oldHumanoid.Parent then
 		oldHumanoid.WalkSpeed = 0
 		oldHumanoid:Move(Vector3.zero, false)
@@ -306,8 +313,8 @@ function FrameController.getFrame(): Model?
 	return frame
 end
 
-function FrameController.setAction(isBusy: boolean, velocity: Vector3?, scale: number?)
-	busy, rootVelocity = isBusy, velocity
+function FrameController.setAction(isBusy: boolean, velocity: Vector3?, scale: number?, faceYaw: number?)
+	busy, rootVelocity, actionYaw = isBusy, velocity, faceYaw
 	moveScale = if isBusy then (scale or 0) else 1
 end
 

@@ -605,3 +605,30 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Known:** the reticle still shows while locked on; the weapons banner would overlap the Titan bar if both showed; a Lunge still passes through the Frame; no path-finding; the Core Strike has no step-in or camera yet; no sounds.
 
 **Next:** the user's verdict on the fight (Q-018) and on Titan size (Q-017); Core Strike positioning and camera; Frame damage states and the Disabled flow; then the Phase 3 acceptance tests.
+
+**Session 6, continued: balance, Core Strike positioning and camera, damage states, retry (D-061, D-062, D-063)**
+
+**Done:**
+- Frame damage and poise × 1.7 (user decision); Titan size kept.
+- Core Strike: step-in and aim on the pilot's client, target published by the server, the strike camera (`CameraController.setShot`).
+- `FrameService` publishes `DamageState` and `PlatesDetached`; `FrameDamageController` (plates, sparks, smoke, flicker, dark, the FRAME DISABLED card); `RetryService`; `TitanService.reset` and the Strider's `reset`.
+
+**Tested (how → result):** play mode, Training Yard, one run; Output clean.
+- Core Strike from 32.8 studs off the core, a little off its line: the Frame moved 18.4 studs to 51.2 from the core during the raise; at impact the blade's center was 0.9 studs from the core sideways and 0.8 above it; the camera sat 80 studs from the Frame looking at the core (0–1° off) and was back at the gameplay camera 0.6 s after the strike; the Titan lost 700.
+- Damage states through `CombatService.hitFrame`: 650 → Scuffed, 1 plate; 310 → Damaged, 3 plates; 110 → Critical; 0 → Disabled. On the client at Damaged: three plate parts hidden, three fallen copies on the ground, sparks 3/s, smoke 12/s; the HUD read 310 / 1000 in red and ARMOR DAMAGED.
+- Disabled: the card was up 0.8 s in with FRAME DISABLED and its second line and went 2.55 s after; visor and core lights dark, smoke 16/s.
+- Retry: 2.94 s after being disabled the Frame stood Idle and Pristine with 1000 Integrity and no plates off, back at the place noted before the Titan spawned; the Titan had 2400 HP and 300 poise again (it had 1700) and stood on its spawn point. Client after it: nothing hidden, no sparks or smoke, visor Neon again.
+- All changed files match Studio by checksum.
+
+**Phase 3 acceptance tests (roadmap), where they stand:** 2 (attack timings), 3 (i-frames negate damage; grace by sending the dodge 0.10 s late), 4 (poise break → core → Core Strike 700 → death → collapse → removed), 5 (can't die standing), 6 (regen after 4 s), 7 (Disabled flow resets) and 8 (240 Hz) pass, each in the journal above. **1 (a fight won in 2–3.5 min over three fights) needs the user.** 3's second half as written, the Network Simulator at 0.15 s lag, was not run; the grace was tested by timing the request instead.
+
+**Not tested:**
+- The new balance in a real fight: how long it takes, whether one Heavy flinching the Titan makes it too easy.
+- The Core Strike and the damaged Frame as pictures: both screenshots of this run came back with the HUD over a black 3D view (the camera and lighting were checked by their values and were normal; earlier runs' screenshots were fine). So plates coming off, sparks, smoke, the dark visor, the card and the strike camera are verified by state, not seen.
+- Core Strike on a Titan that went down by itself in a fight (this one was a passive Titan opened by hand), from behind it, and with the lock on.
+- Retry with a Titan that has a behavior and is mid-attack; with no safe place noted; twice in a row in a real fight.
+- Visor and vent flicker (it waits 3–5 s; not watched). Gamepad and touch.
+
+**Known:** the retry card promises a checkpoint that doesn't exist yet; the reticle shows while locked on; a Lunge passes through the Frame; no path-finding; no sounds; the limp is slower walking only, not a limp in the animation.
+
+**Next:** the user's three fights for acceptance test 1 and their verdict on feel; then Phase 4 (first mission flow).

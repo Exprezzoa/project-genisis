@@ -7,6 +7,8 @@
 --   setFrame(model?)         start or stop following a Frame (nil = back to the on-foot camera)
 --   getYaw() -> radians      the camera's heading; FrameController turns the move input by it
 --   setLock(point?)          lock-on: point() -> Vector3? is what to keep in view (nil = free camera)
+--   setShot(shot?, blendIn?, blendOut?)   a directed view laid over the gameplay camera: shot() -> CFrame;
+--                            nil hands the view back over blendOut seconds (the Core Strike camera)
 --   setStride(on)            the wider stride field of view
 --   shake(magnitude, duration)     a rotational shake that fades out (x the Camera Shake setting)
 --   punch(degrees, duration)       a field-of-view kick that eases back
@@ -53,6 +55,10 @@ local lockPoint: (() -> Vector3?)? = nil
 local lockOffset = 0 -- radians the player has pushed the locked view sideways
 local shoulder = Feel.shoulder
 local focus = Vector3.zero -- how far the pivot has moved toward the lock point
+local shot: (() -> CFrame)? = nil -- a directed view (Core Strike)
+local shotLast: CFrame? = nil -- the last CFrame the shot gave, to blend back from
+local shotWeight = 0
+local shotIn, shotOut = 0.2, 0.3
 local liftTo: number? = nil -- the elevation a fresh lock raises the view to, until the player moves it
 
 local function sensitivity(): number
@@ -192,8 +198,21 @@ local function update(dt: number)
 		end
 	end
 
+	local view = CFrame.new(pivot + rotation * Vector3.new(shoulder, 0, distance)) * rotation
+	-- A directed shot blends in over the gameplay view and back out when it ends.
+	if shot then
+		shotLast = shot()
+		shotWeight = math.min(1, shotWeight + dt / math.max(shotIn, 0.01))
+	elseif shotWeight > 0 then
+		shotWeight = math.max(0, shotWeight - dt / math.max(shotOut, 0.01))
+	end
+	if shotWeight > 0 and shotLast then
+		local eased = shotWeight * shotWeight * (3 - 2 * shotWeight)
+		view = view:Lerp(shotLast, eased)
+	end
+
 	camera.CameraType = Enum.CameraType.Scriptable
-	camera.CFrame = CFrame.new(pivot + rotation * Vector3.new(shoulder, 0, distance)) * rotation * jolt
+	camera.CFrame = view * jolt
 	camera.FieldOfView = fov + kick
 	camera.Focus = CFrame.new(pivot)
 end
@@ -207,6 +226,13 @@ function CameraController.setLock(point: (() -> Vector3?)?)
 	lockOffset = 0
 	local least = math.rad(Feel.lock.pitch)
 	liftTo = if point and pitch < least then least else nil
+end
+
+function CameraController.setShot(newShot: (() -> CFrame)?, blendIn: number?, blendOut: number?)
+	shot = newShot
+	if newShot then
+		shotIn, shotOut = blendIn or 0.2, blendOut or 0.3
+	end
 end
 
 function CameraController.setStride(on: boolean)
@@ -244,6 +270,7 @@ function CameraController.setFrame(model: Model?)
 	table.clear(shakes)
 	table.clear(punches)
 	lockPoint, lockOffset, shoulder, focus = nil, 0, Feel.shoulder, Vector3.zero
+	shot, shotLast, shotWeight = nil, nil, 0
 	if model and root then
 		-- Start behind the Frame.
 		local look = root.CFrame.LookVector

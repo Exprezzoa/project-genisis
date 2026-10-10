@@ -549,6 +549,21 @@ function Strider:onHit(_hit, result)
 	end
 end
 
+-- Back to how it started: no target, no attack, not enraged, facing the way it spawned (TitanService.reset).
+function Strider:reset()
+	self:clearAttack()
+	self.enraged = false
+	self.target = nil
+	self.nextRoar, self.flinchReadyAt = 0, 0
+	self.cooldownUntil = now() + 1
+	self.decisionClock, self.retargetClock = 0, 0
+	table.clear(self.history)
+	table.clear(self.poiseLog)
+	self.heading = yawOf(self.entry.spawn.LookVector)
+	self.facing.CFrame = CFrame.Angles(0, self.heading, 0)
+	self.machine:transition("Idle")
+end
+
 function Strider:step(dt)
 	self.machine:update(dt)
 end

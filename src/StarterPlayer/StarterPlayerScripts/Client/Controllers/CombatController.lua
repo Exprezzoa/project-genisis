@@ -22,6 +22,7 @@ local Net = require(Shared.Modules.Net)
 local Signal = require(Shared.Modules.Signal)
 
 local AnimationController = require(script.Parent.AnimationController)
+local CameraController = require(script.Parent.CameraController)
 local FrameController = require(script.Parent.FrameController)
 local InputController = require(script.Parent.InputController)
 
@@ -34,7 +35,7 @@ CombatController.Hit = Signal.new() :: Signal.Signal<any>
 CombatController.Refused = Signal.new() :: Signal.Signal<string>
 CombatController.Hurt = Signal.new() :: Signal.Signal<any>
 
-type Action = { name: string, kind: string, move: any, t0: number, predicted: boolean, seq: number?, direction: Vector3?, chained: boolean?, serverT0: number? }
+type Action = { name: string, kind: string, move: any, t0: number, predicted: boolean, seq: number?, direction: Vector3?, chained: boolean?, serverT0: number?, strike: any }
 
 local player = Players.LocalPlayer
 local frame: Model? = nil
@@ -42,6 +43,7 @@ local action: Action? = nil
 local buffered: { name: string, at: number }? = nil
 local pending: { seq: number, at: number }? = nil
 local sequence = 0
+local striking = false -- the Core Strike camera is on
 local knockback: { velocity: Vector3, untilTime: number }? = nil -- the shove of the last hit taken (docs/12 §7)
 local HIT_REACT = { duration = CombatConfig.HitReact.Heavy.stun } -- the server ends the stun; this is only its shape
 
@@ -204,10 +206,46 @@ local function followServer(model: Model)
 	end
 end
 
+-- Core Strike (docs/11 §4, §5.6): where the Frame has to stand and face so the blade comes down on the core.
+-- The blade lands at `blade` in the Frame's own space, so the Frame stands that far from the core on the line
+-- it is already on, turned so the core lies under that point.
+local function planStrike(model: Model, strike: any): any
+	local root = model.PrimaryPart :: BasePart
+	local targetId = model:GetAttribute("ActionTarget")
+	local folder = workspace:FindFirstChild("Titans")
+	local core: BasePart? = nil
+	for _, titan in ipairs(if folder then folder:GetChildren() else {}) do
+		if titan:GetAttribute("TargetId") == targetId then
+			core = titan:FindFirstChild("Hurtbox_Core") :: BasePart?
+		end
+	end
+	if not core then
+		return nil
+	end
+	local corePosition = core.Position
+	local away = (root.Position - corePosition) * Vector3.new(1, 0, 1)
+	away = if away.Magnitude > 0.5 then away.Unit else root.CFrame.LookVector * -1
+	local blade = strike.blade :: Vector3
+	local reach = Vector2.new(blade.X, blade.Z).Magnitude
+	-- Facing: the line to the core, turned left by the angle the blade lies to the right of straight ahead.
+	local toCore = -away
+	local faceYaw = math.atan2(-toCore.X, -toCore.Z) + math.atan2(blade.X, -blade.Z)
+	return { stand = corePosition + away * reach, faceYaw = faceYaw, core = corePosition, side = root.CFrame.RightVector, started = os.clock() }
+end
+
 local function rootMotion(model: Model, current: Action): Vector3?
 	local elapsed = now() - current.t0
 	local move = current.move
-	if current.kind == "dodge" then
+	if current.kind == "core" then
+		-- Step into place while the arms go up; whatever distance is left is covered in the time that is left.
+		local plan = current.strike
+		if plan and elapsed < move.stepTime then
+			local left = (plan.stand - (model.PrimaryPart :: BasePart).Position) * Vector3.new(1, 0, 1)
+			local velocity = left / math.max(move.stepTime - elapsed, 0.05)
+			return if velocity.Magnitude > 1 then velocity else Vector3.zero
+		end
+		return nil
+	elseif current.kind == "dodge" then
 		if elapsed <= move.duration and current.direction then
 			return current.direction * (move.distance / move.duration)
 		end
@@ -239,6 +277,32 @@ local function update()
 	current = action
 	-- Attacks leave part of the walk speed; a dodge is all root motion.
 	local scale = if current and current.kind == "attack" then CombatConfig.ATTACK_MOVE_SCALE else 0
+	-- Core Strike: plan where to stand once, and hand the view to the strike's camera for as long as it runs.
+	local faceYaw: number? = nil
+	if current and current.kind == "core" then
+		if current.strike == nil then
+			current.strike = planStrike(model, current.move) or false
+			local plan = current.strike
+			if plan then
+				local feel = CameraFeel.CoreStrike
+				local length = current.move.duration
+				striking = true
+				CameraController.setShot(function(): CFrame
+					-- From the Frame's right, drifting forward round the core over the strike.
+					local turned = math.rad(feel.orbit) * math.clamp((os.clock() - plan.started) / length, 0, 1)
+					local side = CFrame.Angles(0, turned, 0) * plan.side
+					local from = plan.stand + side * feel.distance + Vector3.new(0, feel.height, 0)
+					return CFrame.lookAt(from, plan.core)
+				end, feel.blendIn, feel.blendOut)
+			end
+		end
+		if current.strike then
+			faceYaw = current.strike.faceYaw
+		end
+	elseif striking then
+		striking = false
+		CameraController.setShot(nil)
+	end
 	local motion = if current then rootMotion(model, current) else nil
 	-- A hit taken throws the Frame, whatever it was doing.
 	local shove = knockback
@@ -247,7 +311,7 @@ local function update()
 	elseif shove then
 		shove, knockback = nil, nil
 	end
-	FrameController.setAction(current ~= nil or shove ~= nil, motion, scale)
+	FrameController.setAction(current ~= nil or shove ~= nil, motion, scale, faceYaw)
 end
 
 function CombatController.getAction()
@@ -264,6 +328,10 @@ function CombatController.Start()
 	FrameController.Piloting:Connect(function(model: Model?)
 		frame = model
 		action, buffered, pending, knockback = nil, nil, nil, nil
+		if striking then
+			striking = false
+			CameraController.setShot(nil)
+		end
 		FrameController.setAction(false, nil)
 	end)
 	frame = FrameController.getFrame()
