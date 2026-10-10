@@ -18,7 +18,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.Config.GameConfig)
 local Log = require(Shared.Modules.Log)
+local Net = require(Shared.Modules.Net)
 local Signal = require(Shared.Modules.Signal)
+
+local FlagService = require(script.Parent.FlagService)
+local PlayerDataService = require(script.Parent.PlayerDataService)
+local StaticInteractions = require(script.Parent.Parent.Sequence.StaticInteractions)
 
 local TAG = "InteractionService"
 local INTERACT_TAG = "Interactable"
@@ -175,7 +180,39 @@ function InteractionService.exists(interactId: string): boolean
 	return entries[interactId] ~= nil
 end
 
+-- Static handlers (Sequence/StaticInteractions): a thought line as a radio-mode Dialogue_Node, plus flag and toast.
+local function registerStatic()
+	for interactId, entry in pairs(StaticInteractions.entries) do
+		InteractionService.register(interactId, function(player: Player)
+			local seenFlag = StaticInteractions.SEEN_PREFIX .. interactId
+			local firstUse = FlagService.set(player, seenFlag)
+			local node: string? = if firstUse then entry.first elseif entry.firstOnly then nil else (entry.again or entry.first)
+			if entry.flag then
+				FlagService.set(player, entry.flag)
+			end
+			if node then
+				Net.fireClient(player, "Dialogue_Node", { dialogueId = StaticInteractions.DIALOGUE, nodeId = node, mode = "radio" })
+			end
+			if entry.toast then
+				Net.fireClient(player, "UI_Toast", { text = entry.toast })
+			end
+		end)
+	end
+end
+
+-- A "Once" prompt whose flag the player already has (from an earlier session) stays off.
+local function restoreOnce(player: Player)
+	for interactId, entry in pairs(StaticInteractions.entries) do
+		local known = entries[interactId]
+		if entry.flag and known and known.part:GetAttribute("Once") and FlagService.has(player, entry.flag) then
+			InteractionService.setEnabled(interactId, false, player)
+		end
+	end
+end
+
 function InteractionService.Start()
+	registerStatic()
+	PlayerDataService.Loaded:Connect(restoreOnce)
 	for _, instance in ipairs(CollectionService:GetTagged(INTERACT_TAG)) do
 		add(instance)
 	end
