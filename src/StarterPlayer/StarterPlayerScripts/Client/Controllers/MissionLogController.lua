@@ -1,11 +1,11 @@
 --!nonstrict
 -- Client/Controllers/MissionLogController.lua  (docs/14_ui.md §7)
 --
--- Mission Log shell: a full-screen overlay (Panel at 0.1 transparency, blur 12 while open) with the tabs
--- OBJECTIVES | EVIDENCE | PEOPLE. Phase 1 shows the current objective; evidence, people and the Log Reader
--- get their content with the story systems (Phase 5). Opened with Tab / View / LOG through MenuController.
+-- Mission Log shell: a full-screen overlay (blur 12 while open) with the tabs OBJECTIVES | EVIDENCE | PEOPLE.
+-- Phase 1 shows the current objective; evidence, people and the Log Reader get their content with the story
+-- systems (Phase 5). Opened with Tab / View / LOG through MenuController.
 --
---   selectTab(name)   getTab() -> name
+--   selectTab(name)   getTab() -> name   build(layer)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -31,7 +31,7 @@ local currentTab = "OBJECTIVES"
 
 local function refresh()
 	for name, button in pairs(tabButtons) do
-		button.TextColor3 = if name == currentTab then UIStyle.Accent else UIStyle.TextSecondary
+		Components.setAccented(button, name == currentTab)
 	end
 	local text = EMPTY[currentTab]
 	if currentTab == "OBJECTIVES" then
@@ -52,34 +52,31 @@ function MissionLogController.getTab()
 	return currentTab
 end
 
-function MissionLogController.Init()
-	frame = Instance.new("Frame")
-	frame.Name = "MissionLog"
-	frame.Size = UDim2.fromScale(1, 1)
-	frame.BackgroundColor3 = UIStyle.Panel.Color
-	frame.BackgroundTransparency = 0.1
-	frame.BorderSizePixel = 0
-	frame.Parent = UIController.getLayer("Menu")
-	local padding = Instance.new("UIPadding")
-	padding.PaddingLeft, padding.PaddingRight = UDim.new(0, 64), UDim.new(0, 64)
-	padding.PaddingTop, padding.PaddingBottom = UDim.new(0, 56), UDim.new(0, 48)
-	padding.Parent = frame
-
-	Components.label(frame, "MISSION LOG", { font = "Header", size = UIStyle.TextSize.Title, color = UIStyle.Accent }, { Size = UDim2.new(1, -220, 0, 40) })
+function MissionLogController.build(layer)
+	frame = MenuController.backdrop(layer, "MissionLog")
+	Components.title(frame, "MISSION LOG", { Position = UDim2.fromOffset(72, 48), Size = UDim2.fromOffset(520, 68), ZIndex = 6 }, { size = UIStyle.TextSize.Hero, color = UIStyle.Ink, textColor = UIStyle.Paper })
 	local close = Components.button(frame, "CLOSE", MenuController.close, {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
+		Position = UDim2.new(1, -72, 0, 56),
 		Size = UDim2.fromOffset(200, 44),
+		ZIndex = 6,
 	})
 	for index, name in ipairs(TABS) do
 		tabButtons[name] = Components.button(frame, name, function()
 			MissionLogController.selectTab(name)
-		end, { Position = UDim2.fromOffset((index - 1) * 208, 64), Size = UDim2.fromOffset(200, 44) })
+		end, { Position = UDim2.fromOffset(96 + (index - 1) * 236, 148), Size = UDim2.fromOffset(224, 44), ZIndex = 6 })
 	end
-	body = Components.label(frame, "", { size = UIStyle.TextSize.Large, wrap = true }, {
-		Position = UDim2.fromOffset(0, 136),
-		Size = UDim2.new(1, 0, 1, -136),
+	local page = Components.slab(frame, { color = UIStyle.Ink, transparency = 0.04, slant = 4 }, {
+		Name = "Page",
+		Position = UDim2.fromOffset(72, 212),
+		Size = UDim2.new(1, -144, 1, -272),
+		ZIndex = 4,
+	})
+	body = Components.label(page, "", { size = UIStyle.TextSize.Large, wrap = true }, {
+		Position = UDim2.fromOffset(72, 32),
+		Size = UDim2.new(1, -144, 1, -64),
 		TextYAlignment = Enum.TextYAlignment.Top,
+		ZIndex = 5,
 	})
 	MenuController.registerScreen("MissionLog", frame, tabButtons.OBJECTIVES or close, { blur = true })
 	frame:GetPropertyChangedSignal("Visible"):Connect(function()
@@ -87,6 +84,11 @@ function MissionLogController.Init()
 			refresh()
 		end
 	end)
+	refresh()
+end
+
+function MissionLogController.Init()
+	MissionLogController.build(UIController.getLayer("Menu"))
 end
 
 return MissionLogController

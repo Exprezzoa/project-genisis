@@ -77,20 +77,27 @@ end
 
 function HUDController.toast(text)
 	local config = UIStyle.Toast
-	local panel = Components.panel(toastHolder, { padding = UIStyle.Padding }, {
-		Size = UDim2.fromOffset(config.Width, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-	})
+	-- An ink slab with leaning edges and an amber underline; the text pops in from the right. The slab's
+	-- height follows the wrapped text (a slab can't size itself automatically).
+	local panel = Components.slab(toastHolder, { color = UIStyle.Ink, transparency = 0.06 }, { Size = UDim2.fromOffset(config.Width, 44) })
 	local bar = Instance.new("Frame")
 	bar.BackgroundColor3 = UIStyle.Accent
 	bar.BorderSizePixel = 0
-	bar.Position = UDim2.fromOffset(-UIStyle.Padding, -UIStyle.Padding)
-	bar.Size = UDim2.new(0, 3, 1, 2 * UIStyle.Padding)
+	bar.AnchorPoint = Vector2.new(0, 1)
+	bar.Position = UDim2.fromScale(0.06, 1)
+	bar.Size = UDim2.new(0.88, 0, 0, 3)
 	bar.Parent = panel
-	Components.label(panel, text, { font = "BodyItalic", size = UIStyle.TextSize.Body, color = UIStyle.TextSecondary, wrap = true }, {
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
+	local label = Components.label(panel, text, { font = "BodyItalic", size = UIStyle.TextSize.Body, color = UIStyle.Paper, wrap = true }, {
+		Position = UDim2.fromOffset(70, 12),
+		Size = UDim2.new(1, -60, 0, 200), -- tall on purpose: TextBounds is capped by the label's own height
+		TextYAlignment = Enum.TextYAlignment.Top,
 	})
+	TweenService:Create(label, TweenInfo.new(UIStyle.Pop.Time, UIStyle.Pop.Style, UIStyle.Pop.Direction), { Position = UDim2.fromOffset(30, 12) }):Play()
+	local function fit()
+		panel.Size = UDim2.fromOffset(config.Width, math.max(44, math.ceil(label.TextBounds.Y / UIController.getScale()) + 24)) -- TextBounds is in screen pixels
+	end
+	label:GetPropertyChangedSignal("TextBounds"):Connect(fit)
+	fit()
 	local entry = { text = text, panel = panel }
 	table.insert(state.toasts, entry)
 	while #state.toasts > config.Max do
@@ -149,9 +156,7 @@ function HUDController.getState()
 	}
 end
 
-function HUDController.Init()
-	local hud = UIController.getLayer("HUD")
-
+function HUDController.build(hud)
 	objectiveFrame = Instance.new("Frame")
 	objectiveFrame.Name = "Objective"
 	objectiveFrame.BackgroundTransparency = 1
@@ -161,15 +166,19 @@ function HUDController.Init()
 	objectiveFrame.Visible = false
 	objectiveFrame.Parent = hud
 	list(objectiveFrame, 4)
-	Components.label(objectiveFrame, "OBJECTIVE", { font = "Header", size = UIStyle.TextSize.Tiny, color = UIStyle.Accent }, {
-		Size = UDim2.new(1, 0, 0, 16),
-		LayoutOrder = 1,
-	})
-	objectiveText = Components.label(objectiveFrame, "", { size = 20, wrap = true }, {
+	-- A tilted amber tag over the objective text on an ink bar.
+	Components.title(objectiveFrame, "OBJECTIVE", { Size = UDim2.new(1, 0, 0, 30), LayoutOrder = 1 }, { size = UIStyle.TextSize.Tiny, width = 156 })
+	objectiveText = Components.label(objectiveFrame, "", { font = "BodyBold", size = 20, wrap = true }, {
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = UIStyle.Ink,
+		BackgroundTransparency = 0.15,
 		LayoutOrder = 2,
 	})
+	local textPadding = Instance.new("UIPadding")
+	textPadding.PaddingLeft, textPadding.PaddingRight = UDim.new(0, 14), UDim.new(0, 14)
+	textPadding.PaddingTop, textPadding.PaddingBottom = UDim.new(0, 8), UDim.new(0, 8)
+	textPadding.Parent = objectiveText
 	objectiveFlash = Instance.new("Frame")
 	objectiveFlash.Name = "Flash"
 	objectiveFlash.BackgroundColor3 = UIStyle.Accent
@@ -212,7 +221,10 @@ function HUDController.Init()
 	outline.Transparency = 0.4
 	outline.Thickness = 1.5
 	outline.Parent = subtitleLabel
+end
 
+function HUDController.Init()
+	HUDController.build(UIController.getLayer("HUD"))
 	for _, moduleScript in ipairs(Shared.Dialogue:GetChildren()) do
 		if moduleScript:IsA("ModuleScript") and moduleScript.Name ~= "Speakers" then
 			for id, dialogue in pairs(require(moduleScript)) do

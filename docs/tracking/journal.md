@@ -207,3 +207,31 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 - Test 6: in Studio's Test tab choose Device → a phone (landscape), press Play: check that SPRINT, LOG and ≡ appear, that ≡ opens the menu, Settings rows can be changed by tapping, and a prompt (photo in Q-3) works by tapping. Then with a gamepad (if you have one): D-pad Up opens the menu, the stick/D-pad moves the amber selection, A activates, B goes back.
 - Walk from Q-3 to the hangar and up the catwalk; try the Q-3 prompts; press F2 and type `/help`.
 - The profile was wiped at the end of the tests, so you start fresh.
+
+### Session 4 — 2026-10-10 — Phase 1 (UI feedback from the user)
+**Goal this session:** the user tried the phone layout and reported (1) LOG and SPRINT overlap, (2) the UI is too simple and should look more advanced, taking inspiration from the Persona games.
+
+**Studio state found at start:** as left by Session 3 (same Studio session).
+
+**Done:**
+- Touch layout: LOG moved to the top-right beside the menu button; SPRINT lowered 40 px (D-031, `11` §2).
+- Angular restyle (D-031, `14` §1.1): `UI/Components` rebuilt around slanted slabs (`slab`, `paint`, `tweenPaint`, `title`, new button states idle / highlighted / accented / disabled); pause menu with the diagonal amber band and a tilted column; Settings and Mission Log on ink slabs with tilted titles; objective tag, toasts and prompts restyled; touch buttons are tilted squares. `HUDController`, `MenuController`, `MissionLogController` and `MobileControlsController` got `build(layer)` so their screens can be built into a preview.
+- Session helper `_G.PG_preview(screen)`: builds the real screens into a temporary ScreenGui in StarterGui in edit mode so they can be screenshotted (play mode can't be captured). Removed after use; nothing is left in StarterGui.
+
+**Tested (how → result):**
+- Edit-mode previews with screenshots of Pause, Settings, Mission Log and HUD → the look was checked by eye and four defects were found and fixed that way: an amber title on the amber band; slabs cut to half their width (a single rotated gradient is scaled to the frame's short side; slabs are now three Frames); slider bars cut to a stub (now rectangular); the toast panel growing to the full column height (an auto-sized panel with a scale-sized backing; toasts now size themselves from their text).
+- Text fit, numeric (`TextBounds` vs `AbsoluteSize`) on all four previews → 52–57 texts each, 0 overflowing, after widening the pause column to 440 and the fitted title width.
+- Play mode → PASS: boot clean (8 services, 11 controllers, Output empty); pause/settings/log open and close and lock/restore controls; a settings toggle shows the accented "on" look; the photo prompt appears with its slanted slab and shows the thought line; toasts 360 × 44 (one line) and 360 × 58 (two lines), gone after 3.5 s.
+- Touch layout at 859 × 392, computed from the buttons' rectangles → no overlaps between SPRINT, LOG, menu and the objective tracker; with two optional objective lines the tracker ends 18 px above SPRINT.
+
+**Not tested:**
+- The restyle on a real phone emulator, and gamepad selection on the new buttons (acceptance test 6 is still open).
+- The band sweep and hover animations were not seen (screenshots are stills of edit-mode previews).
+
+**Known bugs:** none open.
+
+**Decisions made:** D-031.
+
+**Next steps:** user review of the new look (pause menu, settings, mission log, HUD, prompts) on PC and in the phone emulator; then close acceptance test 6 and Phase 1.
+
+**User actions needed:** save and publish; look at the UI in play mode and say what to push further (more tilt, bolder titles, more motion) or pull back.

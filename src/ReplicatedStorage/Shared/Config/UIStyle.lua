@@ -27,7 +27,16 @@ local UIStyle = {
 	FrameEnergy = hex("#FFD38A"),
 	Resonance = hex("#7FE3F0"), -- anomaly only
 
-	CornerRadius = 4,
+	-- Angular look (2026-10-10, user direction; D-031): slabs are parallelograms cut with a UIGradient, titles and
+	-- key boxes are tilted, highlighted controls flip to amber over an offset paper-white shadow slab.
+	Ink = hex("#0B0E10"),
+	Paper = hex("#E8ECEF"),
+	Slant = 14, -- degrees the left and right edges of a slab lean
+	Tilt = -4, -- degrees titles, tags and menu columns are rotated
+	Shadow = Vector2.new(7, 6), -- offset of the shadow slab behind highlighted controls and titles
+	Pop = { Time = 0.22, Style = Enum.EasingStyle.Back, Direction = Enum.EasingDirection.Out },
+
+	CornerRadius = 0,
 	Padding = 12,
 	Gap = 8,
 

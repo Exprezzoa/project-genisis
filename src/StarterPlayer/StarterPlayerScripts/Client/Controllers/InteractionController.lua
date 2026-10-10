@@ -85,10 +85,10 @@ local function show(prompt)
 	uiScale.Scale = 0.9 * scale
 	uiScale.Parent = gui
 
-	local root = Components.panel(gui, {}, { Size = UDim2.fromOffset(config.Size.X, config.Size.Y) })
+	local root = Components.panel(gui, { solid = true, slant = UIStyle.Slant }, { Size = UDim2.fromOffset(config.Size.X, config.Size.Y) })
 	local keyBox, glyph = Components.keyGlyph(root, InputController.glyph("Interact"), config.KeyBox)
 	keyBox.AnchorPoint = Vector2.new(0, 0.5)
-	keyBox.Position = UDim2.new(0, 12, 0.5, 0)
+	keyBox.Position = UDim2.new(0, 16, 0.5, 0)
 	local hasObject = prompt.ObjectText ~= ""
 	Components.label(root, prompt.ActionText, { size = 20 }, {
 		Position = UDim2.fromOffset(64, if hasObject then 8 else 20),

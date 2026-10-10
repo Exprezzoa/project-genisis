@@ -54,11 +54,11 @@ All positions are relative to the bottom-right corner (AnchorPoint (1, 1)) and u
 | SPECIAL | 72 | (−190, −160) | Shows the energy requirement (2 pips) |
 | LOCK | 64 | (−300, −70) | |
 | CORE | 110 | screen center-bottom (0.5, −180) | Appears and pulses only when available |
-| STRIDE / SPRINT | 64 | bottom-left above the thumbstick zone (+40, −260) from the bottom-left | Toggle |
-| LOG | 56 | top-left under the objective tracker | |
+| STRIDE / SPRINT | 64 | bottom-left above the thumbstick zone (+40, −220) from the bottom-left (was −260; lowered to stay clear of the objective tracker on phones, D-031) | Toggle |
+| LOG | 56 | top-right, left of the menu button (−96, 24) (was top-left under the objective tracker, where it overlapped SPRINT on a phone in landscape; D-031) | |
 | ≡ (menu) | 56 | top-right (−24, 24) | |
 
-Buttons: circular (UICorner 0.5 scale), panel color with a 2-px amber stroke, label in Michroma 14. Pressed state: scale 0.92 plus brightness. Cooldown: a radial-ish sweep made of a darkening overlay Frame that shrinks vertically. Hit areas are at least 56 px.
+Buttons: tilted (−8°) ink squares (were circles before the angular restyle, `14` §1.1), with a 2-px amber stroke, label in Michroma; pressed = amber fill with ink text. Pressed state: scale 0.92 plus brightness. Cooldown: a radial-ish sweep made of a darkening overlay Frame that shrinks vertically. Hit areas are at least 56 px.
 
 ## 3. On-foot camera
 - Roblox default `Classic` camera. FOV 70. Zoom 6–22. `DevCameraOcclusionMode = Zoom` (camera collision; it never passes through walls).

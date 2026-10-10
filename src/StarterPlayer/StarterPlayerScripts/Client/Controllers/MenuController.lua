@@ -5,13 +5,17 @@
 -- One screen is open at a time. Opening one switches the input context to "Menu" (movement off); closing
 -- restores the gameplay context. Every control is a button, so mouse, touch and gamepad all work; with a
 -- gamepad the first control of the opened screen is selected.
+-- Look: a dimmed screen crossed by a diagonal amber band, the tilted column of slab buttons on the left.
 --
 --   open(name)   close()   toggle(name)   getOpen() -> name?
 --   registerScreen(name, frame, firstSelectable, opts { blur })
+--   backdrop(parent) -> Frame           -- the dim + diagonal band other screens reuse
+--   build(layer)                        -- builds the screens into a layer (Init does this; also for previews)
 
 local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.Config.GameConfig)
@@ -32,7 +36,7 @@ local function percent(value)
 	return ("%d%%"):format(math.floor(value * 100 + 0.5))
 end
 
--- docs/14 §8, in order. kind "mode" is the single Sprint/Stride row that drives both toggle settings.
+-- docs/14 §8, in order. The Sprint/Stride row drives both toggle settings.
 local ROWS = {
 	{ label = "Camera Sensitivity", key = "camSensitivity", kind = "slider", step = 0.05, format = function(v)
 		return ("%.2f"):format(v)
@@ -65,7 +69,9 @@ function MenuController.close()
 	end
 	screens[openName].frame.Visible = false
 	openName = nil
-	blur.Enabled = false
+	if blur then
+		blur.Enabled = false
+	end
 	GuiService.SelectedObject = nil
 	InputController.restoreGameplay()
 end
@@ -80,9 +86,17 @@ function MenuController.open(name)
 	end
 	openName = name
 	screen.frame.Visible = true
-	blur.Enabled = screen.blur
+	if blur then
+		blur.Enabled = screen.blur
+	end
 	InputController.setContext("Menu")
 	GuiService.SelectedObject = if InputController.getDevice() == "Gamepad" then screen.first else nil
+	-- The band sweeps in each time a screen opens.
+	local band = screen.frame:FindFirstChild("Band")
+	if band then
+		band.Position = UDim2.fromScale(-0.3, 0.5)
+		TweenService:Create(band, TweenInfo.new(UIStyle.Pop.Time, UIStyle.Motion.Style, UIStyle.Motion.Direction), { Position = UDim2.fromScale(0.16, 0.5) }):Play()
+	end
 end
 
 function MenuController.toggle(name)
@@ -93,53 +107,95 @@ function MenuController.toggle(name)
 	end
 end
 
-local function column(parent, width)
-	local panel = Components.panel(parent, { solid = true, padding = 20 }, {
+-- A full-screen screen container: dimmed game view crossed by a diagonal amber band with an ink band
+-- beside it. Content goes on top.
+function MenuController.backdrop(parent, name)
+	local frame = Instance.new("Frame")
+	frame.Name = name
+	frame.BackgroundColor3 = UIStyle.Ink
+	frame.BackgroundTransparency = 0.35
+	frame.BorderSizePixel = 0
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.ClipsDescendants = false
+	frame.Parent = parent
+	Components.slab(frame, { color = UIStyle.Accent, slant = false }, {
+		Name = "Band",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(width, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
+		Position = UDim2.fromScale(0.16, 0.5),
+		Size = UDim2.new(0, 300, 3, 0),
+		Rotation = UIStyle.Slant,
 	})
+	Components.slab(frame, { color = UIStyle.Ink, slant = false }, {
+		Name = "BandShade",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.16, 190, 0.5, 0),
+		Size = UDim2.new(0, 36, 3, 0),
+		Rotation = UIStyle.Slant,
+	})
+	return frame
+end
+
+local function column(parent, width, position, rotation)
+	local holder = Instance.new("Frame")
+	holder.Name = "Column"
+	holder.BackgroundTransparency = 1
+	holder.AnchorPoint = Vector2.new(0, 0.5)
+	holder.Position = position
+	holder.Size = UDim2.fromOffset(width, 0)
+	holder.AutomaticSize = Enum.AutomaticSize.Y
+	holder.Rotation = rotation
+	holder.ZIndex = 5
+	holder.Parent = parent
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, UIStyle.Gap)
-	layout.Parent = panel
-	return panel
+	layout.Padding = UDim.new(0, 12)
+	layout.Parent = holder
+	return holder
 end
 
 local function buildPause(layer)
-	local panel = column(layer, 360)
-	panel.Name = "Pause"
-	Components.label(panel, "PAUSED", { font = "Header", size = UIStyle.TextSize.Title, color = UIStyle.Accent }, { Size = UDim2.new(1, 0, 0, 40) })
-	local resume = Components.button(panel, "RESUME", MenuController.close)
-	Components.button(panel, "MISSION LOG", function()
+	local screen = MenuController.backdrop(layer, "Pause")
+	local list = column(screen, 440, UDim2.new(0.16, -40, 0.5, 0), UIStyle.Tilt)
+	Components.title(list, "PAUSED", { LayoutOrder = 1 }, { size = UIStyle.TextSize.Hero, color = UIStyle.Ink, textColor = UIStyle.Paper })
+	local resume = Components.button(list, "RESUME", MenuController.close, { LayoutOrder = 2 })
+	Components.button(list, "MISSION LOG", function()
 		MenuController.open("MissionLog")
-	end)
-	Components.button(panel, "SETTINGS", function()
+	end, { LayoutOrder = 3 })
+	Components.button(list, "SETTINGS", function()
 		MenuController.open("Settings")
-	end)
+	end, { LayoutOrder = 4 })
 	-- Missions only (Phase 4) and disabled in the Vertical Slice.
-	Components.disable(Components.button(panel, "RESTART FROM CHECKPOINT"))
-	Components.disable(Components.button(panel, "QUIT TO HUB"))
-	MenuController.registerScreen("Pause", panel, resume)
+	Components.disable(Components.button(list, "RESTART FROM CHECKPOINT", nil, { LayoutOrder = 5 }))
+	Components.disable(Components.button(list, "QUIT TO HUB", nil, { LayoutOrder = 6 }))
+	MenuController.registerScreen("Pause", screen, resume)
 end
 
 local function buildSettings(layer)
-	local panel = column(layer, 760)
-	panel.Name = "Settings"
-	Components.label(panel, "SETTINGS", { font = "Header", size = UIStyle.TextSize.Title, color = UIStyle.Accent }, { Size = UDim2.new(1, 0, 0, 40) })
+	local screen = MenuController.backdrop(layer, "Settings")
+	-- A wide ink slab holds the rows; the title sits on its top-left corner.
+	local body = Components.slab(screen, { color = UIStyle.Ink, transparency = 0.04, slant = 4 }, {
+		Name = "Body",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.54, 0.52),
+		Size = UDim2.new(0, 880, 0.84, 0), -- relative height: it has to fit a phone in landscape
+		ZIndex = 4,
+	})
+	Components.title(body, "SETTINGS", { Position = UDim2.fromOffset(40, -30), Size = UDim2.fromOffset(360, 60), ZIndex = 6 })
 	local scroll = Instance.new("ScrollingFrame")
+	scroll.Name = "Rows"
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
-	scroll.Size = UDim2.new(1, 0, 0, 520)
+	scroll.Position = UDim2.fromOffset(64, 44)
+	scroll.Size = UDim2.new(1, -128, 1, -116)
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.CanvasSize = UDim2.new()
 	scroll.ScrollBarThickness = 6
 	scroll.ScrollBarImageColor3 = UIStyle.Accent
-	scroll.Parent = panel
+	scroll.ZIndex = 5
+	scroll.Parent = body
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 4)
+	layout.Padding = UDim.new(0, 6)
 	layout.Parent = scroll
 
 	local setters = {}
@@ -148,11 +204,11 @@ local function buildSettings(layer)
 		local holder = Instance.new("Frame")
 		holder.Name = row.key
 		holder.BackgroundTransparency = 1
-		holder.Size = UDim2.new(1, -12, 0, 44)
+		holder.Size = UDim2.new(1, -16, 0, 44)
 		holder.LayoutOrder = index
 		holder.Parent = scroll
-		Components.label(holder, row.label, { size = UIStyle.TextSize.Body }, { Size = UDim2.new(0.45, 0, 1, 0) })
-		local place = { AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.new(0.55, 0, 1, 0) }
+		Components.label(holder, string.upper(row.label), { font = "Header", size = UIStyle.TextSize.Small }, { Size = UDim2.new(0.45, 0, 1, 0) })
+		local place = { AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.new(0.52, 0, 1, 0) }
 		local value = SettingsController.get(row.key)
 		local function changed(newValue)
 			SettingsController.set(row.key, newValue)
@@ -172,26 +228,29 @@ local function buildSettings(layer)
 		setters[row.key] = setter
 		first = first or firstButton or control
 	end
-	Components.button(panel, "BACK", function()
+	Components.button(body, "BACK", function()
 		MenuController.open("Pause")
-	end)
+	end, { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -64, 1, -16), Size = UDim2.fromOffset(220, 44), ZIndex = 6 })
 	SettingsController.Changed:Connect(function(key, value)
 		if setters[key] then
 			setters[key](value)
 		end
 	end)
-	MenuController.registerScreen("Settings", panel, first)
+	MenuController.registerScreen("Settings", screen, first)
+end
+
+function MenuController.build(layer)
+	buildPause(layer)
+	buildSettings(layer)
 end
 
 function MenuController.Init()
-	local layer = UIController.getLayer("Menu")
 	blur = Instance.new("BlurEffect")
 	blur.Name = "MenuBlur"
 	blur.Size = 12
 	blur.Enabled = false
 	blur.Parent = Lighting
-	buildPause(layer)
-	buildSettings(layer)
+	MenuController.build(UIController.getLayer("Menu"))
 end
 
 function MenuController.Start()
