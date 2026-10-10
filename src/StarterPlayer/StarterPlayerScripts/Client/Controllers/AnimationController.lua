@@ -3,10 +3,10 @@
 --
 -- Runs the Procedural Pose Animator for every giant rig: each frame (PreSimulation) it writes
 -- Motor6D.Transform = locomotion (idle + procedural gait from the root's speed) with the action clip laid over
--- it, plus the additive layer (breathing, head look).
+-- it, plus the additive layer (breathing, head look, the cockpit hatch).
 --
 -- What a rig does comes from the server as attributes on its Model: Anim (clip name or ""), AnimT0
--- (workspace:GetServerTimeNow() at the start), AnimSpeed, LookTarget (Vector3). The pilot's client may start
+-- (workspace:GetServerTimeNow() at the start), AnimSpeed, LookTarget (Vector3), HatchOpen. The pilot's client may start
 -- a clip ahead of the server (playLocal); when the server's attributes arrive, the clip adopts the server's
 -- start time if it is within ADOPT seconds, otherwise it restarts with a short blend.
 --
@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local FrameConfig = require(Shared.Config.FrameConfig)
 local Locomotion = require(Shared.Config.Locomotion)
 local Log = require(Shared.Modules.Log)
 local PoseAnimator = require(Shared.Modules.PoseAnimator)
@@ -122,7 +123,7 @@ function AnimationController.register(model)
 	local state = {
 		model = model, root = root, set = set, motors = motors, loco = Locomotion[class],
 		phase = 0, amplitude = 0, speed = 0, shuffle = 0, clock = 0, weight = 0, lookYaw = 0, lookPitch = 0,
-		slowClock = 0, gaitParams = nil, offsets = {}, pose = {},
+		slowClock = 0, gaitParams = nil, offsets = {}, pose = {}, hatch = 0, hatchSpec = FrameConfig[class] and FrameConfig[class].hatch,
 	}
 	rigs[model] = state
 	state.connections = {
@@ -291,6 +292,15 @@ local function step(state, dt)
 	state.lookPitch += (pitch - state.lookPitch) * smoothing
 	if pose.Neck and (math.abs(state.lookYaw) > 0.01 or math.abs(state.lookPitch) > 0.01) then
 		pose.Neck.rot += Vector3.new(state.lookPitch, state.lookYaw, 0)
+	end
+
+	-- The cockpit hatch swings open and shut at a steady rate (docs/09 §6).
+	local hatchSpec = state.hatchSpec
+	if hatchSpec then
+		local goal = if state.model:GetAttribute("HatchOpen") then hatchSpec.openAngle else 0
+		local stepSize = math.abs(hatchSpec.openAngle) / hatchSpec.time * dt
+		state.hatch += math.clamp(goal - state.hatch, -stepSize, stepSize)
+		pose.HatchHinge = { rot = Vector3.new(state.hatch, 0, 0), pos = Vector3.zero }
 	end
 
 	for name, motor in pairs(state.motors) do

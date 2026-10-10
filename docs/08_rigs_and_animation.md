@@ -42,6 +42,8 @@ No uploaded animations exist in this project. Humans use **Roblox's default avat
 5. **Detail parts** (armor plates, greebles, sinew, bone plates, teeth...) are welded (`WeldConstraint`) to their limb part, `Massless`, non-colliding, `CanQuery = false`, `CastShadow` true only if bigger than 1 stud.
 6. **Humanoid:** `RigType = R15`, `HipHeight` from the table, `AutoRotate = false` (rotation is controlled; §2.1), `UseJumpPower = true`, `JumpPower = 0`, `MaxSlopeAngle = 50`, `BreakJointsOnDeath = false`, `RequiresNeck = false`, `HealthDisplayType = AlwaysOff`, `DisplayDistanceType = None`, `EvaluateStateMachine = true`. Server calls `SetStateEnabled(Dead, false)`, `(Ragdoll, false)`, `(FallingDown, false)`, `(Climbing, false)`, `(Swimming, false)`, `(Jumping, false)`. **Gameplay health is NOT `Humanoid.Health`.** It lives in attributes (`Integrity`, `HP`).
 7. **No `Animator`** inside Frame or Titan humanoids (the PPA owns `Motor6D.Transform`).
+   - **Collision groups, found in Phase 2 (D-040):** a Humanoid switches collisions back on for the parts named `UpperTorso`, `LowerTorso` and `HumanoidRootPart` every frame, whatever `CanCollide` says. So at spawn every part of a giant rig except the root goes into the group `NoCollide`, and the root into `FrameRoot` or `TitanRoot`.
+   - **Poses exist only on clients.** On the server a rig's parts stay in the rest pose, so the server must never use a limb's position (a hand, a blade) for gameplay; it uses the root plus offsets.
 8. **Hurtboxes** (Titans; the Frame uses a single body hurtbox): invisible parts named `Hurtbox_<Zone>`, `CanQuery = true`, `CanCollide = false`, `CanTouch = false`, tag `Hurtbox`, attribute `Zone`. They attach to the **HRP with a `Weld`** whose C0 changes per state (§ in `10_titans.md`). This way the server knows where weak points are without running animations.
 
 ### 2.1 Facing control (both rig types)
@@ -289,7 +291,7 @@ Timing must equal `CombatConfig` (`12_combat_system.md` §3). Values below are s
 **Dismount (at a DismountPad):**
 1. Server validates (the Frame's HRP is within the pad radius, speed < 3, not in combat state).
 2. Server sets `Anim = "Kneel"` (1.0 s). Client fades out at 0.8 s.
-3. Server: break the SeatWeld, restore `Massless = false`, teleport the character to the pad's `ExitPoint` CFrame, set the Frame `HRP:SetNetworkOwner(nil)` then `Anchored = true` after the kneel completes, `Anim = "KneelIdle"`, attribute `Pilot = 0`. Enable the "Board Frame" prompt on the Frame's right hand (part `Prompt_Board`).
+3. Server: break the SeatWeld, restore `Massless = false`, teleport the character to the pad's `ExitPoint` CFrame, set the Frame `HRP:SetNetworkOwner(nil)` then `Anchored = true` after the kneel completes, `Anim = "KneelIdle"`, attribute `Pilot = 0`. Enable the "Board Frame" prompt of the kneeling Frame. It sits on an invisible anchored part `BoardPoint` on the ground at the root's (14, −16, −18), under the hand the Kneel pose holds out, because on the server the hand itself is still at rest (D-040); `Prompt_Board` stays on the hand as a marker. The pilot is moved to the `ExitPoint` two frames after leaving the seat (a move in the same frame is overridden by the pilot's client).
 4. Client: restore character visibility and jump, camera to on-foot mode, fade in.
 
 ---

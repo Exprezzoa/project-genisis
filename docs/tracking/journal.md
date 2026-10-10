@@ -334,3 +334,23 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 **Session 5, continued: new direction from the user (written down, nothing built)**
 
 Titans get human skin, human faces and random marketplace hair; Frames stay machines. Shifters transform in a bolt of yellow lightning with a thunder crack after hurting themselves. Recorded as D-039 in `10`, `01`, `02`, `06`, `15` and `CLAUDE.md`; questions Q-011 (yellow and cyan together) and Q-012 (how the pain is shown) are open. The Strider's part-by-part table is rewritten at the start of Phase 3; the simulacrum in the Training Yard stays a steel effigy.
+
+**Session 5, continued: step 5 (FrameService, first part)**
+
+**Done:** `Server/Services/FrameService`: parks Units 02 and 01 in their bays at start, hatch and board-point prompts, `board`, `dismount`, network ownership, the pilot seat, published attributes, energy with regen, weapons lock from the pilot's zone, cleanup when the pilot leaves or loses the character. `AnimationController` animates the cockpit hatch from the `HatchOpen` attribute. D-040.
+
+**Tested (how → result), play mode, server-side calls through the dev bridge:**
+- Start → both Frames stand in their bays: Unit 02 at (0, 19, −205) and Unit 01 at (−70, 19, −205), facing +Z, anchored, `Parked`; Bay 2's hatch prompt on, Bay 1's off; root in `FrameRoot`, every other part in `NoCollide`.
+- Board from the spawn room → refused, "too far". From the Bay 2 bridge platform (4.4 studs from the hatch) → `canInteract` true, boarding took 1.81 s: pilot seated in `PilotSeat`, Frame unanchored and owned by the player's client, `Boot` played, state `Idle`, weapons locked (zone Hangar), the Frame stayed standing at Y 19.00.
+- Energy → spend 50: 100 → 50; spend 60: refused, still 50; 0.9 s later still 50 (the 1 s delay); 2.0 s after the spend 66.6 (18/s); full again by 5 s.
+- Dismount inside the hangar → refused, "outside the pad". With the Frame moved onto `PAD_TRAINING` → `canInteract` true while piloting; after the dismount the pilot stood on the concrete at the exit point (−186, 3.3, −110), unseated; the Frame was anchored, `Kneeling`, `KneelIdle`, pilot 0, hand prompt on.
+- Re-board → refused from 37 studs; standing next to the board point `canInteract` true, boarding took 1.36 s with `RiseFromKneel`, Frame owned by the client again, weapons unlocked (zone TrainingYard).
+- Replacing the pilot's character while piloting → the Frame was left kneeling, anchored, pilot 0. Output clean in every run.
+
+**Bugs found and fixed here:** the pilot was left standing on the Frame's chest after dismounting (torso collisions forced on by the Humanoid, and the exit teleport overridden in the unseat frame); the hand prompt was unreachable (server-side rest pose).
+
+**Not tested:** the prompts pressed by a real player (only `canInteract` and the handlers' functions were called); the fades and the hatch seen on screen; walking a Frame (no FrameController yet: the Frame was moved by the server for the pad test). Not built yet: Unit 03 (static prop in Bay 3), the action state machine (comes with combat).
+
+**Known:** the board point is beside the kneeling Frame, so it can be up to about 35 studs from the pad's exit point, depending on which way the Frame faces when it kneels.
+
+**Next:** step 6 (FrameController: movement, facing, stride, root motion, separation; CameraController Frame mode), then combat.
