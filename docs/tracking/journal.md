@@ -277,3 +277,27 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 **Known:** the lights for the hub interiors are postponed on the user's word ("lets do the lights later"). The touch buttons (`MobileControlsController`) did not get a detail pass.
 
 **User actions needed:** save and publish; watch the menu open and the loading screen once and say what to push or pull back; run acceptance test 6 (phone emulator, gamepad).
+
+---
+
+## Session 5 — 2026-10-10 — Phase 2 start: configs and the Vanguard rig
+
+**Start state:** Phase 1 done except acceptance test 6 (touch, gamepad; needs the user, D-036). Studio: hub and hangar blockouts, `Templates.Frames` and `Shared.Poses` empty.
+
+**Build order for Phase 2:** (1) configs, (2) Vanguard rig builder, (3) PoseAnimator, pose set, PosePreview, AnimationController, (4) Training Yard blockout, simulacrum, pad, (5) FrameService, (6) FrameController and Frame camera, (7) combat, (8) Frame HUD and feel, (9) debug commands and the 8 acceptance tests.
+
+**Done:**
+- `Shared/Config/FrameConfig`, `CombatConfig`, `Locomotion`, `CameraFeel` (numbers from `09` §4, `12` §3 to §10, `08` §4.5, `06` §6, `11` §4).
+- `builders/rigs/Vanguard.lua` and the templates `ServerStorage.Templates.Frames.Vanguard_02` and `Vanguard_01` (accent color, unit numbers, Mara's "41" tally).
+- `builders/checks/RigCheck.lua`.
+
+**Tested (how → result):**
+- Checksums local vs Studio → all 6 new files match; the 4 configs load with `require`.
+- `RigCheck` in edit mode → PASS for both units: 9 kinds of main part at the sizes and centers of the table, 15 limb joints with pure-offset C0/C1 at the joint positions, HatchHinge and PileDriver offsets, HRP and Humanoid settings, no Animator, nothing anchored, every part joined to the HRP, no detail part collides or answers queries, required parts present, 320 and 321 parts (budget 450), main parts top out at 40.00.
+- Two screenshots of a preview copy → reads as the brief: blocky torso, big pauldrons, amber visor and core vents, the blade in the right hand pointing forward, the pile driver on the left forearm. The preview was removed afterwards.
+
+**Not tested:** the rig in play mode (physics, standing on its HipHeight, the seat); wedge orientations were only judged from two angles.
+
+**Known:** the first RigCheck run reported every part as not joined (`GetConnectedParts` returns nothing outside Workspace); the check now walks the joints itself and caps its messages at 20.
+
+**Next:** step 3 (PoseAnimator, `Shared/Poses/Vanguard`, PosePreview, AnimationController).

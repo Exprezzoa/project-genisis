@@ -27,7 +27,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [ ] Phase 1 acceptance tests (roadmap) all PASS — 1, 2, 3, 4, 5, 7 pass (journal Sessions 2 and 3); **6 (touch emulator, gamepad) needs the user**
 
 ## Phase 2 — Frame prototype
-- [ ] Vanguard rig (Units 01/02/03) within budget
+- [ ] Vanguard rig (Units 01/02/03) within budget — Units 02 and 01 built, `RigCheck` passes (320 / 321 parts); Unit 03 (static prop) comes with the hangar bay
 - [ ] PoseAnimator + AnimationController
 - [ ] FrameService (spawn, park, board, dismount, ownership, state machine, energy)
 - [ ] FrameController + Frame camera
