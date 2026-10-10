@@ -9,12 +9,12 @@
 --     C0 is the grip angle of docs/09 §2);
 --   * HRP and Humanoid settings of docs/08 §2; no Animator; nothing anchored; every part reaches the HRP;
 --   * detail parts never collide or answer queries (the Hatch answers queries: it carries the boarding prompt);
---   * required named parts and attachments exist; at most 450 parts; the main parts top out at 40 studs.
+--   * required named parts and attachments exist; at most 1500 parts (D-041); the main parts top out at 40 studs.
 
 local Check = {}
 
 local V = Vector3.new
-local BUDGET = 450
+local BUDGET = 1500
 local REQUIRED = {
 	"Hatch", "PD_Spike", "PilotSeat", "Prompt_Board", "Blade_Grip", "TrailBase", "TrailTip", "Visor", "Facing", "FacingAttachment",
 	"HatchHinge", "PileDriver", "BladeGrip",

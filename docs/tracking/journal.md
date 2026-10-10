@@ -354,3 +354,19 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Known:** the board point is beside the kneeling Frame, so it can be up to about 35 studs from the pad's exit point, depending on which way the Frame faces when it kneels.
 
 **Next:** step 6 (FrameController: movement, facing, stride, root motion, separation; CameraController Frame mode), then combat.
+
+**Session 5, continued: Vanguard detail pass (user direction)**
+
+**Done:** the Vanguard builder rewritten for rounded, detailed Frames (D-041): invisible bones, cylinder limbs with rolled rims, curved stave armor, drum pauldrons, a barrel chest on a ribbed waist, ball joints, pistons, rivets, hoses and wires on every limb, flank cable bundles, and Beam cables across knees, elbows and neck. Split into `builders/rigs/Vanguard/` (`init`, `Kit`, `Legs`, `Torso`, `Arms`). `RigCheck` budget 450 → 1,500. `09` §1-2 updated. The user's `AttackTitan` model recorded as the Shifter look reference (D-042, Q-013).
+
+**Tested (how → result):**
+- Built Units 02 and 01 → 1,291 and 1,292 parts, 35 ms. `RigCheck` PASS (sizes, centers, 15 joints, nothing anchored, everything joined to the root, no collisions). `PoseCheck` PASS.
+- Looked at in edit mode with `PosePreview` (Idle), front and back screenshots → reads as a machine with curved armor; the first version (ellipsoids everywhere) looked like balloons and was replaced; round Metal armor rendered black and was changed to SmoothPlastic.
+- Play mode → both Frames park at Y 19.00 with every part in `NoCollide`; boarding Unit 02 from the bridge took 1.81 s, pilot seated, state `Idle`; server heartbeat median 4.0 ms, client frame median 4.2 ms with both Frames loaded; Output clean.
+- Local files and Studio match by checksum (`Vanguard`, `Kit`, `Legs`, `Torso`, `Arms`, `RigCheck`).
+
+**Not tested:** the new look in any pose but Idle (attack clips, kneel, walk) — parts may poke through each other when joints bend; the Beam cables seen while a joint moves; the look under the hangar's lighting; the hatch opening with its new panel.
+
+**Known:** curved armor (SmoothPlastic) is a shade lighter than flat armor (Metal) of the same color. The unit number on the chest side sits in the armpit, as before. `AttackTitan` sinks about 27 studs when play starts (unanchored, D-042).
+
+**Next:** step 6 (FrameController: movement, facing, stride, root motion, separation; CameraController Frame mode), checking the new armor in motion on the way; then combat.

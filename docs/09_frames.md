@@ -9,9 +9,22 @@ Base rig dimensions and joints: `08_rigs_and_animation.md` §3.1. Colors: `06_ar
 - **Role:** balanced close-range melee. The most accessible Frame.
 - **Silhouette:** heavy blocky torso, **oversized pauldrons**, thick forearms, digitigrade-free straight legs with big feet, a small sensor head with a single horizontal **amber visor**, the **Breaker Blade** (a giant industrial cleaver) in the right hand, and a **Pile Driver** spike launcher on the left forearm.
 - **Personality in motion:** deliberate, grounded, every step a thud. Attacks have clear windups. When it stops, it settles (0.2 s of Root bob overshoot).
-- **Height 40 studs.** Width ~30 with pauldrons. **Budget ≤ 450 parts.**
+- **Height 40 studs.** Width ~30 with pauldrons. **Budget ≤ 1,500 parts** (raised from 450 for the detail pass, D-041; the first build is 1,291).
 
-## 2. Part-by-part build (`builders/rigs/Vanguard.lua`)
+## 2. Part-by-part build (`builders/rigs/Vanguard/`)
+
+### Form language (user direction 2026-10-10, D-041) — overrides the box shapes in the tables below
+
+The user asked for Frames that "go all out with attention to detail like wires" with "smooth ridges instead of blocky". The tables below still give each element's **name, place, rough size and color**; its **shape** now follows these rules, and the builder is the reference for exact numbers.
+
+- **The main parts are invisible bones.** They keep the sizes, centers and joints of `08` §3.1 (poses, hitboxes and the rig check depend on them), but nothing of them is drawn. Everything visible is a detail welded to a bone.
+- **Round, not boxy.** Limbs are cylinders with rolled rims and seam rings. Armor over them is **curved**: flat staves set round a barrel, tapered where the limb tapers, with a raised spine and a rolled rim top and bottom. The chest is a barrel lying across the shoulders with curved pec, belly and back plates on a ribbed waist. Pauldrons are drums with a painted accent band, vent slots and a domed cap. Flat plates (skirts, cheeks, hatch panel) have their edges rounded over. Small domes (knee caps, elbow guards, helmet) are ellipsoids made with the engine's built-in sphere mesh (no asset).
+- **Smooth ridges** are runs of thin cylinders with a ball in each bend, following the curve they sit on.
+- **Machinery shows in the gaps:** ball joints, joint drums with covers and pins, pistons (dark sleeve, bright rod, gland ring, an eye at each end), round rivet heads.
+- **Wires and hoses** on every limb, a three-cable bundle under each flank, coolant lines, the Pile Driver's gas line and feed hose, a power feed on the blade. Cables that **cross a joint** (knees, elbows, neck) are camera-facing `Beam`s between the two parts, so they bend with the joint.
+- **Materials:** flat armor and all dark steel are `Metal`; **curved armor is `SmoothPlastic`**, because a round Metal surface mirrors the sky and ground and reads as black instead of its armor color.
+- **Not hand-detailed:** nothing here is modeled outside Studio or imported; it is all parts.
+- The builder is split by body region: `init` (bones, joints, Humanoid), `Kit` (the shapes), `Legs`, `Torso`, `Arms` (with the Breaker Blade).
 
 Every detail part is welded to the listed main part. Positions are relative to that main part's center, in model space (rig facing −Z, so **front = −Z**). Mirror Left/Right where noted. Approximate part counts are in brackets.
 

@@ -20,6 +20,8 @@ Rig layouts: `08_rigs_and_animation.md` §3.2–3.3. Colors: `06_art_direction.m
 - **What is still open until Phase 3:** how much of the Strider's exposed muscle, sinew and bone plating stays on a human-skinned body (recommended: keep the back plates over the core and the forearm vein glow, because attacks and the Core Strike depend on them; drop the rest). The part-by-part table below is rewritten at the start of Phase 3 and shown to the user before the rig is built.
 - **Still an original world.** Human-looking Titans are fine; names, designs, sounds and story beats of existing series are not copied (`01` §7).
 
+**Reference model from the user (2026-10-10, D-042):** `Workspace.AttackTitan`, a Shifter Titan the user made for an older game. It is an R15 mesh body 116 studs tall (muscled torso and limb meshes, skin `#EAB892`), white hair, pointed ears, blank white eyes, pale blue bands at the wrists, invisible `Eyes` and `Nape` hit parts, no scripts. It shows the look the user wants for Shifters and is the reference when the first Shifter is designed. It is the user's own work: never delete, move or edit it without asking. Open points for Phase 3 are in Q-013.
+
 **Shifter transformation (user direction, same date):** a Shifter changes form after **hurting themselves on purpose**; a **bolt of yellow lightning** strikes where they stand, with a **thunder-crack sound**, and the Titan form stands there when the flash clears. Details in `02` §8 and `06` §6.
 
 ---
