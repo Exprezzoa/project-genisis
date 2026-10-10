@@ -179,9 +179,11 @@ local LEGS = {
 }
 
 -- Locomotion (base pose + gait offsets) with the action laid over it at weight w. With upperBodyOnly the
--- action leaves the legs and the root to the gait.
+-- action leaves the legs and the root to the gait: true = entirely, or a number 0..1 for the share the gait
+-- keeps (so a swing's stance fades into the walk as the machine picks up speed instead of snapping).
 function PoseAnimator.compose(base, offsets, bob, action, w, upperBodyOnly, out)
 	out = out or {}
+	local gaitShare = if upperBodyOnly == true then 1 elseif type(upperBodyOnly) == "number" then upperBodyOnly else 0
 	for joint in pairs(out) do
 		out[joint] = nil
 	end
@@ -208,13 +210,14 @@ function PoseAnimator.compose(base, offsets, bob, action, w, upperBodyOnly, out)
 	end
 	if action and w > 0 then
 		for joint, entry in pairs(action) do
-			if not (upperBodyOnly and LEGS[joint]) then
+			local weight = if LEGS[joint] then w * (1 - gaitShare) else w
+			if weight > 0 then
 				local slot = out[joint]
 				if slot then
-					slot.rot = slot.rot:Lerp(entry.rot, w)
-					slot.pos = slot.pos:Lerp(entry.pos, w)
+					slot.rot = slot.rot:Lerp(entry.rot, weight)
+					slot.pos = slot.pos:Lerp(entry.pos, weight)
 				else
-					out[joint] = { rot = entry.rot * w, pos = entry.pos * w }
+					out[joint] = { rot = entry.rot * weight, pos = entry.pos * weight }
 				end
 			end
 		end

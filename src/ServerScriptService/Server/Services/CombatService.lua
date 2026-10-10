@@ -233,8 +233,29 @@ local function onRequest(player, payload)
 	end
 end
 
+-- docs/12 §8: the target must exist and be in range, and the zone must be one that can be hit right now;
+-- otherwise the lock falls back to the body. A training target (nobody registered it) is taken as asked.
 local function onLock(player, payload)
-	locks[player] = if payload.targetId then { targetId = payload.targetId, zone = payload.zone or "Body" } else nil
+	local frame = FrameService.getPiloted(player)
+	if not (frame and payload.targetId) then
+		locks[player] = nil
+		return
+	end
+	local zone = if type(payload.zone) == "string" then payload.zone else "Body"
+	local handler = targets[payload.targetId]
+	local model = type(handler) == "table" and handler.model
+	if model then
+		local root = model.PrimaryPart
+		if not root or (root.Position - frame.PrimaryPart.Position).Magnitude > CombatConfig.LockOn.range + CombatConfig.Tolerance.coreStrikeRange then
+			locks[player] = nil
+			return
+		end
+		local box = model:FindFirstChild("Hurtbox_" .. zone)
+		if not (box and box.CanQuery) then
+			zone = "Body"
+		end
+	end
+	locks[player] = { targetId = payload.targetId, zone = zone }
 end
 
 local function targetOf(hurtbox)

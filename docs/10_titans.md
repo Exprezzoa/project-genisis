@@ -156,6 +156,8 @@ Rules: never the same attack 3 times in a row; **Stomp is only chosen if the tar
 | 12.0 | Grey flake burst (sparkles texture tinted `ASH`, 80 particles) |
 | 12.5 | Server destroys the Titan model. The ash mounds remain (server-spawned at 12.0, static, CanCollide false) |
 
+**As built (D-059):** the server spawns the six mounds at 4.0 s (tag `AshMound`, attribute `Grow` = 6) and each client lets them rise over those 6 s: one set of mounds that grows and stays. The crumbling at 5.0–11.0 is client-made ash flakes breaking off all over the body (the Strider has only 55 parts to shed).
+
 ## 3. The Watcher (Orin in Titan form): scripted, non-combat
 
 - **Height 68.** Taller, leaner and darker than the Strider. Calm, deliberate, *intelligent* body language: it stops, tilts its head, studies. **It never attacks.**

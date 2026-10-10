@@ -85,6 +85,8 @@ Buttons: tilted (−8°) ink squares (were circles before the angular restyle, `
 
 **Lock-on camera:** desired yaw = direction from the Frame to the lock point. Camera yaw blends toward it at 6/s. The player can still adjust pitch. Horizontal mouse/stick input adds a ±25° offset that decays back over 0.6 s. Lock breaks when the target dies, goes beyond 220 studs, or line of sight is lost for 2 s.
 
+**As built (2026-10-10, D-060):** the Frame is 64 studs and a Strider 56, so a camera straight behind the Frame hid the Titan. Locked on, the camera stands **55° off the line to the target**, looks at a point 40% of the way toward it, and lifts to at least 20° of elevation when the lock begins. While locked, **move input is read against the line to the target** (forward = toward it, sideways = circling), and the dodge follows that input. Range 220 × 1.6 = 352 studs. Keys: R / middle mouse / R3 to lock and release; C, the mouse wheel or D-pad left/right for the zone.
+
 **Core Strike camera (1.6 s):** side orbit from the Frame's right at distance 50, height +10, looking at the core. Returns to the gameplay camera over 0.3 s.
 
 ## 5. Frame movement (client-side on the pilot's machine)

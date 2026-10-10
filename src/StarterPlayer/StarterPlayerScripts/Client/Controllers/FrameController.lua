@@ -13,6 +13,8 @@
 --   setAction(busy, velocity?, moveScale?)   CombatController: while an action runs the Frame walks at moveScale
 --                                 of its speed (0 = not at all); velocity = the action's root motion
 --   isShiftLocked() -> boolean    aim lock: the Frame faces where the camera looks and strafes (Left Ctrl)
+--   setLock(point?)               lock-on: the Frame faces point() and the move input is read against the line to it
+--   getMoveInput() -> Vector3     where the pilot is steering, in world space (unit length or shorter)
 --   isStriding() -> boolean
 --   getState() -> { speed, target, heading, striding }       -- for tests
 --   Piloting: Signal(frame?)      fired when the player starts or stops piloting
@@ -56,6 +58,8 @@ local watched: { [Model]: RBXScriptConnection } = {}
 local busy = false -- an action runs: no turning toward the movement, no stride
 local moveScale = 1 -- share of the speed the running action leaves
 local shiftLock = false
+local lockPoint: (() -> Vector3?)? = nil
+local intent = Vector3.zero -- where the pilot is steering (world)
 local rootVelocity: Vector3? = nil -- the action's root motion (dodge, lunge), world XZ
 local rootMotion: LinearVelocity? = nil
 local bodies: { { root: BasePart, radius: number, titan: Model? } } = {}
@@ -136,6 +140,23 @@ local function update(dt: number)
 	end
 	local canMove = moveScale > 0 and MOVING_STATES[model:GetAttribute("State")] == true and InputController.getContext() == "Frame"
 
+	-- Where the pilot steers. Locked on, the stick is read against the line to the target (forward = toward it),
+	-- not against the camera, which then stands off to one side.
+	local lockYaw: number? = nil
+	local point = if lockPoint then lockPoint() else nil
+	if point then
+		local toward = (point - rootPart.Position) * Vector3.new(1, 0, 1)
+		if toward.Magnitude > 1 then
+			lockYaw = yawOf(toward)
+		end
+	end
+	local seated = player.Character and (player.Character :: Model):FindFirstChildOfClass("Humanoid")
+	local steer = if seated then seated.MoveDirection * Vector3.new(1, 0, 1) else Vector3.zero
+	if lockYaw then
+		steer = CFrame.Angles(0, lockYaw - CameraController.getYaw(), 0) * steer
+	end
+	intent = if steer.Magnitude > 1 then steer.Unit else steer
+
 	-- Root motion (docs/11 §5.6): the action moves the Frame, not the legs.
 	local push, drive = rootVelocity, rootMotion
 	if drive then
@@ -158,16 +179,7 @@ local function update(dt: number)
 		end
 	end
 
-	local input = Vector3.zero
-	local character = player.Character
-	local pilot = character and character:FindFirstChildOfClass("Humanoid")
-	if canMove and pilot then
-		local move = pilot.MoveDirection
-		input = Vector3.new(move.X, 0, move.Z)
-		if input.Magnitude > 1 then
-			input = input.Unit
-		end
-	end
+	local input = if canMove then intent else Vector3.zero
 	local amount = input.Magnitude
 	if amount < INPUT_EPSILON then
 		amount = 0
@@ -187,7 +199,10 @@ local function update(dt: number)
 	if amount > 0 then
 		moveDirection = input.Unit
 	end
-	if shiftLock then
+	if lockYaw then
+		-- Locked on: the Frame faces its target, also while it attacks, and strafes (docs/11 §5).
+		heading = turnToward(heading, lockYaw, math.rad(config.turnRate.locked) * dt)
+	elseif shiftLock then
 		-- Aim lock: the Frame faces where the camera looks and strafes, also while it attacks.
 		heading = turnToward(heading, CameraController.getYaw(), math.rad(config.turnRate.locked) * dt)
 	elseif amount > 0 and not busy then
@@ -217,6 +232,7 @@ local function stop()
 		rootMotion = nil
 	end
 	busy, rootVelocity, moveScale, shiftLock = false, nil, 1, false
+	lockPoint, intent = nil, Vector3.zero
 	if oldHumanoid and oldHumanoid.Parent then
 		oldHumanoid.WalkSpeed = 0
 		oldHumanoid:Move(Vector3.zero, false)
@@ -293,6 +309,14 @@ end
 function FrameController.setAction(isBusy: boolean, velocity: Vector3?, scale: number?)
 	busy, rootVelocity = isBusy, velocity
 	moveScale = if isBusy then (scale or 0) else 1
+end
+
+function FrameController.setLock(point: (() -> Vector3?)?)
+	lockPoint = point
+end
+
+function FrameController.getMoveInput(): Vector3
+	return intent
 end
 
 function FrameController.isShiftLocked(): boolean

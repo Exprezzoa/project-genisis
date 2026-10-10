@@ -27,6 +27,9 @@ return {
 		Dodge = { K.Space, K.ButtonB },
 		Special = { K.Q, K.ButtonL1 },
 		CoreStrike = { K.F, K.ButtonY },
+		LockOn = { K.R, M.MouseButton3, K.ButtonR3 },
+		CycleZone = { K.C, K.DPadRight }, -- also the mouse wheel while locked on (LockOnController)
+		CycleZoneBack = { K.DPadLeft },
 		MissionLog = MENU_KEYS.MissionLog,
 		Menu = MENU_KEYS.Menu,
 	},
@@ -44,8 +47,8 @@ return {
 
 	-- Glyph text per device for the UI (docs/11 §1 "Device glyphs").
 	Glyphs = {
-		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", ShiftLock = "CTRL", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", MissionLog = "TAB", Menu = "P" },
-		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", ShiftLock = "D-PAD DOWN", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", MissionLog = "VIEW", Menu = "D-PAD" },
-		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", ShiftLock = "AIM", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", MissionLog = "LOG", Menu = "≡" },
+		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", ShiftLock = "CTRL", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", LockOn = "R", CycleZone = "C", MissionLog = "TAB", Menu = "P" },
+		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", ShiftLock = "D-PAD DOWN", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", LockOn = "R3", CycleZone = "D-PAD RIGHT", MissionLog = "VIEW", Menu = "D-PAD" },
+		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", ShiftLock = "AIM", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", LockOn = "LOCK", CycleZone = "LOCK", MissionLog = "LOG", Menu = "≡" },
 	},
 }

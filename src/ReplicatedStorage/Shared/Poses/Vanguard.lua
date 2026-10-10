@@ -43,24 +43,93 @@ local KNEEL = {
 	Root = p(0, -7, 0), LeftHip = r(80), LeftKnee = r(-80), RightHip = r(-10), RightKnee = r(-100), RightAnkle = r(40),
 	Waist = r(-15), RightShoulder = r(60, 0, 10), RightElbow = r(40), Neck = r(-15),
 }
-local DODGE_LEGS = { LeftHip = r(30), RightHip = r(30), LeftKnee = r(-50), RightKnee = r(-50) }
-
-local function dodge(extra)
-	local mid = table.clone(DODGE_LEGS)
-	for joint, entry in pairs(extra) do
-		mid[joint] = entry
-	end
+-- A dodge is a thruster-assisted leap, not a slide (user feedback, D-058): the machine pushes off one leg,
+-- flies with one leg reaching and the other trailing, and lands deep on the reaching leg. It travels during
+-- 0.00-0.35 and has absorbed the landing by 0.45. Every key names all the joints it moves; Root drops so the
+-- leg that carries the weight reaches the floor.
+local function leap(push, flight, landing)
 	return {
-		duration = 0.45, blendIn = 0.04, blendOut = 0.08,
+		duration = 0.45, blendIn = 0.04, blendOut = 0.10,
 		keys = {
 			{ t = 0.00, pose = "Idle" },
-			{ t = 0.15, ease = "QuadOut", pose = mid },
-			{ t = 0.35, ease = "SineInOut", pose = mid },
+			{ t = 0.07, ease = "QuadOut", pose = push },
+			{ t = 0.21, ease = "SineInOut", pose = flight },
+			{ t = 0.35, ease = "SineInOut", pose = landing },
 			{ t = 0.45, ease = "QuadInOut", pose = "Idle" },
 		},
 		events = { { t = 0.0, name = "ThrustersOn" }, { t = 0.30, name = "ThrustersOff" } },
 	}
 end
+
+-- The same pose for the other side: Left and Right swap, turns and side swings change sign.
+local function mirror(pose)
+	local mirrored = {}
+	for joint, entry in pairs(pose) do
+		local other = if string.sub(joint, 1, 4) == "Left" then "Right" .. string.sub(joint, 5)
+			elseif string.sub(joint, 1, 5) == "Right" then "Left" .. string.sub(joint, 6)
+			else joint
+		local rot, pos = entry.rot, entry.pos
+		mirrored[other] = { rot = rot and { rot[1], -rot[2], -rot[3] }, pos = pos and { -pos[1], pos[2], pos[3] } }
+	end
+	return mirrored
+end
+
+-- Forward: the left leg reaches, the right drives and trails; the free arm sweeps back and the blade is carried
+-- level along the side like a lance (swept back it would cut through the floor).
+local LEAP_F = {
+	push = {
+		Root = rp({ -12, 0, 0 }, { 0, -1.5, 0 }), Waist = r(-10), Neck = r(10),
+		LeftHip = r(48), LeftKnee = r(-95), LeftAnkle = r(52), RightHip = r(-14), RightKnee = r(-22), RightAnkle = r(24),
+		LeftShoulder = r(-20, 0, -10), LeftElbow = r(35), RightShoulder = r(-10, 0, 10), RightElbow = r(40), RightWrist = r(-10),
+	},
+	flight = {
+		Root = rp({ -16, 0, 0 }, { 0, -1.2, 0 }), Waist = r(-6), Neck = r(14),
+		LeftHip = r(62), LeftKnee = r(-40), LeftAnkle = r(-12), RightHip = r(-46), RightKnee = r(-42), RightAnkle = r(35),
+		LeftShoulder = r(-38, 0, -14), LeftElbow = r(40), RightShoulder = r(-25, 0, 12), RightElbow = r(45), RightWrist = r(0),
+	},
+	landing = {
+		Root = rp({ -4, 0, 0 }, { 0, -3.4, 0 }), Waist = r(-16), Neck = r(8),
+		LeftHip = r(48), LeftKnee = r(-78), LeftAnkle = r(30), RightHip = r(-8), RightKnee = r(-62), RightAnkle = r(45),
+		LeftShoulder = r(18, 0, -12), LeftElbow = r(30), RightShoulder = r(14, 0, 10), RightElbow = r(40), RightWrist = r(-35),
+	},
+}
+-- Backward (the dodge with no move input): the front leg pushes, the right leg reaches back for the ground; the
+-- hips lead and the torso stays over the guard.
+local LEAP_B = {
+	push = {
+		Root = rp({ 6, 0, 0 }, { 0, -1.7, 0 }), Waist = r(-14), Neck = r(-4),
+		LeftHip = r(34), LeftKnee = r(-50), LeftAnkle = r(16), RightHip = r(-24), RightKnee = r(-22), RightAnkle = r(46),
+		LeftShoulder = r(25, 0, -12), LeftElbow = r(30), RightShoulder = r(25, 0, 12), RightElbow = r(40), RightWrist = r(-30),
+	},
+	flight = {
+		Root = rp({ 10, 0, 0 }, { 0, -1.0, 0 }), Waist = r(-20), Neck = r(-8),
+		LeftHip = r(46), LeftKnee = r(-26), LeftAnkle = r(-14), RightHip = r(-44), RightKnee = r(-18), RightAnkle = r(50),
+		LeftShoulder = r(40, 0, -16), LeftElbow = r(25), RightShoulder = r(35, 0, 14), RightElbow = r(35), RightWrist = r(-30),
+	},
+	landing = {
+		Root = rp({ 2, 0, 0 }, { 0, -2.65, 0 }), Waist = r(-18), Neck = r(-2),
+		LeftHip = r(45), LeftKnee = r(-60), LeftAnkle = r(15), RightHip = r(-5), RightKnee = r(-45), RightAnkle = r(50),
+		LeftShoulder = r(20, 0, -10), LeftElbow = r(30), RightShoulder = r(15, 0, 10), RightElbow = r(40), RightWrist = r(-25),
+	},
+}
+-- To the left: the left leg reaches out, the right pushes and trails; the body rolls into the leap.
+local LEAP_L = {
+	push = {
+		Root = rp({ 0, 0, 10 }, { 0, -1.9, 0 }), Waist = r(-8, 0, -6), Neck = r(0, 0, -6),
+		LeftHip = r(30, 0, -22), LeftKnee = r(-80), LeftAnkle = r(50), RightHip = r(4, 0, 14), RightKnee = r(-30), RightAnkle = r(24),
+		LeftShoulder = r(0, 0, -30), LeftElbow = r(30), RightShoulder = r(5, 0, 14), RightElbow = r(40),
+	},
+	flight = {
+		Root = rp({ 0, 0, 18 }, { 0, -1.0, 0 }), Waist = r(-8, 0, -12), Neck = r(0, 0, -10),
+		LeftHip = r(16, 0, -40), LeftKnee = r(-70), LeftAnkle = r(40), RightHip = r(8, 0, 30), RightKnee = r(-46), RightAnkle = r(30),
+		LeftShoulder = r(0, 0, -48), LeftElbow = r(20), RightShoulder = r(10, 0, 26), RightElbow = r(30),
+	},
+	landing = {
+		Root = rp({ 0, 0, 5 }, { 0, -2.2, 0 }), Waist = r(-12, 0, 6), Neck = r(0, 0, 4),
+		LeftHip = r(26, 0, -30), LeftKnee = r(-62), LeftAnkle = r(34), RightHip = r(10, 0, 14), RightKnee = r(-48), RightAnkle = r(36),
+		LeftShoulder = r(10, 0, -24), LeftElbow = r(30), RightShoulder = r(10, 0, 12), RightElbow = r(40),
+	},
+}
 
 return {
 	rig = "Vanguard",
@@ -200,10 +269,10 @@ return {
 				{ t = 0.75, name = "HitboxEnd" },
 			},
 		},
-		Dodge_F = dodge({ Waist = r(-15) }),
-		Dodge_B = dodge({ Waist = r(12) }),
-		Dodge_L = dodge({ Root = rp({ 0, 0, 15 }, { 0, 0, 0 }), Waist = r(0, 0, 8) }),
-		Dodge_R = dodge({ Root = rp({ 0, 0, -15 }, { 0, 0, 0 }), Waist = r(0, 0, -8) }),
+		Dodge_F = leap(LEAP_F.push, LEAP_F.flight, LEAP_F.landing),
+		Dodge_B = leap(LEAP_B.push, LEAP_B.flight, LEAP_B.landing),
+		Dodge_L = leap(LEAP_L.push, LEAP_L.flight, LEAP_L.landing),
+		Dodge_R = leap(mirror(LEAP_L.push), mirror(LEAP_L.flight), mirror(LEAP_L.landing)),
 		CoreStrike = {
 			duration = 1.60, blendIn = 0.08, blendOut = 0.2,
 			keys = {

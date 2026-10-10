@@ -577,3 +577,31 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 - A Disabled Frame only kneels; the failure and retry flow comes with the damage states.
 
 **Next:** the Titan HUD bar, danger disc, glow telegraphs, hit flash and Ash Collapse visuals; Core Strike positioning and camera; lock-on; Frame damage states and the Disabled flow; then the Phase 3 acceptance tests.
+
+**Session 6, continued: user feedback (Titans "near impossible to kill", the dash "looks goofy"), Titan HUD, effects, lock-on (D-058, D-059, D-060)**
+
+**Done:**
+- Dodge reworked into a leap in all four directions; the legs blend between a swing's stance and the walk.
+- `TitanHUDController`: Titan bar, CORE EXPOSED countdown, ENRAGED, Core Strike prompt, damage vignette, HUD jitter, lock-on hint.
+- `TitanVFXController`: telegraphs (veins, danger disc, eye flash, Roar), Stomp shockwave, Roar blast, core glow, footfall dust and tremors, hit flash, Ash Collapse. Server: ash mounds at 4.0 s with `Grow`.
+- `LockOnController` with zone marker; side-standing locked camera and target-relative steering (`CameraController.setLock`, `FrameController.setLock`, `getMoveInput`); server-side lock validation; bindings `LockOn`, `CycleZone`, `CycleZoneBack`.
+
+**Tested (how → result):**
+- Leap poses in edit mode, three keys per direction: lowest visible point of the rig −0.3…0 studs on the push-off and landing keys, 0.7…4.3 in flight; before the fix the blade tip was 33 studs under the floor. Side and front screenshots judged by eye. `PoseCheck` PASS (136). In play: two dodges (back, right) ran with a clean Output.
+- Play mode, Training Yard. Titan bar appears with name, class chip, health and poise (screenshot). Before the lock: the Titan at point-blank range is hidden behind the Frame (screenshot); locked on: its head and torso stand clear to the right of the Frame (screenshot).
+- Lock: `toggle` → target Strider_1, still held 3.5 s later, camera elevation 19.7°; zones cycle Body → AnkleL → AnkleR → Body while it stands; the server holds `TITAN_1 / AnkleL`; the lock ends when the Titan dies.
+- Danger disc under a Stomp frozen mid-telegraph (screenshot). Counters after one fight: 21 telegraphs, 7 discs, 7 shockwaves, 1 Roar, 1 hit flash, 1 collapse.
+- Downed: health bar at 25%, `CORE EXPOSED` with its countdown, the `F CORE STRIKE` prompt, the open core's glow (screenshot). F → Core Strike → death → body gone, six mounds on the ground, the bar slid away.
+- Output clean in three play runs. All changed files match Studio by checksum.
+
+**Bugs found and fixed here:** the first lock dropped after 2 s and could not be taken again: its sight test hit the Titan's own hurtbox (a non-solid part that answers queries); `CameraFeel.lock.offset` was scaled like a length; the regen shimmer was a gradient on a transparent frame and showed nothing.
+
+**Not tested:**
+- **The lock marker on screen:** the MCP's screenshots don't include BillboardGuis (two plain test billboards didn't show either). Checked only by its state: enabled, on the right hurtbox, right label.
+- The Ash Collapse mid-sequence (tint, vapor, flakes): the screenshot came after it was over. The eye flash, the vein glow, the Roar blast, the vignette and the HUD jitter: counted or coded, not seen.
+- Any of it in motion, by a person: how the leap reads, whether the side camera and target-relative steering feel right, mouse nudging the locked view, the wheel and middle button, gamepad, touch (no `LOCK` button yet).
+- Two Titans (which one the bar and the lock pick), the lock breaking on sight loss behind a wall.
+
+**Known:** the reticle still shows while locked on; the weapons banner would overlap the Titan bar if both showed; a Lunge still passes through the Frame; no path-finding; the Core Strike has no step-in or camera yet; no sounds.
+
+**Next:** the user's verdict on the fight (Q-018) and on Titan size (Q-017); Core Strike positioning and camera; Frame damage states and the Disabled flow; then the Phase 3 acceptance tests.

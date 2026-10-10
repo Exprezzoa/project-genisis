@@ -21,7 +21,12 @@ CameraFeel.Frame = {
 	-- The cockpit glass: the whole view is tinted warm while piloting (user direction, D-055). color is AMBER_LAMP;
 	-- amount is how far the tint goes from white toward it; time is the fade in and out.
 	tint = { color = Color3.fromHex("#FFD38A"), amount = 0.55, time = 0.5 },
-	lock = { yawBlend = 6, offset = 25 * S, offsetDecay = 0.6, range = 220 * S, lostSightTime = 2 },
+	-- Lock-on (docs/11 §4). offset = degrees the player can push the view sideways; it decays back.
+	-- side and focus are as built (D-058): the Frame (64) is taller than a Strider (56), so a camera straight
+	-- behind it hid the Titan. The locked camera stands `side` degrees off the line to the target and looks at
+	-- a point `focus` of the way toward it: the Frame sits left of center, the Titan right. pitch = the least
+	-- elevation the view takes when a lock begins (the player can still change it).
+	lock = { yawBlend = 6, offset = 25, offsetDecay = 0.6, range = 220 * S, lostSightTime = 2, side = 55, focus = 0.4, focusBlend = 5, pitch = 20 },
 }
 
 -- Events: shake magnitude, duration (s), hitstop (s), fovPunch (degrees).

@@ -43,6 +43,7 @@ AnimationController.LOD = { full = 600, slow = 1200, slowRate = 10 } -- studs; b
 AnimationController.BREATH = { degrees = 1.5, rate = 0.25 } -- Waist X
 AnimationController.LOOK = { yaw = 60, pitch = 30, smoothing = 8 }
 AnimationController.AMPLITUDE_RATE = 6 -- how fast the gait grows and dies down (1/s)
+AnimationController.LEGS_TO_GAIT = 0.5 -- gait amplitude at which a swing's legs are entirely the walk's
 
 local sets = {} -- [class] = compiled pose set
 local rigs = {} -- [model] = state
@@ -280,7 +281,8 @@ local function step(state, dt)
 		if state.cancelAt then
 			weight *= math.clamp(1 - (now() - state.cancelAt) / AnimationController.CANCEL_BLEND, 0, 1)
 		end
-		upperBodyOnly = clip.upperBodyOnly and state.amplitude > 0.1
+		-- The legs go over from the clip's own stance to the walk as the gait grows in (no snap at one speed).
+		upperBodyOnly = clip.upperBodyOnly and math.clamp(state.amplitude / AnimationController.LEGS_TO_GAIT, 0, 1)
 		if weight <= 0 and t > clip.blendIn and not clip.loop and not clip.hold then
 			state.clip = nil
 		end

@@ -141,6 +141,9 @@ CombatConfig.SpeedCheck = {
 	window = 3, -- ... within this many seconds -> set back to the last valid position
 }
 
+-- Lock-on (docs/12 §8): the server accepts a lock on a target this near.
+CombatConfig.LockOn = { range = 220 * S, zones = { "Body", "AnkleL", "AnkleR", "Head", "Core" } }
+
 -- Action validation tolerances (docs/12 §10).
 CombatConfig.Tolerance = { coreStrikeRange = 4 * S, facing = 10 }
 

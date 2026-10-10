@@ -6,6 +6,7 @@
 --
 --   setFrame(model?)         start or stop following a Frame (nil = back to the on-foot camera)
 --   getYaw() -> radians      the camera's heading; FrameController turns the move input by it
+--   setLock(point?)          lock-on: point() -> Vector3? is what to keep in view (nil = free camera)
 --   setStride(on)            the wider stride field of view
 --   shake(magnitude, duration)     a rotational shake that fades out (x the Camera Shake setting)
 --   punch(degrees, duration)       a field-of-view kick that eases back
@@ -48,6 +49,11 @@ local lookTouch: InputObject? = nil
 local params = RaycastParams.new()
 local shakes: { { magnitude: number, start: number, duration: number } } = {}
 local punches: { { degrees: number, start: number, duration: number } } = {}
+local lockPoint: (() -> Vector3?)? = nil
+local lockOffset = 0 -- radians the player has pushed the locked view sideways
+local shoulder = Feel.shoulder
+local focus = Vector3.zero -- how far the pivot has moved toward the lock point
+local liftTo: number? = nil -- the elevation a fresh lock raises the view to, until the player moves it
 
 local function sensitivity(): number
 	return SettingsController.get("camSensitivity") or 1
@@ -57,7 +63,16 @@ local function turn(deltaYaw: number, deltaPitch: number)
 	if SettingsController.get("invertY") then
 		deltaPitch = -deltaPitch
 	end
-	yaw = (yaw - math.rad(deltaYaw)) % (2 * math.pi)
+	if deltaPitch ~= 0 then
+		liftTo = nil
+	end
+	if lockPoint then
+		-- Locked on: sideways input only nudges the view, and the nudge decays (docs/11 §4).
+		local limit = math.rad(Feel.lock.offset)
+		lockOffset = math.clamp(lockOffset - math.rad(deltaYaw), -limit, limit)
+	else
+		yaw = (yaw - math.rad(deltaYaw)) % (2 * math.pi)
+	end
 	pitch = math.clamp(pitch + math.rad(deltaPitch), math.rad(Feel.pitch.min), math.rad(Feel.pitch.max))
 end
 
@@ -106,9 +121,32 @@ local function update(dt: number)
 		turn(stick.X * rate, stick.Y * rate)
 	end
 
-	local pivot = rootPart.Position + Vector3.new(0, Feel.pivotHeight, 0)
+	-- Lock-on: the view turns to stand off the line to the target and leans toward it, so the Frame doesn't
+	-- hide what it fights.
+	local point = if lockPoint then lockPoint() else nil
+	local lean = Vector3.zero
+	if point then
+		local toward = (point - rootPart.Position) * Vector3.new(1, 0, 1)
+		if toward.Magnitude > 1 then
+			local desired = math.atan2(-toward.X, -toward.Z) + math.rad(Feel.lock.side) + lockOffset
+			local delta = (desired - yaw + math.pi) % (2 * math.pi) - math.pi
+			yaw = (yaw + delta * math.min(1, Feel.lock.yawBlend * dt)) % (2 * math.pi)
+			lean = toward * Feel.lock.focus
+		end
+		lockOffset *= math.exp(-3 * dt / Feel.lock.offsetDecay)
+	end
+	if liftTo then
+		pitch += (liftTo - pitch) * math.min(1, 4 * dt)
+		if math.abs(liftTo - pitch) < 0.005 then
+			liftTo = nil
+		end
+	end
+	focus += (lean - focus) * math.min(1, Feel.lock.focusBlend * dt)
+	shoulder += ((if point then 0 else Feel.shoulder) - shoulder) * math.min(1, 3 * dt / Feel.shoulderBlend)
+
+	local pivot = rootPart.Position + Vector3.new(0, Feel.pivotHeight, 0) + focus
 	local rotation = CFrame.Angles(0, yaw, 0) * CFrame.Angles(-pitch, 0, 0)
-	local offset = rotation * Vector3.new(Feel.shoulder, 0, wanted)
+	local offset = rotation * Vector3.new(shoulder, 0, wanted)
 
 	-- Something between the pivot and the camera: come in at once, go back out slowly.
 	local allowed = wanted
@@ -155,13 +193,20 @@ local function update(dt: number)
 	end
 
 	camera.CameraType = Enum.CameraType.Scriptable
-	camera.CFrame = CFrame.new(pivot + rotation * Vector3.new(Feel.shoulder, 0, distance)) * rotation * jolt
+	camera.CFrame = CFrame.new(pivot + rotation * Vector3.new(shoulder, 0, distance)) * rotation * jolt
 	camera.FieldOfView = fov + kick
 	camera.Focus = CFrame.new(pivot)
 end
 
 function CameraController.getYaw(): number
 	return yaw
+end
+
+function CameraController.setLock(point: (() -> Vector3?)?)
+	lockPoint = point
+	lockOffset = 0
+	local least = math.rad(Feel.lock.pitch)
+	liftTo = if point and pitch < least then least else nil
 end
 
 function CameraController.setStride(on: boolean)
@@ -198,6 +243,7 @@ function CameraController.setFrame(model: Model?)
 	lookTouch = nil
 	table.clear(shakes)
 	table.clear(punches)
+	lockPoint, lockOffset, shoulder, focus = nil, 0, Feel.shoulder, Vector3.zero
 	if model and root then
 		-- Start behind the Frame.
 		local look = root.CFrame.LookVector
@@ -231,7 +277,7 @@ function CameraController.Start()
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
 			local scale = Feel.sensitivity.mouse * sensitivity()
 			turn(input.Delta.X * scale, input.Delta.Y * scale)
-		elseif input.UserInputType == Enum.UserInputType.MouseWheel and not processed then
+		elseif input.UserInputType == Enum.UserInputType.MouseWheel and not processed and not lockPoint then -- locked: the wheel cycles zones
 			local range = Feel.distance.max - Feel.distance.min
 			wanted = math.clamp(wanted - input.Position.Z * range * ZOOM_STEP, Feel.distance.min, Feel.distance.max)
 		elseif input.KeyCode == Enum.KeyCode.Thumbstick2 then

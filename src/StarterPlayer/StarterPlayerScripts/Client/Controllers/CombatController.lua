@@ -94,9 +94,7 @@ local function predict(model: Model, request: string, name: string)
 	local clip = move.clip
 	if kind == "dodge" then
 		-- Toward the move input; a backstep with none.
-		local character = player.Character
-		local pilot = character and character:FindFirstChildOfClass("Humanoid")
-		local input = if pilot then pilot.MoveDirection * Vector3.new(1, 0, 1) else Vector3.zero
+		local input = FrameController.getMoveInput()
 		direction = if input.Magnitude > 0.1 then input.Unit else -root.CFrame.LookVector
 		clip = CombatConfig.dodgeClip(root.CFrame:VectorToObjectSpace(direction :: Vector3))
 	end

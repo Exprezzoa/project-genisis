@@ -29,7 +29,7 @@ local LUNGE_STOP = 2 -- studs short of a wall the Lunge ends
 local UNTARGETABLE = { Parked = true, Kneeling = true, Starting = true, Disabled = true }
 local FLINCH_FROM = { Idle = true, Engage = true, Telegraph = true, Recover = true }
 local ASH, ASH_DARK = Color3.fromHex("#9C9893"), Color3.fromHex("#6F6B66")
-local DEATH = { mounds = 12.0, remove = 12.5 } -- docs/10 §2
+local DEATH = { mounds = 4.0, grow = 6.0, remove = 12.5 } -- docs/10 §2
 
 local Strider = {}
 Strider.__index = Strider
@@ -500,6 +500,8 @@ STATES.Dead = {
 				mound.Size = Vector3.new(self.random:NextNumber(1, 2.4), size, size)
 				local angle = index / 6 * 2 * math.pi
 				mound.CFrame = CFrame.new(ground + Vector3.new(math.cos(angle) * 9, mound.Size.X / 2 - 0.3, math.sin(angle) * 7)) * CFrame.Angles(0, 0, math.rad(90))
+				mound:SetAttribute("Grow", DEATH.grow) -- clients let it rise over this long (TitanVFXController)
+				mound:AddTag("AshMound")
 				mound.Parent = workspace
 				Debris:AddItem(mound, 180)
 			end
