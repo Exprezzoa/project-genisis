@@ -467,3 +467,35 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Known:** the hangar is still unlit, so the HUD sits over a dark scene there. From behind, the Frame hides the training Titan it is facing at the default camera distance.
 
 **Next:** step 9: debug commands (`/frame`, `/tp`, `/god`), the Training door opening for Frames, Unit 03 in Bay 3, then the eight Phase 2 acceptance tests.
+
+**Session 5, continued: user feedback (grip, speed, suit) and step 9 (Phase 2 closing)**
+
+**Done:**
+- D-052: the blade hand grips the handle; attacks slowed to about 1.7 × (config, clips, `12` §3, `PoseCheck`).
+- D-053: pilot suit second pass (`CharacterKit.pilotSuit`, `shortHair`, new piece shapes); `StarterCharacter` rebuilt (83 parts). Q-016 opened (blocky body or a slimmer catalog body).
+- D-054: debug commands (`/frame`, `/tp` with a Frame, `/god`, `/energy`, `/hurtboxes`, `/hitboxes`, `/door`), the Training door open in Studio, Unit 03 in Bay 3, the speed check rewritten.
+
+**Phase 2 acceptance tests (play mode, Unit 02; keys and clicks sent with the MCP input tools; times from server logs):**
+
+| # | Test | Result |
+|---|---|---|
+| 1 | Board from the Bay 2 bridge; walk the hangar to the deployment door, weapons locked | **PASS.** On the bridge the prompt allowed boarding; boarding took 1.81 s. W then A walked the Frame to (114, −151), 6 studs from the east door, root at Y 30.4 throughout. A light press there started nothing (0 actions); the HUD showed "WEAPONS LOCKED — HANGAR SAFETY" |
+| 2 | Light ×3, Heavy with lunge, Pile Driver, dodge in 4 directions; timings ±0.03 s | **PASS.** Light1 hit at +0.35 / +0.36 (config 0.35); Light2 began +0.70 and +0.71 after Light1 (0.70), hit +0.32; Light3 began +0.70 and +0.69 after Light2 (0.67: 0.03 late and 0.02 late), hit +0.45, chain over 1.40 / 1.41 after Light3 began (1.40); Heavy hit +0.90, over +2.08 (0.90, 2.08); Pile Driver hit +0.60, over +1.75 / +1.76 (0.60, 1.75); each dodge 0.45 s (0.35 + 0.10), about 80–83 studs toward S, A, D and W (the north barrier stopped the first S dodge) |
+| 3 | Hits register the correct zone | **PASS for the aim rule.** From the simulacrum's side: Light1 and Light2 → ArmR 36 and 40 (×0.9), Light3 → AnkleR 56 (70 × 0.8), Heavy → Body 140 / ArmR 126, Pile Driver → ArmR 81. The lock rule can't be tested until lock-on exists (Phase 3) |
+| 4 | Energy spend and regen; insufficient energy rejected and flashes | **PASS.** Special 100 → 50; 63 after 1.75 s (1 s delay, then 18/s); three dodges took it 46 → 25 → 5 with regen between. With energy set to 20: Special and Dodge started nothing, and a screenshot caught the energy bar flashing red with the SPECIAL slot dimmed |
+| 5 | Dismount and remount | **PASS.** On `PAD_TRAINING`: pilot at the exit point (−174, 3.3, −110), Frame kneeling; re-boarded from the board point, Frame Idle at Y 30.40 |
+| 6 | The speed check doesn't false-trigger | **PASS after a fix.** It tripped three times in the first runs: twice on debug teleports, once during four dodges in a row. After the rewrite (D-054): `/frame`, two server moves 0.6 s apart, seven dodges, a heavy lunge and a stride run gave no warning |
+| 7 | Gamepad and touch for every action | **PARTLY.** Simulated gamepad buttons worked: RB light, RT heavy, LB Pile Driver, L3 stride (top speed 76.8). B (dodge) can't be simulated (the tool reports it as bound to the core UI), and sticks and touch can't be sent at all. **Needs the user** |
+| 8 | 60 s of continuous play without errors; FPS ≥ 55 in the hangar | **PASS.** 3,602 frames in 60.0 s (60.0 fps, Studio's cap), worst frame 20.3 ms, 5.7% of frames slower than 55 fps; 5,050 parts in Workspace. The only error in Output was from a test script of mine |
+
+**Also tested:** `/god`, `/energy`, `/hurtboxes` (6 shown, 6 hidden), `/door east` open and close, `/tp SPAWN_TRAINING` and `/tp SPAWN_HANGAR_FLOOR` with a Frame, `/frame` from the spawn room. `RigCheck`, `PoseCheck`, `HubCheck` PASS. Unit 03 and the grip looked at in screenshots; the suit in a three-view preview. Every changed file matches Studio by checksum.
+
+**Not tested:** `/hitboxes` on screen; mouse look; the suit on a walking character in play; the Training door walked through by a Frame (the Frame was moved to the yard by command); how the slower swings feel.
+
+**Known:**
+- `/frame` in the spawn room leaves the Frame standing on the building's roof (it is a debug command; use it outdoors or with `/tp`).
+- Unit 03 has no collisions: a player on foot can walk through it.
+- The pilot stays stocky because the body is the default blocky avatar (Q-016).
+- A test batch that aborted left a key held down, which made one run walk the Frame backwards; a reminder to release keys after a failed input batch.
+
+**Next:** Phase 2 is complete except test 7's stick and touch part, which needs the user. Then Phase 3 (the Strider): first the redesigned, human-looking Strider part list for the user's approval (D-039).

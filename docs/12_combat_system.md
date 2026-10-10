@@ -141,7 +141,8 @@ Knockback is executed by the pilot client (LinearVelocity for 0.25 s) upon `Comb
 
 ## 10. Anti-exploit (server)
 - Rate limits (per remote, `16_technical_architecture.md` §5).
-- **Speed check** (every 0.25 s per piloted Frame): allowed horizontal speed = 48 × 1.25 normally; 170 during a dodge window; 60 during root-motion windows; plus knockback allowances. Exceeding it for more than 0.5 s cumulative within 3 s → the server sets the Frame back to its last valid position (server sets `HRP.CFrame`) and logs a warning. No kicks in single-player.
+- **Speed check, as built (D-054):** it measures **distance per 0.25 s interval**, not speed, because the pilot's position updates reach the server in bursts. Allowed distance = normal speed × 1.25 × the interval, plus the whole distance of a running dodge or lunge × 1.2 while that action runs and for 0.5 s after. A move the server made itself (`FrameService.moveTo`) restarts the measurement. The rest is as first written:
+- **Speed check, first design** (every 0.25 s per piloted Frame): allowed horizontal speed = 48 × 1.25 normally; 170 during a dodge window; 60 during root-motion windows; plus knockback allowances. Exceeding it for more than 0.5 s cumulative within 3 s → the server sets the Frame back to its last valid position (server sets `HRP.CFrame`) and logs a warning. No kicks in single-player.
 - **Action validation:** state, cooldown, energy, distance (Core Strike within 34 + 4 tolerance), facing (60° + 10° tolerance).
 - Never trust a client-sent damage value, target HP, position for hit tests, or timestamp.
 

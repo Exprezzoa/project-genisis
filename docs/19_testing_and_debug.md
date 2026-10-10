@@ -21,6 +21,7 @@ Opened with **F2** (a debug panel with a command box) or typed as chat-like comm
 | `/titan <type> [state]` | Spawn a Titan ~120 studs in front (`Strider`, `Watcher`; state `Dormant`/`Engage`) |
 | `/titan kill` / `/titan down` / `/titan hp <n>` / `/titan freeze` | Titan control |
 | `/god` | Toggle player Frame invulnerability |
+| `/door <west\|east> [open\|close]` | Open or close a hangar door stand-in (added in Phase 2, D-054). In Studio the Training (west) door starts open until the door system exists |
 | `/energy` | Infinite energy toggle |
 | `/hurtboxes` | Toggle the hurtbox visualization (Transparency 0.6, colored by zone) |
 | `/hitboxes` | Toggle the attack-box visualization (client draws the boxes for 0.3 s on each attack) |

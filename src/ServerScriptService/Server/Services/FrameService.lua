@@ -69,6 +69,16 @@ function FrameService.setState(frame, state)
 	frame:SetAttribute("State", state)
 end
 
+-- Stands a Frame on the ground at a spawn-style CFrame (debug commands; the pilot's client follows).
+function FrameService.moveTo(frame, groundCFrame)
+	local root = frame.PrimaryPart
+	frame:PivotTo(groundCFrame * CFrame.new(0, configOf(frame).hipHeight + root.Size.Y / 2, 0))
+	frame:SetAttribute("MovedAt", now()) -- tells the speed check this jump was the server's own
+	if frame:FindFirstChild("BoardPoint") then
+		frame.BoardPoint.CFrame = root.CFrame * BOARD_POINT
+	end
+end
+
 function FrameService.getFrame(unitId)
 	return frames[unitId]
 end
@@ -87,7 +97,7 @@ end
 -- Takes amount from the Frame's energy. Returns false (and takes nothing) when there isn't enough.
 function FrameService.spendEnergy(frame, amount)
 	local entry = energy[frame]
-	if amount <= 0 then
+	if amount <= 0 or frame:GetAttribute("InfiniteEnergy") then
 		return true
 	end
 	if entry.value < amount then
@@ -236,7 +246,8 @@ local function setPrompt(frame, name, enabled)
 end
 
 -- docs/08 §5.4 "Mount". Yields for the fade and the boot or rise clip.
-function FrameService.board(player, frame)
+-- force = true skips the distance check (the /frame debug command).
+function FrameService.board(player, frame, force)
 	local config = configOf(frame)
 	local character, humanoid, root = characterParts(player)
 	if not character then
@@ -250,7 +261,7 @@ function FrameService.board(player, frame)
 	end
 	local kneeling = frame:GetAttribute("State") == "Kneeling"
 	local promptPart = if kneeling then frame.BoardPoint else frame.Hatch
-	if (root.Position - promptPart.Position).Magnitude > config.boardDistance + promptPart.Prompt.MaxActivationDistance then
+	if not force and (root.Position - promptPart.Position).Magnitude > config.boardDistance + promptPart.Prompt.MaxActivationDistance then
 		return false, "too far"
 	end
 	busy[player] = true

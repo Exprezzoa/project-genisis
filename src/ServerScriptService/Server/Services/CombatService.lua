@@ -31,7 +31,8 @@ local FrameService = require(script.Parent.FrameService)
 local TAG = "CombatService"
 local SAMPLE_INTERVAL = 1 / CombatConfig.SAMPLE_RATE
 local PAD = Vector3.one * CombatConfig.LAG_PAD
-local ROOT_MOTION_SLACK = 0.25 -- seconds a root-motion speed allowance outlasts its window
+local ROOT_MOTION_SLACK = 0.5 -- seconds a root-motion allowance outlasts its window (the pilot's updates arrive late and in bursts)
+local ROOT_MOTION_MARGIN = 1.2 -- share of an action's distance the speed check lets through
 
 local CombatService = {}
 
@@ -42,6 +43,7 @@ local cooldowns = {} -- [frame] = { Special = readyAt, Dodge = readyAt }
 local locks = {} -- [player] = { targetId, zone }
 local targets = {} -- [targetId] = handler
 local speed = {} -- [frame] = { position, time, valid, violations }
+local rootBudget = {} -- [frame] = { distance, expires }: extra studs the running action may move the Frame
 
 local function now()
 	return workspace:GetServerTimeNow()
@@ -81,12 +83,16 @@ local function begin(frame, player, name, seq, direction)
 		local dodge = CombatConfig.Dodge[class]
 		action.kind, action.move, action.direction = "dodge", dodge, direction
 		clip = CombatConfig.dodgeClip(frame.PrimaryPart.CFrame:VectorToObjectSpace(direction))
+		rootBudget[frame] = { distance = dodge.distance * ROOT_MOTION_MARGIN, expires = t0 + dodge.duration + ROOT_MOTION_SLACK }
 		cooldowns[frame].Dodge = t0 + dodge.cooldown
 		frame:SetAttribute("DodgeReadyAt", cooldowns[frame].Dodge)
 	else
 		local move = movesOf(frame)[name]
 		action.kind, action.move = "attack", move
 		clip = move.clip
+		if move.lunge then
+			rootBudget[frame] = { distance = move.lunge.distance * ROOT_MOTION_MARGIN, expires = t0 + move.lunge.to + ROOT_MOTION_SLACK }
+		end
 		if move.cooldown then
 			cooldowns[frame][name] = t0 + move.cooldown
 			frame:SetAttribute(name .. "ReadyAt", cooldowns[frame][name])
@@ -274,33 +280,29 @@ local function stepActions()
 	end
 end
 
--- docs/12 §10: a piloted Frame that moves faster than its state allows for too long is put back.
-local function allowedSpeed(frame)
-	local action = actions[frame]
-	if action then
-		local elapsed = now() - action.t0
-		if action.kind == "dodge" then
-			if elapsed <= action.move.duration + ROOT_MOTION_SLACK then
-				return CombatConfig.SpeedCheck.dodge
-			end
-		elseif action.move.lunge and elapsed >= action.move.lunge.from and elapsed <= action.move.lunge.to + ROOT_MOTION_SLACK then
-			return math.max(CombatConfig.SpeedCheck.rootMotion, CombatConfig.SpeedCheck.normal)
-		end
-	end
-	return CombatConfig.SpeedCheck.normal
+-- docs/12 §10: a piloted Frame that moves further than its state allows for too long is put back.
+-- The check works on distance per interval, not on speed: the pilot's position updates reach the server in
+-- bursts, so a dodge's 88 studs can show up inside one interval. While an action's root motion is (or was just)
+-- running, the interval may hold that action's whole distance on top of normal movement (D-054).
+local function allowedDistance(frame, dt, t)
+	local budget = rootBudget[frame]
+	local extra = if budget and t <= budget.expires then budget.distance else 0
+	return CombatConfig.SpeedCheck.normal * dt + extra
 end
 
 local function checkSpeed(frame, player)
 	local root = frame.PrimaryPart
 	local t = now()
 	local entry = speed[frame]
-	if not entry or entry.player ~= player then
-		speed[frame] = { player = player, position = root.Position, time = t, valid = root.CFrame, violations = {} }
+	local movedAt = frame:GetAttribute("MovedAt")
+	-- A new pilot, or the server moved the Frame itself (FrameService.moveTo): start measuring afresh.
+	if not entry or entry.player ~= player or entry.movedAt ~= movedAt then
+		speed[frame] = { player = player, position = root.Position, time = t, valid = root.CFrame, violations = {}, movedAt = movedAt }
 		return
 	end
 	local dt = t - entry.time
 	local moved = (root.Position - entry.position) * Vector3.new(1, 0, 1)
-	local over = moved.Magnitude / dt > allowedSpeed(frame)
+	local over = moved.Magnitude > allowedDistance(frame, dt, t)
 	entry.position, entry.time = root.Position, t
 	local check = CombatConfig.SpeedCheck
 	for index = #entry.violations, 1, -1 do

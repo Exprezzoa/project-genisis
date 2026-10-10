@@ -18,6 +18,15 @@ return {
 		memory = "SPAWN_MEMORY",
 	},
 
+	-- /door <name> -> DoorId of the door part (stand-ins until the real doors are built).
+	Doors = { west = "DOOR_HANGAR_WEST", east = "DOOR_HANGAR_EAST" },
+
+	-- Hurtbox colors by zone for /hurtboxes.
+	ZoneColors = {
+		Body = Color3.fromHex("#E8A33D"), Head = Color3.fromHex("#E5484D"), AnkleL = Color3.fromHex("#46C17A"), AnkleR = Color3.fromHex("#46C17A"),
+		ArmL = Color3.fromHex("#9AA6B2"), ArmR = Color3.fromHex("#9AA6B2"), Core = Color3.fromHex("#E25B2D"),
+	},
+
 	Commands = {
 		tp = { side = "server", phase = 1, usage = "/tp <spawnId>" },
 		zone = { side = "server", phase = 1, usage = "/zone <hub|hangar|training|outpost|basin|memory>" },
@@ -35,8 +44,9 @@ return {
 		god = { side = "server", phase = 2, usage = "/god" },
 		energy = { side = "server", phase = 2, usage = "/energy" },
 		hitboxes = { side = "client", phase = 2, usage = "/hitboxes" },
+		hurtboxes = { side = "server", phase = 2, usage = "/hurtboxes" },
+		door = { side = "server", phase = 2, usage = "/door <west|east> [open|close]" },
 		titan = { side = "server", phase = 3, usage = "/titan <type> [state] | kill | down | hp <n> | freeze" },
-		hurtboxes = { side = "server", phase = 3, usage = "/hurtboxes" },
 		timescale = { side = "server", phase = 3, usage = "/timescale <0.25-2>" },
 		step = { side = "server", phase = 4, usage = "/step <stepId>" },
 		checkpoint = { side = "server", phase = 4, usage = "/checkpoint <id>" },
@@ -44,5 +54,5 @@ return {
 		give = { side = "server", phase = 6, usage = "/give xp|credits <n>" },
 	},
 
-	CURRENT_PHASE = 1,
+	CURRENT_PHASE = 2,
 }

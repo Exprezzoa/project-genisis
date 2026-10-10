@@ -15,7 +15,10 @@ local LightingPresets = require(Shared.Config.LightingPresets)
 local Log = require(Shared.Modules.Log)
 local Net = require(Shared.Modules.Net)
 
+local CollectionService = game:GetService("CollectionService")
+
 local CharacterService = require(script.Parent.CharacterService)
+local FrameService = require(script.Parent.FrameService)
 local FlagService = require(script.Parent.FlagService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
@@ -30,8 +33,14 @@ function handlers.tp(player, args)
 	if not spawnId then
 		return "usage: " .. Debug.Commands.tp.usage
 	end
-	if not CharacterService.getSpawnCFrame(spawnId) then
+	local spawnCFrame = CharacterService.getSpawnCFrame(spawnId)
+	if not spawnCFrame then
 		return "unknown spawn " .. spawnId
+	end
+	local frame = FrameService.getPiloted(player)
+	if frame then
+		FrameService.moveTo(frame, spawnCFrame)
+		return "Frame moved to " .. spawnId
 	end
 	CharacterService.teleport(player, spawnId)
 	return "teleported to " .. spawnId
@@ -107,6 +116,88 @@ function handlers.lighting(player, args)
 	return "lighting " .. preset
 end
 
+-- /frame: Unit 02 comes to where the player stands and the player boards it.
+function handlers.frame(player)
+	if FrameService.getPiloted(player) then
+		return "already piloting"
+	end
+	local frame = FrameService.getFrame("02")
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not (frame and root) then
+		return "no Unit 02 or no character"
+	end
+	if frame:GetAttribute("Pilot") ~= 0 then
+		return "Unit 02 is occupied"
+	end
+	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	local position = Vector3.new(root.Position.X, 0, root.Position.Z)
+	FrameService.moveTo(frame, CFrame.lookAt(position, position + (if look.Magnitude > 0.1 then look.Unit else Vector3.zAxis)))
+	task.spawn(FrameService.board, player, frame, true)
+	return "boarding Unit 02"
+end
+
+local function toggle(player, attribute, label)
+	local frame = FrameService.getPiloted(player)
+	if not frame then
+		return "board a Frame first"
+	end
+	local on = not frame:GetAttribute(attribute)
+	frame:SetAttribute(attribute, on)
+	return label .. (if on then " on" else " off")
+end
+
+function handlers.god(player)
+	return toggle(player, "God", "invulnerability")
+end
+
+function handlers.energy(player)
+	return toggle(player, "InfiniteEnergy", "infinite energy")
+end
+
+local hurtboxesShown = false
+
+function handlers.hurtboxes()
+	hurtboxesShown = not hurtboxesShown
+	local count = 0
+	for _, part in ipairs(CollectionService:GetTagged("Hurtbox")) do
+		if part:IsA("BasePart") then
+			count += 1
+			part.Transparency = if hurtboxesShown then 0.6 else 1
+			part.Color = (Debug.ZoneColors :: any)[part:GetAttribute("Zone")] or Debug.ZoneColors.Body
+			part.Material = Enum.Material.ForceField
+		end
+	end
+	return ("%d hurtboxes %s"):format(count, if hurtboxesShown then "shown" else "hidden")
+end
+
+-- Opens or closes a door stand-in: open = it lets everything through and turns nearly invisible.
+local function setDoor(doorId: string, open: boolean): boolean
+	local found = false
+	for _, part in ipairs(CollectionService:GetTagged("Door")) do
+		if part:IsA("BasePart") and part:GetAttribute("DoorId") == doorId then
+			found = true
+			part.CanCollide = not open
+			part.CanQuery = not open
+			part.Transparency = if open then 0.9 else 0
+			part:SetAttribute("Open", open)
+		end
+	end
+	return found
+end
+
+function handlers.door(_, args)
+	local doorId = (Debug.Doors :: any)[string.lower(args[1] or "")]
+	if not doorId then
+		return "usage: " .. Debug.Commands.door.usage
+	end
+	local open = string.lower(args[2] or "open") ~= "close"
+	if not setDoor(doorId, open) then
+		return doorId .. " isn't in the map"
+	end
+	return doorId .. (if open then " open" else " closed")
+end
+
 function DebugService.run(player: Player, cmd: string, args: { string }): string
 	local name = string.lower(cmd)
 	local command = (Debug.Commands :: any)[name]
@@ -128,6 +219,9 @@ function DebugService.Start()
 	if not RunService:IsStudio() then
 		return
 	end
+	-- Phase 2 has no door system yet: in Studio the Training door starts open so a Frame can walk to the yard
+	-- (D-054). The deployment door stays shut.
+	setDoor(Debug.Doors.west, true)
 	Net.on("Debug_Command", function(player: Player, payload: { cmd: string, args: { string } })
 		local message = DebugService.run(player, payload.cmd, payload.args)
 		Log.debug(TAG, "/%s %s -> %s", payload.cmd, table.concat(payload.args, " "), message)

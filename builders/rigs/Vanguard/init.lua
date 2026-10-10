@@ -4,6 +4,8 @@
 -- joint table).
 --
 --   Build({ BK = BK, unit = "02" })  -> stats     builds ServerStorage.Templates.Frames.Vanguard_<unit>
+--   Build({ BK, unit = "03", variant = {}, parent = folder })   any other unit, into another folder (the
+--                                                 Bay 3 repair prop is made from one: maps/hangar/Unit03)
 --   Builder.MAIN, Builder.JOINTS                  the tables of docs/08 §3.1 (RigCheck reads them)
 --
 -- Scale (D-044): everything in this folder is written for the 40-stud Vanguard of the docs. Build() makes
@@ -71,10 +73,10 @@ function Builder.Build(opts)
 	local BK = opts.BK
 	local P = BK.Palette
 	local unit = opts.unit or "02"
-	local variant = Builder.UNITS[unit] or error("Vanguard builder: unknown unit " .. tostring(unit))
+	local variant = opts.variant or Builder.UNITS[unit] or error("Vanguard builder: unknown unit " .. tostring(unit))
 	local startClock = os.clock()
 
-	local templates = game:GetService("ServerStorage").Templates.Frames
+	local templates = opts.parent or game:GetService("ServerStorage").Templates.Frames
 	local old = templates:FindFirstChild("Vanguard_" .. unit)
 	if old then
 		old:Destroy()
@@ -138,7 +140,7 @@ function Builder.Build(opts)
 	----------------------------------------------------------------------------------------------------------------
 	local ctx = {
 		BK = BK, K = K, P = P, model = model, main = main, unit = unit, variant = variant,
-		accent = P[variant.accent], SIDES = SIDES,
+		accent = variant.accent and P[variant.accent], SIDES = SIDES,
 	}
 	require(script.Legs)(ctx)
 	require(script.Torso)(ctx)

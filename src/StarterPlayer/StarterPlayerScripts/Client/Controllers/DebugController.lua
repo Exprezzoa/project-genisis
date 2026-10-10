@@ -7,6 +7,7 @@
 --   run(text) -> message?      isOpen()      getOverlayText()
 
 local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -14,6 +15,7 @@ local Stats = game:GetService("Stats")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local CombatConfig = require(Shared.Config.CombatConfig)
 local Debug = require(Shared.Config.Debug)
 local UIStyle = require(Shared.Config.UIStyle)
 local Net = require(Shared.Modules.Net)
@@ -120,6 +122,48 @@ local function toggleNav()
 	return ("nav display on: %d nodes, %d links"):format(count, links)
 end
 
+-- /hitboxes: every attack of a Frame draws its box for 0.3 s (docs/19 §2).
+local hitboxes = false
+local hitboxConnections = {}
+
+local function drawBox(frame)
+	local moves = CombatConfig.Frames[frame:GetAttribute("Class")]
+	local move = moves and moves[frame:GetAttribute("Action")]
+	local root = frame.PrimaryPart
+	if not (move and root) then
+		return
+	end
+	task.delay(move.startup, function()
+		local box = Instance.new("Part")
+		box.Anchored, box.CanCollide, box.CanQuery, box.CanTouch = true, false, false, false
+		box.Material = Enum.Material.ForceField
+		box.Color = Color3.fromHex("#E5484D")
+		box.Transparency = 0.5
+		box.CastShadow = false
+		box.Size = move.box.size + Vector3.one * CombatConfig.LAG_PAD
+		box.CFrame = root.CFrame * CFrame.new(move.box.offset)
+		box.Parent = workspace
+		Debris:AddItem(box, 0.3)
+	end)
+end
+
+local function toggleHitboxes()
+	hitboxes = not hitboxes
+	for _, connection in ipairs(hitboxConnections) do
+		connection:Disconnect()
+	end
+	table.clear(hitboxConnections)
+	local folder = workspace:FindFirstChild("Frames")
+	if hitboxes and folder then
+		for _, frame in ipairs(folder:GetChildren()) do
+			table.insert(hitboxConnections, frame:GetAttributeChangedSignal("Action"):Connect(function()
+				drawBox(frame)
+			end))
+		end
+	end
+	return "attack boxes " .. (if hitboxes then "shown" else "hidden")
+end
+
 local function help()
 	local names = {}
 	for name, command in pairs(Debug.Commands) do
@@ -152,6 +196,8 @@ function DebugController.run(text)
 		message = toggleFps()
 	elseif name == "nav" then
 		message = toggleNav()
+	elseif name == "hitboxes" then
+		message = toggleHitboxes()
 	else
 		message = help()
 	end
