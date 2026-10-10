@@ -22,8 +22,9 @@ function RateLimiter.new(rate: number, burst: number, clock: (() -> number)?): R
 		_rate = rate,
 		_burst = burst,
 		_clock = clock or os.clock,
-		-- Weak keys: a bucket never keeps a Player that left alive.
-		_buckets = setmetatable({}, { __mode = "k" }),
+		-- Strong keys on purpose: in a weak table, an Instance key can be collected while the Instance is still
+		-- in the game, which would hand out a fresh bucket. The owner calls reset(key) when a key goes away.
+		_buckets = {},
 	}
 	return (setmetatable(self, RateLimiter) :: any) :: RateLimiter
 end

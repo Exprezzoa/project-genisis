@@ -392,6 +392,46 @@ function Check.Full()
 		expect(not pcall(Net.wrap, "UI_Toast", function() end), "wrapping an S2C remote is an error")
 	end)
 
+	case("Loader", function()
+		local Loader = require(M.Loader)
+		local folder = Instance.new("Folder")
+		local function add(name, body)
+			local module = Instance.new("ModuleScript")
+			module.Name = name
+			module.Source = body
+			module.Parent = folder
+		end
+		-- Each fake service appends "<Name>.<Phase>," to the folder's Log attribute.
+		local template = [[
+			local M = {}
+			local function note(phase)
+				local folder = script.Parent
+				folder:SetAttribute("Log", (folder:GetAttribute("Log") or "") .. script.Name .. "." .. phase .. ",")
+			end
+			function M.Init() note("Init") end
+			function M.Start() note("Start") end
+			return M
+		]]
+		add("B", template)
+		add("A", template)
+		local names = Loader.run("Test", folder, { "A", "Missing", "B" })
+		expect(table.concat(names, ",") == "A,B", "loaded in list order, missing modules skipped")
+		expect(folder:GetAttribute("Log") == "A.Init,B.Init,A.Start,B.Start,", "Init on all, then Start on all: " .. tostring(folder:GetAttribute("Log")))
+
+		add("C", "local M = {} function M.Init() error('init exploded') end return M")
+		local ok, message = pcall(Loader.run, "Test", folder, { "A", "B", "C" })
+		expect(not ok and string.find(message, "[Test] C.Init failed", 1, true) and string.find(message, "init exploded", 1, true),
+			"a failing Init names the module: " .. tostring(message))
+		ok, message = pcall(Loader.run, "Test", folder, { "A", "B" })
+		expect(not ok and string.find(message, "[Test] C failed: it isn't in the load order list", 1, true),
+			"a module outside the order list is an error: " .. tostring(message))
+		folder.C:Destroy()
+		add("D", "return 5")
+		ok, message = pcall(Loader.run, "Test", folder, { "A", "B", "D" })
+		expect(not ok and string.find(message, "[Test] require D failed", 1, true), "a module must return a table: " .. tostring(message))
+		folder:Destroy()
+	end)
+
 	Shared:Destroy()
 	report.total = report.passed + report.failed
 	report.ms = math.floor((os.clock() - startClock) * 1000 + 0.5)

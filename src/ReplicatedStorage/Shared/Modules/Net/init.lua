@@ -9,6 +9,7 @@
 --   Net.on("UI_Toast", handler)             -- client: handler(payload)
 --   Net.fireServer(name, payload) / Net.fireClient(player, name, payload) / Net.fireAllClients(name, payload)
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -28,6 +29,7 @@ local Net = {}
 Net.Definitions = Definitions
 
 local remotes: { [string]: RemoteEvent } = {}
+local limiters: { RateLimiter.RateLimiter } = {}
 local initialized = false
 
 local function definitionFor(name: string, direction: string): Definitions.Definition
@@ -69,6 +71,11 @@ function Net.init()
 			remotes[name] = remote :: RemoteEvent
 		end
 		folder.Parent = ReplicatedStorage
+		Players.PlayerRemoving:Connect(function(player)
+			for _, limiter in ipairs(limiters) do
+				limiter:reset(player)
+			end
+		end)
 	else
 		local folder = ReplicatedStorage:WaitForChild(FOLDER_NAME, CLIENT_WAIT)
 		if not folder then
@@ -92,6 +99,7 @@ function Net.wrap(name: string, handler: (player: Player, payload: any) -> (), c
 	local definition = definitionFor(name, "C2S")
 	local validate = definition.validate :: any
 	local limiter = RateLimiter.new(definition.rate :: number, definition.burst :: number, clock)
+	table.insert(limiters, limiter)
 
 	return function(player: Player, payload: any, ...: any): (boolean, string?)
 		if definition.studioOnly and not IS_STUDIO then
