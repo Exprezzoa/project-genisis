@@ -23,6 +23,7 @@ local UIStyle = require(Shared.Config.UIStyle)
 
 local CharacterStage = require(script.Parent.Parent.UI.CharacterStage)
 local Components = require(script.Parent.Parent.UI.Components)
+local Transitions = require(script.Parent.Parent.UI.Transitions)
 local InputController = require(script.Parent.InputController)
 local SettingsController = require(script.Parent.SettingsController)
 local UIController = require(script.Parent.UIController)
@@ -94,6 +95,13 @@ function MenuController.open(name)
 	InputController.setContext("Menu")
 	GuiService.SelectedObject = if InputController.getDevice() == "Gamepad" then screen.first else nil
 	CharacterStage.show(name, false)
+	-- The content arrives piece by piece: big surfaces slide up, then the titles and buttons run in.
+	for _, child in ipairs(screen.frame:GetChildren()) do
+		if child.Name == "Body" or child.Name == "Page" then
+			Transitions.slideIn(child, UDim2.fromOffset(0, 70), 0.45)
+		end
+	end
+	Components.cascade(screen.frame, { delay = 0.08 })
 end
 
 function MenuController.toggle(name)
@@ -140,15 +148,20 @@ local function buildPause(layer)
 	local list = column(screen, 440, UDim2.new(0.16, -40, 0.5, 0), UIStyle.Tilt)
 	Components.title(list, "PAUSED", { LayoutOrder = 1 }, { size = UIStyle.TextSize.Hero, color = UIStyle.Ink, textColor = UIStyle.Paper })
 	local resume = Components.button(list, "RESUME", MenuController.close, { LayoutOrder = 2 })
-	Components.button(list, "MISSION LOG", function()
+	local log = Components.button(list, "MISSION LOG", function()
 		MenuController.open("MissionLog")
 	end, { LayoutOrder = 3 })
-	Components.button(list, "SETTINGS", function()
+	local settings = Components.button(list, "SETTINGS", function()
 		MenuController.open("Settings")
 	end, { LayoutOrder = 4 })
 	-- Missions only (Phase 4) and disabled in the Vertical Slice.
-	Components.disable(Components.button(list, "RESTART FROM CHECKPOINT", nil, { LayoutOrder = 5 }))
-	Components.disable(Components.button(list, "QUIT TO HUB", nil, { LayoutOrder = 6 }))
+	local restart = Components.button(list, "RESTART FROM CHECKPOINT", nil, { LayoutOrder = 5 })
+	local quit = Components.button(list, "QUIT TO HUB", nil, { LayoutOrder = 6 })
+	Components.disable(restart)
+	Components.disable(quit)
+	for index, button in ipairs({ resume, log, settings, restart, quit }) do
+		Components.tag(button, ("%02d"):format(index))
+	end
 	MenuController.registerScreen("Pause", screen, resume)
 end
 

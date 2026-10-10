@@ -7,9 +7,11 @@
 -- Every control is a TextButton, so it works with mouse, touch and gamepad selection alike.
 --
 --   slab(parent, opts, props)          panel(parent, opts, props)      label(parent, text, opts, props)
+--   paint(slab, color, transparency)   tweenPaint(slab, info, color)   tweenFade(slab, info, transparency)
 --   title(parent, text, props)         button(parent, text, onActivated, props)
 --   setText(button, text)              setAccented(button, on)         disable(button)
 --   toggle / choice / slider           keyGlyph(parent, text, size)
+--   tag(button, text)                  enter(control, delay)           cascade(root, opts)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -99,9 +101,25 @@ function Components.slab(parent, opts, props)
 	return frame
 end
 
+-- The frames a slab is drawn with (the slab itself when it is a plain rectangle).
+local function piecesOf(slab)
+	local parts = slabParts[slab]
+	if not parts then
+		parts = {}
+		for _, name in ipairs({ "SlabL", "SlabM", "SlabR" }) do
+			table.insert(parts, slab:FindFirstChild(name))
+		end
+		if #parts == 0 then
+			parts = { slab }
+		end
+		slabParts[slab] = parts
+	end
+	return parts
+end
+
 -- Recolors a slab (slanted or plain). nil keeps the current value.
 function Components.paint(slab, color, transparency)
-	for _, piece in ipairs(slabParts[slab] or { slab }) do
+	for _, piece in ipairs(piecesOf(slab)) do
 		if color then
 			piece.BackgroundColor3 = color
 		end
@@ -112,8 +130,14 @@ function Components.paint(slab, color, transparency)
 end
 
 function Components.tweenPaint(slab, info, color)
-	for _, piece in ipairs(slabParts[slab] or { slab }) do
+	for _, piece in ipairs(piecesOf(slab)) do
 		TweenService:Create(piece, info, { BackgroundColor3 = color }):Play()
+	end
+end
+
+function Components.tweenFade(slab, info, transparency)
+	for _, piece in ipairs(piecesOf(slab)) do
+		TweenService:Create(piece, info, { BackgroundTransparency = transparency }):Play()
 	end
 end
 
@@ -228,6 +252,18 @@ function Components.button(parent, text, onActivated, props)
 	edge.ZIndex = 3
 	edge.Visible = false
 	edge.Parent = button
+	-- A small ink diamond that slides in at the left while the button is highlighted.
+	local tick = Instance.new("Frame")
+	tick.Name = "Tick"
+	tick.BackgroundColor3 = UIStyle.Ink
+	tick.BackgroundTransparency = 1
+	tick.BorderSizePixel = 0
+	tick.AnchorPoint = Vector2.new(0.5, 0.5)
+	tick.Position = UDim2.new(0, 8, 0.5, 0)
+	tick.Size = UDim2.fromOffset(8, 8)
+	tick.Rotation = 45
+	tick.ZIndex = 3
+	tick.Parent = button
 
 	button:SetAttribute("Accented", false)
 	local info = TweenInfo.new(HIGHLIGHT_TIME, UIStyle.Motion.Style, UIStyle.Motion.Direction)
@@ -245,6 +281,7 @@ function Components.button(parent, text, onActivated, props)
 			TextColor3 = if accented and not on then UIStyle.Accent else UIStyle.Ink,
 			Position = UDim2.fromOffset(if on then 6 else 0, 0),
 		}):Play()
+		TweenService:Create(tick, info, { BackgroundTransparency = if on then 0 else 1, Position = UDim2.new(0, if on then 26 else 8, 0.5, 0) }):Play()
 	end
 	button.MouseEnter:Connect(function()
 		hovered = true
@@ -263,6 +300,14 @@ function Components.button(parent, text, onActivated, props)
 		refresh()
 	end)
 	button:GetAttributeChangedSignal("Accented"):Connect(refresh)
+	-- Pressing kicks the slab onto its shadow for a moment.
+	button.Activated:Connect(function()
+		if button:GetAttribute("Disabled") then
+			return
+		end
+		fill.Position = UDim2.fromOffset(UIStyle.Shadow.X, UIStyle.Shadow.Y)
+		TweenService:Create(fill, TweenInfo.new(UIStyle.Pop.Time, UIStyle.Pop.Style, UIStyle.Pop.Direction), { Position = UDim2.new() }):Play()
+	end)
 	if onActivated then
 		button.Activated:Connect(onActivated)
 	end
@@ -413,6 +458,82 @@ function Components.slider(parent, spec, onChanged, props)
 	return holder, function(newValue)
 		set(newValue, false)
 	end, less, more
+end
+
+-- A small mono tag at the left of a button ("01").
+function Components.tag(button, text)
+	return Components.label(button, text, { font = "Mono", size = UIStyle.TextSize.Tiny, color = UIStyle.Ink }, {
+		Name = "Tag",
+		Position = UDim2.fromOffset(28, 0),
+		Size = UDim2.new(0, 40, 1, 0),
+		TextTransparency = if button:GetAttribute("Disabled") then 0.6 else 0.35,
+		ZIndex = 3,
+	})
+end
+
+-- Plays a control's entrance after delay seconds: its slab slides in from the left while it fades up and the
+-- text follows. Works for buttons and titles, also inside layouts (only their children move).
+Components.ENTER = { Time = 0.32, Slide = 90, Step = 0.045, MaxTotal = 0.5 }
+
+function Components.enter(control, delay)
+	local main = control:FindFirstChild("Fill") or control:FindFirstChild("Slab")
+	if not main then
+		return
+	end
+	local config = Components.ENTER
+	local info = TweenInfo.new(config.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, delay or 0)
+	local fade = TweenInfo.new(config.Time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, delay or 0)
+	local disabled = control:GetAttribute("Disabled") == true
+	main.Position = UDim2.fromOffset(-config.Slide, 0)
+	TweenService:Create(main, info, { Position = UDim2.new() }):Play()
+	for _, piece in ipairs(piecesOf(main)) do
+		piece.BackgroundTransparency = 1
+		TweenService:Create(piece, fade, { BackgroundTransparency = if disabled then 0.82 else 0 }):Play()
+	end
+	for _, name in ipairs({ "Label", "Tag" }) do
+		local text = control:FindFirstChild(name)
+		if text then
+			local shown = text:GetAttribute("Shown") or text.TextTransparency
+			text:SetAttribute("Shown", shown)
+			text.TextTransparency = 1
+			TweenService:Create(text, fade, { TextTransparency = shown }):Play()
+		end
+	end
+	local text = main:FindFirstChildWhichIsA("TextLabel")
+	if text then
+		text.TextTransparency = 1
+		TweenService:Create(text, fade, { TextTransparency = 0 }):Play()
+	end
+	-- A title's shadow slab comes out from under it.
+	local shadow = control:FindFirstChild("Shadow")
+	if shadow and main.Name == "Slab" then
+		shadow.Position = UDim2.fromOffset(-config.Slide, 0)
+		TweenService:Create(shadow, info, { Position = UDim2.fromOffset(UIStyle.Shadow.X, UIStyle.Shadow.Y) }):Play()
+		for _, piece in ipairs(piecesOf(shadow)) do
+			piece.BackgroundTransparency = 1
+			TweenService:Create(piece, fade, { BackgroundTransparency = 0 }):Play()
+		end
+	end
+end
+
+-- Plays the entrance of every button and title under root, one after another (in creation order).
+-- opts: delay (s before the first), step (s between two; shortened so the whole run stays under MaxTotal).
+function Components.cascade(root, opts)
+	opts = opts or {}
+	local controls = {}
+	for _, descendant in ipairs(root:GetDescendants()) do
+		local isButton = descendant:FindFirstChild("Fill") and descendant:FindFirstChild("Label")
+		local isTitle = descendant:FindFirstChild("Slab") and descendant:FindFirstChild("Shadow")
+		if isButton or isTitle then
+			table.insert(controls, descendant)
+		end
+	end
+	local config = Components.ENTER
+	local step = math.min(opts.step or config.Step, config.MaxTotal / math.max(1, #controls))
+	for index, control in ipairs(controls) do
+		Components.enter(control, (opts.delay or 0) + step * (index - 1))
+	end
+	return #controls
 end
 
 -- The key box of prompts and hints: a tilted amber square with the glyph in ink, over a paper shadow.

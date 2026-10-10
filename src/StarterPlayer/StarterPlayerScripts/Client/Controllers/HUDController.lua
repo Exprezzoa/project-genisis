@@ -12,6 +12,7 @@
 -- (the conversation and cinematic modes belong to DialogueController, Phase 5).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -26,11 +27,16 @@ local UIController = require(script.Parent.UIController)
 local HUDController = {}
 
 local dialogues = {}
-local objectiveFrame, objectiveText, objectiveFlash, optionalHolder
+local objectiveFrame, objectiveTitle, objectiveText, objectiveFlash, optionalHolder
 local toastHolder
 local subtitleLabel
 local subtitleToken = 0
 local state = { objective = nil, optional = {}, toasts = {}, subtitle = nil }
+local animated = RunService:IsRunning() -- edit-mode previews show everything in its final state
+
+local TYPE_SPEED = 0.02 -- seconds per character of a new objective
+local TYPE_MAX = 0.6
+local TOAST_EXIT = 0.25
 
 local function motion(time)
 	return TweenInfo.new(time or UIStyle.Motion.Time, UIStyle.Motion.Style, UIStyle.Motion.Direction)
@@ -73,6 +79,19 @@ function HUDController.setObjective(text, optionalTexts)
 	TweenService:Create(objectiveFrame, motion(), { Position = UDim2.fromOffset(24, 24) }):Play()
 	objectiveFlash.BackgroundTransparency = 0
 	TweenService:Create(objectiveFlash, motion(0.6), { BackgroundTransparency = 1 }):Play()
+	if animated then
+		-- The tag runs in and the text types itself out.
+		Components.enter(objectiveTitle, 0)
+		local length = utf8.len(text) or #text
+		objectiveText.MaxVisibleGraphemes = 0
+		local reveal = TweenService:Create(objectiveText, TweenInfo.new(math.min(TYPE_MAX, TYPE_SPEED * length), Enum.EasingStyle.Linear), { MaxVisibleGraphemes = length })
+		reveal.Completed:Connect(function(playbackState)
+			if playbackState == Enum.PlaybackState.Completed then
+				objectiveText.MaxVisibleGraphemes = -1
+			end
+		end)
+		reveal:Play()
+	end
 end
 
 function HUDController.toast(text)
@@ -87,12 +106,26 @@ function HUDController.toast(text)
 	bar.Position = UDim2.fromScale(0.06, 1)
 	bar.Size = UDim2.new(0.88, 0, 0, 3)
 	bar.Parent = panel
+	local tick = Instance.new("Frame")
+	tick.Name = "Tick"
+	tick.BackgroundColor3 = UIStyle.Accent
+	tick.BorderSizePixel = 0
+	tick.AnchorPoint = Vector2.new(0.5, 0.5)
+	tick.Position = UDim2.fromOffset(20, 22)
+	tick.Size = UDim2.fromOffset(8, 8)
+	tick.Rotation = 45
+	tick.Parent = panel
+	if animated then
+		-- The underline draws itself from the left.
+		bar.Size = UDim2.new(0, 0, 0, 3)
+		TweenService:Create(bar, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.new(0.88, 0, 0, 3) }):Play()
+	end
 	local label = Components.label(panel, text, { font = "BodyItalic", size = UIStyle.TextSize.Body, color = UIStyle.Paper, wrap = true }, {
-		Position = UDim2.fromOffset(70, 12),
-		Size = UDim2.new(1, -60, 0, 200), -- tall on purpose: TextBounds is capped by the label's own height
+		Position = UDim2.fromOffset(76, 12),
+		Size = UDim2.new(1, -66, 0, 200), -- tall on purpose: TextBounds is capped by the label's own height
 		TextYAlignment = Enum.TextYAlignment.Top,
 	})
-	TweenService:Create(label, TweenInfo.new(UIStyle.Pop.Time, UIStyle.Pop.Style, UIStyle.Pop.Direction), { Position = UDim2.fromOffset(30, 12) }):Play()
+	TweenService:Create(label, TweenInfo.new(UIStyle.Pop.Time, UIStyle.Pop.Style, UIStyle.Pop.Direction), { Position = UDim2.fromOffset(36, 12) }):Play()
 	local function fit()
 		panel.Size = UDim2.fromOffset(config.Width, math.max(44, math.ceil(label.TextBounds.Y / UIController.getScale()) + 24)) -- TextBounds is in screen pixels
 	end
@@ -107,7 +140,15 @@ function HUDController.toast(text)
 		local index = table.find(state.toasts, entry)
 		if index then
 			table.remove(state.toasts, index)
-			panel:Destroy()
+			-- Fades out, then leaves the list.
+			local info = motion(TOAST_EXIT)
+			Components.tweenFade(panel, info, 1)
+			TweenService:Create(label, info, { TextTransparency = 1 }):Play()
+			TweenService:Create(bar, info, { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(tick, info, { BackgroundTransparency = 1 }):Play()
+			task.delay(TOAST_EXIT, function()
+				panel:Destroy()
+			end)
 		end
 	end)
 end
@@ -132,6 +173,12 @@ function HUDController.showSubtitle(line)
 	subtitleLabel.TextColor3 = if speaker and speaker.name == "" then speaker.color else UIStyle.TextPrimary
 	state.subtitle = { text = line.text, speaker = line.speaker, thought = line.thought == true }
 	refreshSubtitleStyle()
+	if animated then
+		-- Each line fades in while it rises a few pixels.
+		subtitleLabel.TextTransparency = 1
+		subtitleLabel.Position = UDim2.new(0.5, 0, 0.82, 10)
+		TweenService:Create(subtitleLabel, motion(0.18), { TextTransparency = 0, Position = UDim2.fromScale(0.5, 0.82) }):Play()
+	end
 	-- docs/13 §2: default duration max(2.2, 0.06 x characters).
 	task.delay(line.duration or math.max(2.2, 0.06 * #line.text), function()
 		if token == subtitleToken then
@@ -167,7 +214,7 @@ function HUDController.build(hud)
 	objectiveFrame.Parent = hud
 	list(objectiveFrame, 4)
 	-- A tilted amber tag over the objective text on an ink bar.
-	Components.title(objectiveFrame, "OBJECTIVE", { Size = UDim2.new(1, 0, 0, 30), LayoutOrder = 1 }, { size = UIStyle.TextSize.Tiny, width = 156 })
+	objectiveTitle = Components.title(objectiveFrame, "OBJECTIVE", { Size = UDim2.new(1, 0, 0, 30), LayoutOrder = 1 }, { size = UIStyle.TextSize.Tiny, width = 156 })
 	objectiveText = Components.label(objectiveFrame, "", { font = "BodyBold", size = 20, wrap = true }, {
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,

@@ -144,8 +144,10 @@ local function show(prompt)
 
 	gui.Parent = player:WaitForChild("PlayerGui")
 	shown[prompt] = { gui = gui, glyph = glyph, id = id, connections = connections }
-	-- Appear: fade is implied by the scale-in 0.9 -> 1 (0.15 s).
-	TweenService:Create(uiScale, TweenInfo.new(0.15, UIStyle.Motion.Style, UIStyle.Motion.Direction), { Scale = scale }):Play()
+	-- Appear: the prompt pops in (scale 0.7 -> 1 with a small overshoot), then its key box keeps rocking.
+	uiScale.Scale = 0.7 * scale
+	TweenService:Create(uiScale, TweenInfo.new(UIStyle.Pop.Time, UIStyle.Pop.Style, UIStyle.Pop.Direction), { Scale = scale }):Play()
+	TweenService:Create(keyBox, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Rotation = 8 }):Play()
 end
 
 function InteractionController.getShown()

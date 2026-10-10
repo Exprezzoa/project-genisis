@@ -4,13 +4,16 @@
 -- The stage behind every menu screen: the dimmed game view, the diagonal amber band on the left, and on the
 -- right a one-color silhouette of the player's character in front of a color field. The silhouette is alive:
 -- it breathes, sways and looks around, and every screen has its own pose, camera shot and colors. Changing
--- screens flies the camera to the next shot while the character moves into the next pose.
+-- screens flies the camera to the next shot while the character moves into the next pose. Opening the menu is
+-- a small show: bars wipe across the screen, the camera pulls back from a low close shot, the character rises
+-- out of a crouch, and the field's details (UI/StageDressing) rush past.
 --
 -- No images and no uploaded animations: the silhouette is a clone of the character inside a ViewportFrame,
 -- every part white under pure ambient light and tinted with ImageColor3 (ink; a second, offset copy tinted
 -- paper-white is its shadow). It is posed by code every frame (UI/SilhouetteRig).
 --
 --   build(parent) -> Frame      show(screenName, instant)      hide()      getShot() -> screenName?
+--   isOpen() -> boolean
 --   update(dt)                  -- one animation step (runs on RenderStepped while shown; also for previews)
 
 local Players = game:GetService("Players")
@@ -22,7 +25,9 @@ local TweenService = game:GetService("TweenService")
 local UIStyle = require(ReplicatedStorage:WaitForChild("Shared").Config.UIStyle)
 
 local Components = require(script.Parent.Components)
+local Dressing = require(script.Parent.StageDressing)
 local SilhouetteRig = require(script.Parent.SilhouetteRig)
+local Transitions = require(script.Parent.Transitions)
 
 local Stage = {}
 
@@ -37,6 +42,7 @@ end
 --   field/stripe  the color field behind the silhouette and its accent stripe (palette colors, docs/06 §3)
 --   pose          joint angles in degrees the character moves into (SilhouetteRig convention)
 --   motion        this screen's own gesture, layered on the idle motion (same format as IDLE below)
+--   word          the screen's name in huge faint letters behind the silhouette
 -- Screens without an entry use DEFAULT.
 -- One color means only the outline reads, so every pose keeps a limb clear of the body and every shot is
 -- wide enough to show it.
@@ -50,7 +56,8 @@ Stage.SHOTS = {
 			LeftShoulder = V(-22, 0, -12), LeftElbow = V(16, 0, 0),
 			RightHip = V(26, 0, 10), RightKnee = V(-16, 0, 0), LeftHip = V(-22, 0, -10), LeftKnee = V(-12, 0, 0),
 		},
-		motion = { { "RightElbow", "X", 5, 0.2, 0 }, { "Waist", "Z", 1.5, 0.12, 0 } },
+		motion = { { "RightElbow", "X", 9, 0.2, 0 }, { "RightShoulder", "X", 4, 0.2, 0.2 }, { "Waist", "Z", 2.5, 0.12, 0 }, { "LeftShoulder", "X", 5, 0.12, 0.5 } },
+		word = "PAUSED",
 	},
 	-- Waist up, from the front: he lifts his left hand to the side of the mask, elbow out, and adjusts it.
 	Settings = {
@@ -60,7 +67,8 @@ Stage.SHOTS = {
 			LeftShoulder = V(8, 0, -80), LeftElbow = V(0, 0, -133),
 			RightShoulder = V(2, 0, 10), RightElbow = V(8, 0, 0),
 		},
-		motion = { { "LeftElbow", "Z", 5, 0.45, 0 }, { "Neck", "Z", 3, 0.45, 0.25 } },
+		motion = { { "LeftElbow", "Z", 8, 0.45, 0 }, { "LeftShoulder", "Z", 4, 0.45, 0.1 }, { "Neck", "Z", 5, 0.45, 0.25 }, { "Waist", "Z", 2, 0.15, 0 } },
+		word = "SETTINGS",
 	},
 	-- From his right side: he holds the right forearm out and looks down at it, reading the log off his wrist.
 	MissionLog = {
@@ -71,26 +79,46 @@ Stage.SHOTS = {
 			LeftShoulder = V(-14, 0, -4), LeftElbow = V(8, 0, 0),
 			RightHip = V(8, 0, 0), LeftHip = V(-8, 0, 0),
 		},
-		motion = { { "RightWrist", "X", 12, 0.4, 0 }, { "RightElbow", "X", 5, 0.2, 0.5 }, { "Neck", "X", 3, 0.2, 0 } },
+		motion = { { "RightWrist", "X", 18, 0.4, 0 }, { "RightElbow", "X", 8, 0.2, 0.5 }, { "RightShoulder", "X", 4, 0.1, 0 }, { "Neck", "X", 5, 0.2, 0 } },
+		word = "LOG",
 	},
 	-- Equipment (Phase 6): a shot of the raised forearm, to be tuned the same way when the screen exists.
 }
 Stage.DEFAULT = "Pause"
+Stage.DIM = 0.35 -- transparency of the ink layer over the game view
 Stage.MOVE = TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 Stage.POSE_RATE = 7 -- how fast the body moves into a new pose (1/s; higher = snappier)
+Stage.OPEN = TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.Out) -- the camera pulling back
+Stage.OPEN_SHOT = { offset = CFrame.new(0, -1.1, -3.2), fov = 16 } -- where it starts: closer, lower, wider
+Stage.OPEN_DROP = 1.6 -- studs the character starts below its place
+Stage.RISE_RATE = 4 -- how fast it comes up (1/s)
+Stage.CLOSE_TIME = 0.16
+
+-- The crouch the character rises out of when the menu opens.
+local CROUCH = {
+	Waist = V(-20, 0, 0), Neck = V(-24, 0, 0),
+	RightShoulder = V(24, 0, 38), RightElbow = V(55, 0, 0), LeftShoulder = V(24, 0, -38), LeftElbow = V(55, 0, 0),
+	RightHip = V(48, 0, 8), RightKnee = V(-74, 0, 0), LeftHip = V(30, 0, -8), LeftKnee = V(-58, 0, 0),
+}
 
 -- Idle motion layered on every pose: { joint, axis, degrees, cycles per second, phase }.
 local IDLE = {
-	{ "Waist", "X", 2, 0.26, 0 }, -- breathing
-	{ "Waist", "Y", 2.5, 0.09, 0.6 }, -- slow turn of the shoulders
-	{ "Neck", "Y", 7, 0.11, 0.3 }, -- slow look around
-	{ "Neck", "X", 2, 0.19, 1.1 },
-	{ "RightShoulder", "Z", 2.5, 0.26, 0.4 },
-	{ "LeftShoulder", "Z", -2.5, 0.26, 0.4 },
-	{ "RightElbow", "X", 3, 0.17, 2.0 },
-	{ "LeftElbow", "X", 3, 0.15, 0.7 },
+	{ "Waist", "X", 3, 0.26, 0 }, -- breathing
+	{ "Waist", "Y", 5, 0.09, 0.6 }, -- slow turn of the shoulders
+	{ "Waist", "Z", 1.5, 0.07, 0.2 }, -- weight going from foot to foot
+	{ "Neck", "Y", 11, 0.11, 0.3 }, -- slow look around
+	{ "Neck", "X", 3.5, 0.19, 1.1 },
+	{ "RightShoulder", "Z", 4, 0.26, 0.4 },
+	{ "LeftShoulder", "Z", -4, 0.26, 0.4 },
+	{ "RightShoulder", "X", 3, 0.13, 0.9 },
+	{ "LeftShoulder", "X", -3, 0.13, 0.9 },
+	{ "RightElbow", "X", 5, 0.17, 2.0 },
+	{ "LeftElbow", "X", 5, 0.15, 0.7 },
+	{ "RightHip", "X", 1.5, 0.07, 0.2 },
+	{ "LeftHip", "X", -1.5, 0.07, 0.2 },
 }
-local BOB = { height = 0.05, rate = 0.26 } -- the whole body rises and sinks with the breath
+-- The whole body: it rises and sinks with the breath, drifts sideways and turns a little.
+local BODY = { bob = 0.07, bobRate = 0.26, sway = 0.06, swayRate = 0.07, turn = 3, turnRate = 0.05 }
 
 local root, band, field, stripe
 local views = {} -- { { frame, camera, home, rig } }
@@ -100,7 +128,10 @@ local clock = 0
 local pose = {} -- the pose being shown: [joint] = Vector3 degrees
 local target = Stage.SHOTS[Stage.DEFAULT].pose
 local motion = nil -- the current screen's gesture waves
+local drop = 0 -- studs the character is below its place (eases to 0 after opening)
+local closing = nil -- the running close animation's token
 local connection = nil
+local BAND_HOME = UDim2.fromScale(0.16, 0.5)
 
 -- A white, unlit, anchored copy of the character: StarterCharacter (rest pose) or, failing that, the live one.
 local function makeSilhouette()
@@ -193,17 +224,21 @@ function Stage.update(dt)
 			final[wave[1]] = (final[wave[1]] or Vector3.zero) + axis
 		end
 	end
-	local bob = CFrame.new(0, BOB.height * math.sin(clock * BOB.rate * 2 * math.pi), 0)
+	drop *= math.exp(-Stage.RISE_RATE * dt)
+	local turns = clock * 2 * math.pi
+	local body = CFrame.new(BODY.sway * math.sin(turns * BODY.swayRate), BODY.bob * math.sin(turns * BODY.bobRate) - drop, 0)
+		* CFrame.Angles(0, math.rad(BODY.turn) * math.sin(turns * BODY.turnRate), 0)
 	for _, view in ipairs(views) do
-		view.rig:apply(final, bob)
+		view.rig:apply(final, body)
 	end
+	Dressing.update(dt)
 end
 
 function Stage.build(parent)
 	root = Instance.new("Frame")
 	root.Name = "Stage"
 	root.BackgroundColor3 = UIStyle.Ink
-	root.BackgroundTransparency = 0.35
+	root.BackgroundTransparency = Stage.DIM
 	root.BorderSizePixel = 0
 	root.Size = UDim2.fromScale(1, 1)
 	root.ZIndex = 0
@@ -223,6 +258,7 @@ function Stage.build(parent)
 		Position = UDim2.new(0.54, 30, 0.5, 0),
 		Size = UDim2.new(0, 46, 1.3, 0),
 	})
+	Dressing.build(root)
 	viewport(root, "SilhouetteShadow", UIStyle.Paper, Vector2.new(14, 10), 2)
 	viewport(root, "Silhouette", UIStyle.Ink, Vector2.new(0, 0), 3)
 
@@ -252,49 +288,65 @@ end
 
 function Stage.show(screenName, instant)
 	local shot = Stage.SHOTS[screenName] or Stage.SHOTS[Stage.DEFAULT]
-	local opening = not root.Visible
+	local opening = not root.Visible or closing ~= nil
+	closing = nil
 	root.Visible = true
 	ensureLoaded()
 	current = screenName
 	target = shot.pose
 	motion = shot.motion
-	if instant or opening then
-		-- Start in the pose instead of unfolding from the rest pose.
+	if instant then
 		pose = table.clone(shot.pose)
+		drop = 0
+	elseif opening then
+		pose = table.clone(CROUCH)
+		drop = Stage.OPEN_DROP
 	end
 	if not connection and RunService:IsRunning() then
 		connection = RunService.RenderStepped:Connect(Stage.update)
 	end
 	Stage.update(0)
+	Dressing.set(shot.word or string.upper(screenName), instant)
 
 	local goal = CFrame.lookAt(shot.from, shot.at)
 	for _, view in ipairs(views) do
-		if instant or opening then
+		view.frame.Position = view.home
+		if instant then
 			view.camera.CFrame = goal
 			view.camera.FieldOfView = shot.fov
 		else
-			TweenService:Create(view.camera, Stage.MOVE, { CFrame = goal, FieldOfView = shot.fov }):Play()
+			if opening then
+				view.camera.CFrame = goal * Stage.OPEN_SHOT.offset
+				view.camera.FieldOfView = shot.fov + Stage.OPEN_SHOT.fov
+			end
+			TweenService:Create(view.camera, if opening then Stage.OPEN else Stage.MOVE, { CFrame = goal, FieldOfView = shot.fov }):Play()
 		end
 	end
 	if instant then
+		root.BackgroundTransparency = Stage.DIM
+		band.Position = BAND_HOME
 		Components.paint(field, shot.field)
 		Components.paint(stripe, shot.stripe)
 		return
 	end
-	Components.tweenPaint(field, Stage.MOVE, shot.field)
-	Components.tweenPaint(stripe, Stage.MOVE, shot.stripe)
 	if opening then
-		-- Everything slides in: the band from the left, the field and the silhouette from the right.
+		-- Bars wipe across, the dim fades in, the band comes from the left, the field's details rush upward.
 		Components.paint(field, shot.field)
 		Components.paint(stripe, shot.stripe)
+		Transitions.wipe(root)
+		Dressing.burst()
+		root.BackgroundTransparency = 1
+		TweenService:Create(root, Stage.MOVE, { BackgroundTransparency = Stage.DIM }):Play()
 		band.Position = UDim2.fromScale(-0.3, 0.5)
-		TweenService:Create(band, Stage.MOVE, { Position = UDim2.fromScale(0.16, 0.5) }):Play()
+		TweenService:Create(band, Stage.MOVE, { Position = BAND_HOME }):Play()
 		for _, view in ipairs(views) do
 			view.frame.Position = view.home + UDim2.fromOffset(260, 0)
 			TweenService:Create(view.frame, Stage.MOVE, { Position = view.home }):Play()
 		end
 	else
-		-- A small kick sideways sells the cut between screens.
+		-- Between screens: the colors blend and a small kick sideways sells the cut.
+		Components.tweenPaint(field, Stage.MOVE, shot.field)
+		Components.tweenPaint(stripe, Stage.MOVE, shot.stripe)
 		for _, view in ipairs(views) do
 			view.frame.Position = view.home + UDim2.fromOffset(36, 0)
 			TweenService:Create(view.frame, Stage.MOVE, { Position = view.home }):Play()
@@ -302,15 +354,40 @@ function Stage.show(screenName, instant)
 	end
 end
 
+-- Closes the stage: the band and the silhouette leave the way they came, then everything hides.
 function Stage.hide()
-	if connection then
-		connection:Disconnect()
-		connection = nil
-	end
-	if root then
-		root.Visible = false
-	end
 	current = nil
+	if not root or not root.Visible then
+		return
+	end
+	if not RunService:IsRunning() then
+		root.Visible = false
+		return
+	end
+	local token = {}
+	closing = token
+	local info = TweenInfo.new(Stage.CLOSE_TIME, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	TweenService:Create(root, info, { BackgroundTransparency = 1 }):Play()
+	TweenService:Create(band, info, { Position = UDim2.fromScale(-0.3, 0.5) }):Play()
+	for _, view in ipairs(views) do
+		TweenService:Create(view.frame, info, { Position = view.home + UDim2.fromOffset(420, 0) }):Play()
+	end
+	task.delay(Stage.CLOSE_TIME, function()
+		if closing ~= token then
+			return -- reopened meanwhile
+		end
+		closing = nil
+		root.Visible = false
+		if connection then
+			connection:Disconnect()
+			connection = nil
+		end
+	end)
+end
+
+-- For tests: is the stage showing (not hidden and not on its way out)?
+function Stage.isOpen()
+	return root ~= nil and root.Visible and closing == nil
 end
 
 return Stage

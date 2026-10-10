@@ -260,3 +260,20 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 **Known:** arms and legs are the blocky avatar's, so the outline is chunky; knees and elbows only bend one way and feet are not planted (no ground is shown).
 
 **User actions needed:** save and publish; open the pause menu in play mode and say whether the amount of motion is right (it can be turned up or down in `IDLE` and each screen's `motion`).
+
+**Session 4, continued: more motion, menu opening show, detail pass on all UI (user request)**
+
+**Done:** `Client/UI/Transitions` (wipe, slideIn) and `Client/UI/StageDressing` (motes, sweep line, faint screen name, zone and clock readout), both new. `CharacterStage`: opening show (wipe, camera pull-back, rise from a crouch, mote rush), 0.16 s close animation, stronger idle (13 waves plus body sway and turn), bigger gestures. `Components`: `enter`, `cascade`, `tag`, `tweenFade`, highlight tick, press kick. `MenuController`: content cascades in on every open, index tags on the pause buttons. `HUDController`: objective typewriter, toast draw-in and fade-out, subtitle fade. `InteractionController`: prompt pop and rocking key box. `LoadingScreen`: angular restyle with a wipe exit (D-034, `14` §1.2, §1.3, §2, §4).
+
+**Tested (how → result):**
+- Checksums local vs Studio → all 9 changed files match.
+- Edit-mode preview with a screenshot of Pause → tags 01 to 05, motes, the faint "PAUSED", the readout and the sweep line render.
+- Play mode, values sampled from the client → PASS. Opening: 0.03 s after open 3 wipe bars exist, dim 0.79, FOV 50.2, camera Z −6.3, torso Y 0.86, first button slab at −90 px; at 0.23 s dim 0.38, FOV 40.6, torso 1.63, slab at 0; at 0.63 s FOV 38.0, torso 2.15; at 1.8 s no bars left, torso 2.22. Readout read `QUARTERS  //  T+00:00:14` and counted up. Settings: body 37 px low at 0.05 s, in place at 0.95 s, word `SETTINGS`. Close: still visible and fading at 0.05 s, hidden at 0.35 s. Open, close and reopen within 0.1 s → ends open and correct; final close hides it and unlocks movement.
+- HUD in play mode → PASS: objective text revealed 5 → 18 → all characters; toast underline 0.73 → 0.88, tick present, gone from the state at 3.5 s, still fading at 3.65 s, destroyed by 4.05 s; subtitle transparency 0.65 → 0 and back in place; the photo prompt showed at full scale with its key box rocking (1.6° at the sample).
+- Loading screen in play mode → hid after 1.5 s with `ServerReady = true`, status `READY`, band in place, GUI disabled afterwards. Output clean in every run.
+
+**Not tested:** how any of it looks in motion (values and stills only); the loading screen was never seen (it is gone before a capture is possible); 16:9 and phone framing; gamepad; touch.
+
+**Known:** the lights for the hub interiors are postponed on the user's word ("lets do the lights later"). The touch buttons (`MobileControlsController`) did not get a detail pass.
+
+**User actions needed:** save and publish; watch the menu open and the loading screen once and say what to push or pull back; run acceptance test 6 (phone emulator, gamepad).
