@@ -1,0 +1,13 @@
+# OS and editor leftovers
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~
+
+# Roblox Studio lock files
+*.rbxl.lock
+*.rbxlx.lock
+
+# Claude Code per-user local settings
+.claude/settings.local.json
