@@ -69,7 +69,7 @@ function MissionLogController.build(layer)
 	local page = Components.slab(frame, { color = UIStyle.Ink, transparency = 0.04, slant = 4 }, {
 		Name = "Page",
 		Position = UDim2.fromOffset(72, 212),
-		Size = UDim2.new(1, -144, 1, -272),
+		Size = UDim2.new(0.62, -72, 1, -272), -- the right side belongs to the silhouette
 		ZIndex = 4,
 	})
 	body = Components.label(page, "", { size = UIStyle.TextSize.Large, wrap = true }, {

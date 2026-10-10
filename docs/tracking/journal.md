@@ -235,3 +235,13 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 **Next steps:** user review of the new look (pause menu, settings, mission log, HUD, prompts) on PC and in the phone emulator; then close acceptance test 6 and Phase 1.
 
 **User actions needed:** save and publish; look at the UI in play mode and say what to push further (more tilt, bolder titles, more motion) or pull back.
+
+**Session 4, continued: character stage (user request)**
+
+**Done:** `Client/UI/CharacterStage` (silhouette of Elias in a ViewportFrame, color field, stripe, band; one shot and color set per screen; camera, color and slide transitions). `MenuController` opens/hides the stage and its `backdrop` is now an empty container; Settings body 760 wide at 40% from the left; Mission Log page limited to the left 62% (D-032, `14` §1.2).
+
+**Tested (how → result):**
+- Edit-mode previews with screenshots of Pause, Settings and Mission Log → the silhouette, shadow, field and stripe render; first shots were too close (black blobs) and were pulled back; the silhouette got its three flat tones.
+- Play mode, values read from the client → PASS: stage hidden while closed; Pause: camera (−5.0, 3.6, −9.5), FOV 38, field `#E8A33D`, 41 silhouette parts and a shadow model (so `StarterCharacter` is reachable from the client); 0.2 s after switching to Settings the camera was part-way (−2.7, 5.0, −6.0) and the field color mid-blend, then settled at (−2.4, 5.2, −5.6), `#9FB4C4`; Mission Log (4.4, 3.7, −6.6), `#FFD38A`; closing hid the stage and unlocked movement. Output clean.
+
+**Not tested:** the transitions in motion (only values were sampled; stills only), the stage in the phone emulator (the right side may be narrow there), gamepad.

@@ -5,22 +5,23 @@
 -- One screen is open at a time. Opening one switches the input context to "Menu" (movement off); closing
 -- restores the gameplay context. Every control is a button, so mouse, touch and gamepad all work; with a
 -- gamepad the first control of the opened screen is selected.
--- Look: a dimmed screen crossed by a diagonal amber band, the tilted column of slab buttons on the left.
+-- Look: every screen sits on the CharacterStage (UI/CharacterStage): dimmed game view, amber band, and the
+-- character's silhouette, whose shot changes with the screen.
 --
 --   open(name)   close()   toggle(name)   getOpen() -> name?
 --   registerScreen(name, frame, firstSelectable, opts { blur })
---   backdrop(parent) -> Frame           -- the dim + diagonal band other screens reuse
+--   backdrop(parent, name) -> Frame     -- an empty full-screen container for a screen's content
 --   build(layer)                        -- builds the screens into a layer (Init does this; also for previews)
 
 local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameConfig = require(Shared.Config.GameConfig)
 local UIStyle = require(Shared.Config.UIStyle)
 
+local CharacterStage = require(script.Parent.Parent.UI.CharacterStage)
 local Components = require(script.Parent.Parent.UI.Components)
 local InputController = require(script.Parent.InputController)
 local SettingsController = require(script.Parent.SettingsController)
@@ -73,6 +74,7 @@ function MenuController.close()
 		blur.Enabled = false
 	end
 	GuiService.SelectedObject = nil
+	CharacterStage.hide()
 	InputController.restoreGameplay()
 end
 
@@ -91,12 +93,7 @@ function MenuController.open(name)
 	end
 	InputController.setContext("Menu")
 	GuiService.SelectedObject = if InputController.getDevice() == "Gamepad" then screen.first else nil
-	-- The band sweeps in each time a screen opens.
-	local band = screen.frame:FindFirstChild("Band")
-	if band then
-		band.Position = UDim2.fromScale(-0.3, 0.5)
-		TweenService:Create(band, TweenInfo.new(UIStyle.Pop.Time, UIStyle.Motion.Style, UIStyle.Motion.Direction), { Position = UDim2.fromScale(0.16, 0.5) }):Play()
-	end
+	CharacterStage.show(name, false)
 end
 
 function MenuController.toggle(name)
@@ -107,31 +104,16 @@ function MenuController.toggle(name)
 	end
 end
 
--- A full-screen screen container: dimmed game view crossed by a diagonal amber band with an ink band
--- beside it. Content goes on top.
+-- An empty full-screen container for one screen's content. The dim, the band and the silhouette behind it
+-- belong to the CharacterStage, which every screen shares.
 function MenuController.backdrop(parent, name)
 	local frame = Instance.new("Frame")
 	frame.Name = name
-	frame.BackgroundColor3 = UIStyle.Ink
-	frame.BackgroundTransparency = 0.35
+	frame.BackgroundTransparency = 1
 	frame.BorderSizePixel = 0
 	frame.Size = UDim2.fromScale(1, 1)
-	frame.ClipsDescendants = false
+	frame.ZIndex = 5
 	frame.Parent = parent
-	Components.slab(frame, { color = UIStyle.Accent, slant = false }, {
-		Name = "Band",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.16, 0.5),
-		Size = UDim2.new(0, 300, 3, 0),
-		Rotation = UIStyle.Slant,
-	})
-	Components.slab(frame, { color = UIStyle.Ink, slant = false }, {
-		Name = "BandShade",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.16, 190, 0.5, 0),
-		Size = UDim2.new(0, 36, 3, 0),
-		Rotation = UIStyle.Slant,
-	})
 	return frame
 end
 
@@ -176,8 +158,8 @@ local function buildSettings(layer)
 	local body = Components.slab(screen, { color = UIStyle.Ink, transparency = 0.04, slant = 4 }, {
 		Name = "Body",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.54, 0.52),
-		Size = UDim2.new(0, 880, 0.84, 0), -- relative height: it has to fit a phone in landscape
+		Position = UDim2.fromScale(0.4, 0.52), -- left of center: the silhouette's head fills the right
+		Size = UDim2.new(0, 760, 0.84, 0), -- relative height: it has to fit a phone in landscape
 		ZIndex = 4,
 	})
 	Components.title(body, "SETTINGS", { Position = UDim2.fromOffset(40, -30), Size = UDim2.fromOffset(360, 60), ZIndex = 6 })
@@ -239,7 +221,11 @@ local function buildSettings(layer)
 	MenuController.registerScreen("Settings", screen, first)
 end
 
+-- For previews: MenuController.showStage(screenName, instant).
+MenuController.showStage = CharacterStage.show
+
 function MenuController.build(layer)
+	CharacterStage.build(layer)
 	buildPause(layer)
 	buildSettings(layer)
 end
