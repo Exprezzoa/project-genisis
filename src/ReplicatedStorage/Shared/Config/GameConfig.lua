@@ -15,6 +15,17 @@ GameConfig.Character = {
 	CAMERA_FOV = 70,
 }
 
+-- Server polling (docs/13 §5: triggers are checked every 0.2 s; zones use the same rate).
+GameConfig.Tick = {
+	TRIGGERS = 0.2,
+	ZONES = 0.2,
+}
+
+GameConfig.Interaction = {
+	-- Added to a prompt's MaxActivationDistance when the server re-checks the distance (latency allowance).
+	DISTANCE_SLACK = 4,
+}
+
 -- Player settings: defaults from the profile schema (docs/17 §2), ranges from the Settings menu (docs/14 §8).
 -- The server validates Settings_Update against this table; the Settings menu builds its rows from it.
 GameConfig.Settings = {
