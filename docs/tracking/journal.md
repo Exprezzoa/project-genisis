@@ -245,3 +245,18 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 - Play mode, values read from the client → PASS: stage hidden while closed; Pause: camera (−5.0, 3.6, −9.5), FOV 38, field `#E8A33D`, 41 silhouette parts and a shadow model (so `StarterCharacter` is reachable from the client); 0.2 s after switching to Settings the camera was part-way (−2.7, 5.0, −6.0) and the field color mid-blend, then settled at (−2.4, 5.2, −5.6), `#9FB4C4`; Mission Log (4.4, 3.7, −6.6), `#FFD38A`; closing hid the stage and unlocked movement. Output clean.
 
 **Not tested:** the transitions in motion (only values were sampled; stills only), the stage in the phone emulator (the right side may be narrow there), gamepad.
+
+**Session 4, continued: one-color animated silhouette (user request)**
+
+**Done:** `Client/UI/SilhouetteRig` (new: poses an anchored R15 clone from joint angles, gear follows its welds). `Client/UI/CharacterStage` reworked: one ink color (three tones removed), a pose and a gesture per screen, an idle layer, `update(dt)` on RenderStepped while a menu is open; shots re-framed for a one-color outline (D-033, `14` §1.2).
+
+**Tested (how → result):**
+- Checksums local vs Studio → both files match (`CharacterStage` 11932 bytes / 2760684084, `SilhouetteRig` 4019 / 3647420698).
+- Edit-mode previews with screenshots → Pause reads as a striding figure with a raised fist (first tries: hand on hip and legs were lost in the outline; the leading leg was swapped so the legs separate from that camera); Settings reads as a hand at the mask with the elbow out; Mission Log reads as a profile with the head bowed over a raised forearm (re-framed once: the head was behind the CLOSE button).
+- Play mode, part positions sampled from the client → PASS: 1 distinct part color; on Pause the head yaw went 20.3° → 16.1° → 9.6° and the right hand rose and sank (Y 3.39 → 3.50 → 3.23) over 2.5 s; switching to Settings moved the left hand from Y 2.3 to 3.98 after 0.1 s and 4.95 after 0.35 s (eased, not a jump); Mission Log put the right hand at (1.4, 3.7, −1.6) and bowed the head; after closing, the stage was hidden and the parts no longer moved. Output clean.
+
+**Not tested:** how the motion looks to the eye (only positions were sampled and stills captured); framing at 16:9 and in the phone emulator (the previews were in a wide, short Studio viewport); gamepad.
+
+**Known:** arms and legs are the blocky avatar's, so the outline is chunky; knees and elbows only bend one way and feet are not planted (no ground is shown).
+
+**User actions needed:** save and publish; open the pause menu in play mode and say whether the amount of motion is right (it can be turned up or down in `IDLE` and each screen's `motion`).
