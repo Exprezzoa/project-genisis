@@ -513,3 +513,29 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Not tested:** how the stances and the walking-while-swinging look in motion; the tint under the hangar's lighting; aim lock with a real mouse turning the camera; the mask on a moving character in play; the tint going away on dismount (the tween is the same code path as coming on).
 
 **Known:** feet slide a little between the two stances (there is no foot planting). The touch `AIM` button doesn't exist yet.
+
+---
+
+## Session 6 — Phase 3 start: the Strider's look, spawning and damage
+
+**Done:**
+- `builders/rigs/Strider.lua`: the Strider built from the body of the user's Titan model (D-056), with `BuildHair` (24 catalog hair styles, checked and measured in Studio). `Server/Titans/TitanLook` (skin tone and hair from a seed).
+- `Shared/Config/TitanConfig` (Strider stats and hurtboxes of `10` §1.2-1.3), `Locomotion.Strider`, `Shared/Poses/Strider` (Idle only so far).
+- `Server/Services/TitanService`: spawn with look, collision groups, hurtboxes welded to the root (per-state C0), HP with the stand-up clamp, poise, both regenerating, registration as a combat target, signals for the behavior to come.
+- `/titan Strider | kill | hp <n>`; debug phase 3; the Frame camera ignores hurtboxes.
+
+**Tested (how → result):**
+- Builder → 55 parts, 56.0 studs to the top of the head, hands at Y 16.1 (knees at 12.9), HipHeight 24.5; 24 of 24 hair styles loaded, none failed.
+- Edit-mode preview of eight Striders with different tones and hair (screenshot) → hair sits on the heads, eyes glow orange, the grin and hip cloth show. (The first screenshot was taken before the hair meshes had loaded and showed them missing.)
+- Play mode → a Strider spawned in the Training Yard stands with its root at Y 29.5, state Running, on Concrete; seven hurtboxes at the documented offsets, Core switched off; the Pose Animator plays `Idle` (waist −15°).
+- Attacking it with Unit 02 from 36 studs → Light1 −36 HP, Light2 −40, Light3 −56 with −48 poise (ankle), Heavy −140 with −50 poise: 2400 → 2128. Poise started back 3 s after the last hit at 25/s, HP 4 s after at 10/s. Output clean.
+
+**Bugs found and fixed here:** new "layered" hair sat at chest height and half as wide (it needs the engine's head cage) → rigid hair only; the reference head's hair attachment was meaningless → own anchor at the head's center; `/titan` could spawn past the map's edge, where the Titan fell out of the world → it now needs ground under the spot.
+
+**Not tested:** the Strider seen in play from the front (the Frame hid it in the screenshot); walking; anything of the behavior (not built); the `/titan` ground check (added after the test); more than one Titan at once.
+
+**Known:** the body keeps the reference's stocky, muscular build even after narrowing (38 wide at 56 tall); the docs asked for lanky. The Shifter's face shape (pointed chin, no nose) is the Strider's too.
+
+**Next:** the user's approval of the Strider's look; then the behavior: state machine, attacks with telegraphs, flinch, Downed, Core Strike, death, the Titan HUD bar and lock-on.
+
+**Session 6, continued:** a Titan spawned during play was sometimes not animated on the client (its tag arrived before its parts: 2 of 3 in one run). `AnimationController.register` now waits for the root and tries again; after the fix 4 of 4 spawned Striders played `Idle`, Output clean. The `/titan` ground check was tested from the Training Yard spawn (`/zone training`, then `/titan strider` → a Strider 120 studs ahead at (−320, 29.5, −110)); a play-mode screenshot from behind the pilot shows two Striders from the front: glowing eyes, grins, different hair and skin, hunched idle.

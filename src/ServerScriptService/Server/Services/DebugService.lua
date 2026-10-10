@@ -19,6 +19,8 @@ local CollectionService = game:GetService("CollectionService")
 
 local CharacterService = require(script.Parent.CharacterService)
 local FrameService = require(script.Parent.FrameService)
+local TitanService = require(script.Parent.TitanService)
+local TitanConfig = require(Shared.Config.TitanConfig)
 local FlagService = require(script.Parent.FlagService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
@@ -196,6 +198,52 @@ function handlers.door(_, args)
 		return doorId .. " isn't in the map"
 	end
 	return doorId .. (if open then " open" else " closed")
+end
+
+-- /titan Strider: a Titan about 120 studs in front of the player (or the piloted Frame), facing them.
+-- /titan kill removes every Titan; /titan hp <n> sets the HP of them all.
+function handlers.titan(player, args)
+	local what = args[1] or ""
+	if string.lower(what) == "kill" then
+		local count = 0
+		for _, model in ipairs(TitanService.getTitans()) do
+			TitanService.despawn(model)
+			count += 1
+		end
+		return count .. " Titans removed"
+	elseif string.lower(what) == "hp" then
+		local hp = tonumber(args[2])
+		if not hp then
+			return "usage: /titan hp <n>"
+		end
+		for _, model in ipairs(TitanService.getTitans()) do
+			TitanService.setHP(model, hp)
+		end
+		return "Titan HP set to " .. hp
+	end
+	local typeName = string.upper(string.sub(what, 1, 1)) .. string.lower(string.sub(what, 2))
+	if not (TitanConfig :: any)[typeName] then
+		return "usage: " .. Debug.Commands.titan.usage
+	end
+	local frame = FrameService.getPiloted(player)
+	local character = player.Character
+	local root = if frame then frame.PrimaryPart else (character and character:FindFirstChild("HumanoidRootPart") :: BasePart?)
+	if not root then
+		return "no character"
+	end
+	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	look = if look.Magnitude > 0.1 then look.Unit else Vector3.zAxis
+	local position = Vector3.new(root.Position.X, 0, root.Position.Z) + look * 120
+	-- Only where there is ground: a Titan spawned past the edge of the map falls out of the world.
+	local params = RaycastParams.new()
+	params.CollisionGroup = "Debris" -- meets the map only: barriers, Frames and characters don't count as ground
+	local ground = workspace:Raycast(position + Vector3.new(0, 300, 0), Vector3.new(0, -600, 0), params)
+	if not ground then
+		return "no ground 120 studs ahead: face open ground and try again"
+	end
+	position = Vector3.new(position.X, ground.Position.Y, position.Z)
+	local model = TitanService.spawn(typeName, CFrame.lookAt(position, position - look))
+	return ("%s spawned (%s, hair %s)"):format(typeName, tostring(model:GetAttribute("TargetId")), tostring(model:GetAttribute("Hair")))
 end
 
 function DebugService.run(player: Player, cmd: string, args: { string }): string

@@ -114,7 +114,8 @@ Three words: **Heavy. Worn. Warm-under-grey.**
 ### Titans
 | Key | Hex | Use |
 |---|---|---|
-| `STR_SKIN` | `#8C8378` | Strider skin (SmoothPlastic) |
+| `TITAN_SKIN_1…5` | `#EAB892`, `#F0C9A8`, `#D9A47C`, `#C68E6A`, `#A8704F` | Human skin tones of Titans, one per Titan (D-056; the first is the tone of the user's model). Replaces `STR_SKIN` on bodies |
+| `STR_SKIN` | `#8C8378` | Strider skin (SmoothPlastic) — no longer used on bodies (D-039) |
 | `STR_SKIN_SHADE` | `#756D63` | Under-surfaces, ribs |
 | `STR_SINEW` | `#5E554C` | Sinew strips |
 | `STR_MUSCLE` | `#7A3B33` | Exposed forearm and calf muscle |

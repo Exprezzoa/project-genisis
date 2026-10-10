@@ -110,8 +110,19 @@ function AnimationController.register(model)
 	local class = model:GetAttribute("Class")
 	local set = class and poseSet(class)
 	local root = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart")
-	if not (set and root) then
-		Log.warn(TAG, "can't animate %s: no pose set for class %s or no root", model.Name, tostring(class))
+	if set and not root then
+		-- A rig spawned during play: its tag can arrive before its parts. Wait for the root, then try again.
+		task.spawn(function()
+			if model:WaitForChild("HumanoidRootPart", 10) and model.Parent and not rigs[model] then
+				AnimationController.register(model)
+			elseif model.Parent and not rigs[model] then
+				Log.warn(TAG, "can't animate %s: its root never arrived", model.Name)
+			end
+		end)
+		return
+	end
+	if not set then
+		Log.warn(TAG, "can't animate %s: no pose set for class %s", model.Name, tostring(class))
 		return
 	end
 	-- A giant rig never falls over or gets up; this has to be switched off on every client too (D-046).

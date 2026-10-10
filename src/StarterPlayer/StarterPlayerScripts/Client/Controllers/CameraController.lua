@@ -74,6 +74,9 @@ end
 
 local function refreshFilter()
 	local ignore: { Instance } = CollectionService:GetTagged("NoCollideCamera")
+	for _, hurtbox in ipairs(CollectionService:GetTagged("Hurtbox")) do -- invisible, but they answer queries
+		table.insert(ignore, hurtbox)
+	end
 	for _, name in ipairs({ "Frames", "Titans" }) do
 		local folder = workspace:FindFirstChild(name)
 		if folder then

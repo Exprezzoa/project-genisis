@@ -27,4 +27,17 @@ Locomotion.Vanguard = {
 	bladeArm = "Right",
 }
 
+-- docs/08 §4.5. The Strider has no weapon arm: both arms swing alike. Lengths are real studs (56-stud rig).
+Locomotion.Strider = {
+	walk = {
+		speed = 16, stepLength = 14, hipSwing = 20, kneeBend = -40, ankle = -0.5, rootBob = 1.2, rootRoll = 4,
+		waistYaw = 8, armSwing = { other = 14, blade = 14 }, lean = -4, headStabilized = false,
+	},
+	stride = {
+		speed = 22, stepLength = 16, hipSwing = 26, kneeBend = -50, ankle = -0.5, rootBob = 1.6, rootRoll = 5,
+		waistYaw = 10, armSwing = { other = 18, blade = 18 }, lean = -8, headStabilized = false,
+	},
+	bladeArm = "Right",
+}
+
 return Locomotion

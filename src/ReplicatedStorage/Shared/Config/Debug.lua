@@ -46,7 +46,7 @@ return {
 		hitboxes = { side = "client", phase = 2, usage = "/hitboxes" },
 		hurtboxes = { side = "server", phase = 2, usage = "/hurtboxes" },
 		door = { side = "server", phase = 2, usage = "/door <west|east> [open|close]" },
-		titan = { side = "server", phase = 3, usage = "/titan <type> [state] | kill | down | hp <n> | freeze" },
+		titan = { side = "server", phase = 3, usage = "/titan Strider | kill | hp <n>   (down and freeze come with the behavior)" },
 		timescale = { side = "server", phase = 3, usage = "/timescale <0.25-2>" },
 		step = { side = "server", phase = 4, usage = "/step <stepId>" },
 		checkpoint = { side = "server", phase = 4, usage = "/checkpoint <id>" },
@@ -54,5 +54,5 @@ return {
 		give = { side = "server", phase = 6, usage = "/give xp|credits <n>" },
 	},
 
-	CURRENT_PHASE = 2,
+	CURRENT_PHASE = 3,
 }

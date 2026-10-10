@@ -28,6 +28,15 @@ Rig layouts: `08_rigs_and_animation.md` §3.2–3.3. Colors: `06_art_direction.m
 
 ## 1. Strider-class (Class-3 specimen in Chapter 1)
 
+> **As built in Phase 3 (D-056), replacing the part list of §1.1 and the main-part sizes of `08` §3.2.** The Strider is no longer made of parts. Its body is a copy of the body of the user's own Titan model (`ServerStorage.Reference.AttackTitan`: a blocky avatar body with sculpted muscle over it), which keeps Striders and the Watcher one species to the eye:
+> - **Left out:** everything that is the Shifter's own: its white hair, pointed ears, the pale blue wrist bands, its hit parts.
+> - **Proportions:** body 0.8 as wide and 0.86 as deep as the reference, arms 1.3 times as long (the hands hang to just above the knees), head unchanged, the whole sized to **56 studs** to the top of the head. About 38 wide.
+> - **Rig:** the same joint names as a Frame (`Root`, `Waist`, `Neck`, `Left/Right` `Shoulder`, `Elbow`, `Wrist`, `Hip`, `Knee`, `Ankle`) as clean Motor6Ds, plus `CoreHingeL` / `CoreHingeR`. **No `Jaw` joint** (the head is one sculpted piece); the Roar opens no mouth. HRP 10 × 10 × 6 at Y 29.5, HipHeight 24.5, as in `08` §3.2.
+> - **The feral marks, from parts:** orange-red (`TITAN_GLOW`) eyes; a grin of seven teeth in a dark slit; the Dorsal Core (orb Ø4 in a dark socket) between the shoulder blades under two hinged bone plates; a glowing vein (`TITAN_GLOW_DEEP`) down the outside of each forearm; a wrap of dark cloth round the hips.
+> - **Per Titan, from a seed** (`Server/Titans/TitanLook`): one of five human skin tones (`06` §3) and one of 24 hair styles.
+> - **Hair:** 24 free, rigid hair accessories made by Roblox, natural colors. Every ID came from a catalog search run through Studio, and each was put on an avatar there to measure how it sits; the list is in `builders/rigs/Strider.lua`. Newer "layered" hair is not used: the engine bends it onto a head with a cage, which a sculpted Titan head doesn't have.
+> - 55 parts without hair. The old budget, sinew, ribs, toes and crest of §1.1 are gone; hurtboxes, stats, attacks and the AI below are unchanged.
+
 - **Height 56.** Lanky, hunched, arms that dangle to the knees, long three-toed feet, an elongated head with a **wide lipless mouth** and small, too-human eyes. Bone plates on the shoulders and spine. **Dorsal Core** between the shoulder blades, under two hinged bone plates.
 - **Glow color:** `TITAN_GLOW` (eyes, core), `TITAN_GLOW_DEEP` (forearm veins, crest lines).
 - **Budget ≤ 350 parts.**
