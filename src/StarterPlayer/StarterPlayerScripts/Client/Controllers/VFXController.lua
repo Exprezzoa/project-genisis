@@ -259,6 +259,11 @@ local function onHit(payload)
 	shake(CameraFeel.Events[CameraFeel.MoveEvent[payload.move]])
 end
 
+-- Our own Frame was hit (docs/12 §11); the vignette and the HUD jitter are the HUD's.
+local function onHurt(payload)
+	shake(CameraFeel.Events[if payload.attack == "Roar" then "Roar" elseif payload.heavy then "PlayerHitHeavy" else "PlayerHitLight"])
+end
+
 -- The dodge kicks the field of view of the Frame this player pilots.
 local function watch(frame)
 	if watchConnection then
@@ -297,6 +302,7 @@ function VFXController.Start()
 	AnimationController.Footfall:Connect(footfall)
 	AnimationController.Event:Connect(onEvent)
 	CombatController.Hit:Connect(onHit)
+	CombatController.Hurt:Connect(onHurt)
 	FrameController.Piloting:Connect(watch)
 	watch(FrameController.getFrame())
 end

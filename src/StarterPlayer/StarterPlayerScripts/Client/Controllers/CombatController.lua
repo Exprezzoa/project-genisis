@@ -8,6 +8,7 @@
 --
 --   getAction() -> { name, elapsed, predicted }?          -- for the HUD and tests
 --   Hit: Signal(payload)        a hit of ours landed ({ zone, amount, poise, pos, move, targetId })
+--   Hurt: Signal(payload)       our Frame was hit ({ damage, knockback, time, heavy, stun, attack, disabled })
 --   Refused: Signal(reason)     "Locked" | "NoEnergy" | "Cooldown" | "Busy" | "NoTarget" | "Rejected"
 
 local Players = game:GetService("Players")
@@ -31,6 +32,7 @@ local CombatController = {}
 
 CombatController.Hit = Signal.new() :: Signal.Signal<any>
 CombatController.Refused = Signal.new() :: Signal.Signal<string>
+CombatController.Hurt = Signal.new() :: Signal.Signal<any>
 
 type Action = { name: string, kind: string, move: any, t0: number, predicted: boolean, seq: number?, direction: Vector3?, chained: boolean?, serverT0: number? }
 
@@ -40,6 +42,8 @@ local action: Action? = nil
 local buffered: { name: string, at: number }? = nil
 local pending: { seq: number, at: number }? = nil
 local sequence = 0
+local knockback: { velocity: Vector3, untilTime: number }? = nil -- the shove of the last hit taken (docs/12 §7)
+local HIT_REACT = { duration = CombatConfig.HitReact.Heavy.stun } -- the server ends the stun; this is only its shape
 
 local function now(): number
 	return workspace:GetServerTimeNow()
@@ -49,8 +53,23 @@ local function describe(model: Model, name: string): (string, any)
 	local class = model:GetAttribute("Class") :: string
 	if name == "Dodge" then
 		return "dodge", (CombatConfig.Dodge :: any)[class]
+	elseif name == "CoreStrike" then
+		return "core", (CombatConfig.CoreStrike :: any)[class]
+	elseif name == "HitReact" then
+		return "stun", HIT_REACT
 	end
 	return "attack", (CombatConfig.Frames :: any)[class][name]
+end
+
+-- Is there a Titan with its core open? (The server checks range and facing.)
+local function coreExposed(): boolean
+	local folder = workspace:FindFirstChild("Titans")
+	for _, titan in ipairs(if folder then folder:GetChildren() else {}) do
+		if titan:GetAttribute("CoreExposed") == true then
+			return true
+		end
+	end
+	return false
 end
 
 local function drop(reason: string)
@@ -151,7 +170,15 @@ local function tryBuffered(model: Model)
 		end
 		predict(model, "Dodge", "Dodge")
 	else
-		drop("NoTarget") -- Core Strike arrives with the Titans
+		-- Core Strike: nothing is predicted. The server checks range and facing and starts it (docs/12 §10).
+		if not idle then
+			return
+		elseif not coreExposed() then
+			return drop("NoTarget")
+		end
+		buffered = nil
+		sequence += 1
+		Net.fireServer("Frame_Action", { action = "CoreStrike", seq = sequence })
 	end
 end
 
@@ -214,7 +241,15 @@ local function update()
 	current = action
 	-- Attacks leave part of the walk speed; a dodge is all root motion.
 	local scale = if current and current.kind == "attack" then CombatConfig.ATTACK_MOVE_SCALE else 0
-	FrameController.setAction(current ~= nil, if current then rootMotion(model, current) else nil, scale)
+	local motion = if current then rootMotion(model, current) else nil
+	-- A hit taken throws the Frame, whatever it was doing.
+	local shove = knockback
+	if shove and now() < shove.untilTime then
+		motion, scale = shove.velocity, 0
+	elseif shove then
+		shove, knockback = nil, nil
+	end
+	FrameController.setAction(current ~= nil or shove ~= nil, motion, scale)
 end
 
 function CombatController.getAction()
@@ -230,7 +265,7 @@ function CombatController.Start()
 	end)
 	FrameController.Piloting:Connect(function(model: Model?)
 		frame = model
-		action, buffered, pending = nil, nil, nil
+		action, buffered, pending, knockback = nil, nil, nil, nil
 		FrameController.setAction(false, nil)
 	end)
 	frame = FrameController.getFrame()
@@ -250,6 +285,14 @@ function CombatController.Start()
 				AnimationController.hitstop(model, event.hitstop)
 			end
 			CombatController.Hit:Fire(payload)
+		elseif payload.kind == "HitTaken" then
+			cancel(model)
+			buffered = nil
+			if typeof(payload.knockback) == "Vector3" and payload.knockback.Magnitude > 0.1 then
+				local length = if type(payload.time) == "number" and payload.time > 0 then payload.time else 0.25
+				knockback = { velocity = payload.knockback / length, untilTime = now() + length }
+			end
+			CombatController.Hurt:Fire(payload)
 		end
 	end)
 	-- Just before FrameController's own step, which applies the movement lock and the root motion.

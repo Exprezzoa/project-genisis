@@ -43,6 +43,7 @@ CameraFeel.MoveEvent = {
 	Light1 = "LightHit", Light2 = "LightHit", Light3 = "LightHit",
 	Heavy = "HeavyHit",
 	Special = "PileDriverHit",
+	CoreStrike = "CoreStrike",
 }
 
 return CameraFeel

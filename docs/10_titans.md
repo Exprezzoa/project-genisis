@@ -130,8 +130,15 @@ Rules: never the same attack 3 times in a row; **Stomp is only chosen if the tar
 
 **Separation:** if a Frame comes within (9 + 8) = 17 studs of the Titan's HRP center (XZ), the Frame's controller pushes the Frame outward (`12_combat_system.md` §9). Titans are never pushed.
 
+**As built (2026-10-10, D-057):**
+- The behavior is `Server/Titans/Behaviors/Strider.lua`, one instance per Titan, made and stepped by `TitanService`. `Dormant` and `Rising` come with the Chapter 1 cinematic; until then a debug-spawned Strider starts in `Idle` and engages the first piloted Frame within its aggro radius. A Frame that is parked, kneeling, starting or disabled is not a target.
+- **The distances of the attack-choice table are read as gaps between the two bodies** (center distance minus the Titan's 9 and the Frame's radius): < 5 → Stomp 60, Sweep 40; 5–13 → Sweep 80, Stomp 20; 13–28 → Sweep 60, Lunge 30, Stomp 10; 28–53 → Lunge 70, Approach 30; beyond → Approach, at chase speed beyond a gap of 93. The table above was written for the 40-stud Frame, which touches the Titan at 17 studs; the 64-stud Frame touches it at 21.8.
+- An "Approach" result holds for 1.0 s. The 1.2–2.0 s pause (× 0.8 when enraged) also follows a Flinch and a GetUp. The Roar ignores the pause.
+- The Titan stays `Downed` until a Core Strike that began while its core showed is over.
+- While the Titan is on its hands (`Downed`, Lunge recovery) Frames are kept 22 + their own radius from its root.
+
 ### 1.6 Attributes published on the Titan model (for UI and animation)
-`TitanType = "Strider"`, `DisplayName = "STRIDER-CLASS — UNREGISTERED"`, `Class = 3`, `HP`, `MaxHP`, `Poise`, `MaxPoise`, `State`, `Anim`, `AnimT0`, `AnimSpeed`, `Enraged` (bool), `CoreExposed` (bool), `LookTarget` (Vector3).
+`TitanType = "Strider"`, `DisplayName = "STRIDER-CLASS — UNREGISTERED"`, `Class = 3`, `HP`, `MaxHP`, `Poise`, `MaxPoise`, `State`, `Anim`, `AnimT0`, `AnimSpeed`, `Enraged` (bool), `CoreExposed` (bool), `LookTarget` (Vector3). **As built:** `Class` is the pose rig's name and the tier is `ClassTier` (D-056); also published are `TargetId`, `Attack` (name or ""), `AttackT0` and `AttackWindup` (server time the telegraph began and how long it lasts, for the telegraph visuals), `HurtboxState`, `CoreUntil` (server time the core closes) and `DiedAt`. `LookTarget` is not published yet.
 
 ### 1.7 Audio (keys in SoundRegistry, `15_audio.md`)
 `SFX_STR_STEP`, `SFX_STR_BREATH_LOOP`, `SFX_STR_SWEEP_TELL`, `SFX_STR_SWEEP_WHOOSH`, `SFX_STR_STOMP_TELL`, `SFX_STR_STOMP_IMPACT`, `SFX_STR_LUNGE_TELL`, `SFX_STR_ROAR`, `SFX_STR_HIT_FLESH`, `SFX_STR_HIT_BONE`, `SFX_STR_FLINCH`, `SFX_STR_DOWNED`, `SFX_STR_CORE_OPEN`, `SFX_STR_CORE_STRIKE`, `SFX_STR_DEATH_GROAN`, `SFX_ASH_CRACKLE`, `SFX_ASH_VAPOR`.

@@ -6,6 +6,8 @@
 --
 --   * the Vanguard pose set compiles; every clip of docs/08 §5.1 exists; every joint it names is a joint of the rig;
 --   * clip durations and HitboxStart/HitboxEnd events equal the CombatConfig timings (the config is the authority);
+--   * the Strider pose set compiles, its joints are joints of the Strider rig, and its clips last as long as
+--     CombatConfig.TitanAttacks.Strider and TitanConfig.Strider say;
 --   * PoseAnimator math: key sampling, inherited joints, named poses as full poses, weights, the gait at its
 --     key phases, the speed blend, upperBodyOnly, and the rotation convention of docs/08 §4.1.
 
@@ -80,6 +82,36 @@ function Check.Run()
 	end
 	local core = CombatConfig.CoreStrike.Vanguard
 	expect(near(set.clips.CoreStrike.duration, core.duration) and near(event(set.clips.CoreStrike, "Impact") or -1, core.impact), "CoreStrike: duration or Impact differ from the config")
+
+	-- The Strider (docs/10 §1.3-1.4): attack clips last windup + active + recovery; Flinch, DownedFall and GetUp
+	-- last what TitanConfig gives them.
+	local TitanConfig = require(Shared.Config.TitanConfig)
+	local striderOk, strider = pcall(PoseAnimator.compile, require(Shared.Poses.Strider))
+	expect(striderOk, "Strider poses: compile failed: " .. tostring(strider))
+	if striderOk then
+		local rig = game:GetService("ServerStorage").Templates:FindFirstChild("Titans") and game:GetService("ServerStorage").Templates.Titans:FindFirstChild("Strider")
+		expect(rig ~= nil, "template Titans.Strider missing")
+		if rig then
+			for joint in pairs(strider.joints) do
+				local motor = rig:FindFirstChild(joint, true)
+				expect(motor ~= nil and motor:IsA("Motor6D"), "Strider pose joint isn't a joint of the rig: " .. joint)
+			end
+		end
+		for _, name in ipairs({ "Idle", "Sweep", "Stomp", "Lunge", "Roar", "Flinch", "DownedFall", "DownedLoop", "GetUp", "Death" }) do
+			expect(strider.clips[name] ~= nil, "Strider clip missing: " .. name)
+		end
+		for attackName, attack in pairs(CombatConfig.TitanAttacks.Strider) do
+			if type(attack) == "table" and attack.clip then
+				local clip = strider.clips[attack.clip]
+				local total = attack.windup + attack.active + attack.recovery
+				expect(clip ~= nil and near(clip.duration, total), ("Strider %s: the clip doesn't last %.2f"):format(attackName, total))
+			end
+		end
+		local config = TitanConfig.Strider
+		expect(strider.clips.Flinch and near(strider.clips.Flinch.duration, config.flinch.duration), "Strider Flinch: duration differs from TitanConfig")
+		expect(strider.clips.DownedFall and near(strider.clips.DownedFall.duration, config.downed.fall), "Strider DownedFall: duration differs from TitanConfig")
+		expect(strider.clips.GetUp and near(strider.clips.GetUp.duration, config.downed.getUp), "Strider GetUp: duration differs from TitanConfig")
+	end
 
 	-- Sampling.
 	local light1 = set.clips.Light1

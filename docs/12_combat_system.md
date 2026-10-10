@@ -127,6 +127,15 @@ The Frame's body target is a **vertical cylinder of radius 8 and height 40** at 
 
 Knockback is executed by the pilot client (LinearVelocity for 0.25 s) upon `Combat_Feedback {kind = "HitTaken", knockback = Vector3}`. The server validates the resulting position loosely (§10).
 
+**As built (2026-10-10, D-057):** `CombatService.hitFrame(frame, hit)` is what a Titan's behavior calls when its attack shape touches a Frame; it answers `Hit`, `Pending` or why the hit didn't count (`Dodged`, `Grace`, `Mercy`, `CoreStrike`, `God`, `Disabled`).
+- Lengths are in real studs: the Frame's body radius is 8 × 1.6 = 12.8, added to the Titan's own numbers (45, 26, 7, 35), which are not scaled.
+- **Dodge grace:** a hit found less than 0.15 s after the attack's active window began waits until that moment. A dodge that starts in the meantime, or started up to 0.05 s before the hit was found, escapes it. A hit found later than that lands at once unless the Frame is in its i-frames.
+- Each attack tests each Frame once. The Roar is escaped by any dodge still moving.
+- The hit stun is an action: `State` is `HitStunLight` or `HitStunHeavy` and `Action` is `HitReact` until it ends. `HitTaken` carries `{damage, knockback, time = 0.25, heavy, stun, attack, disabled}`.
+- At 0 Integrity `State` becomes `Disabled` and the `Disabled` clip plays; `CombatService.repair` (debug `/repair`) undoes it. The failure flow comes with the damage states.
+- When a root-motion action ends (dodge, lunge, knockback) the pilot's client sets the Frame's horizontal speed to zero, so it stops where the action ends.
+- **Core Strike:** the server takes the nearest exposed core within 34 × 1.6 + 4 × 1.6 studs (in the ground plane) and within 60° + 10° of the Frame's facing, else refuses with `NoTarget`. The client doesn't predict it. The hit is flat 700 at 0.62 s; the Titan stays down until the 1.6 s are over.
+
 ## 8. Lock-on
 - **Target candidates:** Titans (not the Watcher) within 220 studs and in line of sight. On toggle, pick the candidate within 60° of the camera's forward direction with the smallest angle; otherwise the nearest.
 - **Zones and cycle order:** Body → AnkleL → AnkleR → Head (only listed while the Head is reachable: `Downed` or `LungeRecover`) → Core (only while `CoreExposed`).
@@ -134,7 +143,7 @@ Knockback is executed by the pilot client (LinearVelocity for 0.25 s) upon `Comb
 - **Marker:** a BillboardGui diamond on the zone's hurtbox (`14_ui.md` §5.4).
 
 ## 9. Separation, barriers and arena bounds
-- **Frame ↔ Titan:** each frame, the pilot client checks the XZ distance to every Titan's HRP. If it's less than 17 (Titan body radius 9 + Frame 8), it adds a push velocity outward of `(17 − d) × 12` studs/s (max 40). Titans never get pushed.
+- **Frame ↔ Titan:** each frame, the pilot client checks the XZ distance to every Titan's HRP. If it's less than 17 (Titan body radius 9 + Frame 8), it adds a push velocity outward of `(17 − d) × 12` studs/s (max 40). Titans never get pushed. **As built:** radius 9 + 8 × 1.6 = 21.8, and 22 + 8 × 1.6 = 34.8 while the Titan is on its hands (`HurtboxState` other than `Standing`, D-057).
 - **Frame ↔ Frame (ally):** the same with radius 16; the ally (server-owned) yields.
 - **FrameBarrier:** collision blocks the Frame HRP (`07_building_with_parts.md` §5).
 - **Out of bounds:** if the player's Frame enters a `Bounds_Warning` trigger, show "RETURN TO THE MISSION AREA" (UI) and Overwatch line `OOB_01 [O] Ember-2, you're leaving the operations area.` If the Frame stays outside 6 s, fade and teleport it back to the nearest nav node.

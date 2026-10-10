@@ -19,7 +19,8 @@ Opened with **F2** (a debug panel with a command box) or typed as chat-like comm
 | `/checkpoint <id>` | Load a checkpoint as if rejoining |
 | `/frame` | Spawn/board Unit 02 at the nearest pad (or the player's position) |
 | `/titan <type> [state]` | Spawn a Titan ~120 studs in front (`Strider`, `Watcher`; state `Dormant`/`Engage`) |
-| `/titan kill` / `/titan down` / `/titan hp <n>` / `/titan freeze` | Titan control |
+| `/titan kill` / `/titan down` / `/titan hp <n>` / `/titan freeze` | Titan control. As built (D-057): `down` breaks every Titan's poise; `freeze` stops and restarts what they do (hits still count); `/titan Strider dormant` spawns one that only stands and takes hits (the `Dormant` state proper comes with the cinematic) |
+| `/repair` | Full Integrity for the piloted Frame, and out of `Disabled` (added in Phase 3, D-057) |
 | `/god` | Toggle player Frame invulnerability |
 | `/door <west\|east> [open\|close]` | Open or close a hangar door stand-in (added in Phase 2, D-054). In Studio the Training (west) door starts open until the door system exists |
 | `/energy` | Infinite energy toggle |
@@ -32,7 +33,7 @@ Opened with **F2** (a debug panel with a command box) or typed as chat-like comm
 | `/save` / `/wipe` | Force save / reset the profile (with confirmation) |
 | `/dsfail on/off` | Simulate DataStore failures |
 | `/lighting <preset>` | Apply a lighting preset |
-| `/timescale <x>` | Scale AI and animation time (0.25–2) for inspecting telegraphs (debug only) |
+| `/timescale <x>` | Scale AI and animation time (0.25–2) for inspecting telegraphs (debug only). **Not built yet**: the command answers so |
 | `/fps` | Toggle the stats overlay (FPS, ping, part count, Heartbeat Hz, memory) |
 | `/nav` | Show nav nodes and links |
 

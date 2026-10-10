@@ -18,6 +18,7 @@ local Net = require(Shared.Modules.Net)
 local CollectionService = game:GetService("CollectionService")
 
 local CharacterService = require(script.Parent.CharacterService)
+local CombatService = require(script.Parent.CombatService)
 local FrameService = require(script.Parent.FrameService)
 local TitanService = require(script.Parent.TitanService)
 local TitanConfig = require(Shared.Config.TitanConfig)
@@ -200,8 +201,10 @@ function handlers.door(_, args)
 	return doorId .. (if open then " open" else " closed")
 end
 
--- /titan Strider: a Titan about 120 studs in front of the player (or the piloted Frame), facing them.
--- /titan kill removes every Titan; /titan hp <n> sets the HP of them all.
+-- /titan Strider: a Titan about 120 studs in front of the player (or the piloted Frame), facing them;
+-- "/titan Strider dormant" spawns one that only stands and takes hits.
+-- /titan kill removes every Titan; hp <n> sets the HP of them all; down breaks their poise; freeze stops and
+-- restarts what they do.
 function handlers.titan(player, args)
 	local what = args[1] or ""
 	if string.lower(what) == "kill" then
@@ -220,6 +223,16 @@ function handlers.titan(player, args)
 			TitanService.setHP(model, hp)
 		end
 		return "Titan HP set to " .. hp
+	elseif string.lower(what) == "down" then
+		local count = 0
+		for _, model in ipairs(TitanService.getTitans()) do
+			TitanService.breakPoise(model)
+			count += 1
+		end
+		return count .. " Titans brought down"
+	elseif string.lower(what) == "freeze" then
+		TitanService.setFrozen(not TitanService.isFrozen())
+		return "Titans " .. (if TitanService.isFrozen() then "frozen" else "released")
 	end
 	local typeName = string.upper(string.sub(what, 1, 1)) .. string.lower(string.sub(what, 2))
 	if not (TitanConfig :: any)[typeName] then
@@ -242,8 +255,23 @@ function handlers.titan(player, args)
 		return "no ground 120 studs ahead: face open ground and try again"
 	end
 	position = Vector3.new(position.X, ground.Position.Y, position.Z)
-	local model = TitanService.spawn(typeName, CFrame.lookAt(position, position - look))
+	local dormant = string.lower(args[2] or "") == "dormant"
+	local model = TitanService.spawn(typeName, CFrame.lookAt(position, position - look), { passive = dormant })
 	return ("%s spawned (%s, hair %s)"):format(typeName, tostring(model:GetAttribute("TargetId")), tostring(model:GetAttribute("Hair")))
+end
+
+-- /repair: the piloted Frame gets its full Integrity back and stands up if it was Disabled.
+function handlers.repair(player)
+	local frame = FrameService.getPiloted(player)
+	if not frame then
+		return "board a Frame first"
+	end
+	CombatService.repair(frame)
+	return "Frame repaired"
+end
+
+function handlers.timescale()
+	return "/timescale isn't built yet"
 end
 
 function DebugService.run(player: Player, cmd: string, args: { string }): string

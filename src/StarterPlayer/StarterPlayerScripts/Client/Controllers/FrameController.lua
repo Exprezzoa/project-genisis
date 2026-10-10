@@ -58,7 +58,7 @@ local moveScale = 1 -- share of the speed the running action leaves
 local shiftLock = false
 local rootVelocity: Vector3? = nil -- the action's root motion (dodge, lunge), world XZ
 local rootMotion: LinearVelocity? = nil
-local bodies: { { root: BasePart, radius: number } } = {}
+local bodies: { { root: BasePart, radius: number, titan: Model? } } = {}
 local bodiesAt = 0
 
 -- The pilot sits inside the chest: hidden on their own screen, and never able to jump out of the seat.
@@ -97,7 +97,7 @@ local function refreshBodies(own: Model)
 		local model = hurtbox:FindFirstAncestorWhichIsA("Model")
 		if model and not seen[model] and model:GetAttribute("TargetId") ~= nil and model.PrimaryPart then
 			seen[model] = true
-			table.insert(bodies, { root = model.PrimaryPart, radius = CombatConfig.Separation.titanRadius })
+			table.insert(bodies, { root = model.PrimaryPart, radius = CombatConfig.Separation.titanRadius, titan = model })
 		end
 	end
 	local folder = own.Parent
@@ -118,8 +118,11 @@ local function separation(own: Model, position: Vector3): Vector3
 		if body.root.Parent then
 			local away = (position - body.root.Position) * Vector3.new(1, 0, 1)
 			local distance = away.Magnitude
-			if distance < body.radius and distance > 0.01 then
-				push += away.Unit * math.min(CombatConfig.Separation.maxPush, (body.radius - distance) * CombatConfig.Separation.gain)
+			-- A Titan that is down on its hands takes up more ground than one that stands.
+			local low = body.titan ~= nil and (body.titan:GetAttribute("HurtboxState") or "Standing") ~= "Standing"
+			local radius = if low then CombatConfig.Separation.titanLowRadius else body.radius
+			if distance < radius and distance > 0.01 then
+				push += away.Unit * math.min(CombatConfig.Separation.maxPush, (radius - distance) * CombatConfig.Separation.gain)
 			end
 		end
 	end
@@ -136,6 +139,11 @@ local function update(dt: number)
 	-- Root motion (docs/11 §5.6): the action moves the Frame, not the legs.
 	local push, drive = rootVelocity, rootMotion
 	if drive then
+		if drive.Enabled and not push then
+			-- The action's movement is over: the Frame stops where the action ends instead of sliding on at its
+			-- speed (a dodge was measured sliding 21 studs past its 88).
+			rootPart.AssemblyLinearVelocity *= Vector3.yAxis
+		end
 		drive.Enabled = push ~= nil
 		if push then
 			local apart = separation(model, rootPart.Position)

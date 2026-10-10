@@ -37,9 +37,9 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [ ] Phase 2 acceptance tests all PASS — 1–6 and 8 PASS (journal Session 5); test 7 only in part: gamepad buttons simulated, sticks and touch need the user
 
 ## Phase 3 — Titan encounter
-- [ ] Strider rig within budget — built from the user's Titan body (D-056), 55 parts, play-tested standing and taking hits (journal Session 6); **look awaits the user's approval**
-- [ ] TitanService + StriderBehavior (full state machine)
-- [ ] Hurtbox states, Core Strike, lock-on
+- [x] Strider rig within budget — built from the user's Titan body (D-056), 55 parts, play-tested standing and taking hits (journal Session 6); look approved by the user 2026-10-10
+- [x] TitanService + StriderBehavior (full state machine) — D-057; play-tested state by state (journal Session 6, continued)
+- [ ] Hurtbox states, Core Strike, lock-on — hurtbox states and the Core Strike's validation and damage work (D-057); still to do: strike positioning, Core Strike camera, lock-on
 - [ ] Titan HUD, telegraph VFX, Ash Collapse
 - [ ] Frame damage states and Disabled flow
 - [ ] Phase 3 acceptance tests all PASS

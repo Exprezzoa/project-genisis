@@ -1,19 +1,22 @@
 --!nonstrict
--- Server/Services/TitanService.lua  (docs/10_titans.md §1.2-1.3, §1.6; docs/12 §6; docs/08 §2)
+-- Server/Services/TitanService.lua  (docs/10_titans.md §1.2-1.6; docs/12 §6; docs/08 §2)
 --
--- Titans on the server: spawning a rig with its own look, its hurtboxes, and what it takes as damage (HP with
--- the "can't die standing" clamp, poise, both regenerating). Titans are server-owned. What a Titan does
--- (the state machine, attacks, Downed, death) is its behavior module's job (Server/Titans/Behaviors/<type>),
--- which arrives with the next step of Phase 3: until then a Titan stands and takes hits.
+-- Titans on the server: spawning a rig with its own look, its hurtboxes, what it takes as damage (HP with the
+-- "can't die standing" clamp, poise, both regenerating), and the published attributes. What a Titan does
+-- (its state machine, attacks, Downed, death) is its behavior module's job: Server/Titans/Behaviors/<type>,
+-- one instance per Titan, stepped from here. Titans are server-owned.
 --
---   spawn(typeName, groundCFrame, opts?) -> model        opts: { seed = number }
+--   spawn(typeName, groundCFrame, opts?) -> model        opts: { seed = number, passive = boolean }
 --   despawn(model)        getTitans() -> { model }       getById(targetId) -> model?
+--   getEntry(model) -> entry          (the behavior reads and writes hp, poise, maxPoise, anklePoise, coreHeld)
 --   setHurtboxState(model, "Standing" | "Downed" | "LungeRecover")
---   setHP(model, hp)      Spawned / Hit / Died: Signals
+--   playAnim(model, clip, speed?)     setState(model, state)     setCoreExposed(model, exposed)
+--   setHP(model, hp)      breakPoise(model)      publish(model)      setFrozen(on) / isFrozen()  (debug)
+--   Spawned / Hit / Died: Signals
 --
 -- Attributes on the model (docs/10 §1.6): TitanType, DisplayName, ClassTier, TargetId, HP, MaxHP, Poise,
--- MaxPoise, State, Anim, AnimT0, AnimSpeed, Enraged, CoreExposed. Class is the pose rig's name ("Strider"),
--- as on a Frame; the "CLASS-3" of the doc is ClassTier.
+-- MaxPoise, State, Attack, AttackT0, Anim, AnimT0, AnimSpeed, Enraged, CoreExposed, CoreUntil. Class is the
+-- pose rig's name ("Strider"), as on a Frame; the "CLASS-3" of the doc is ClassTier.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,6 +24,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local CombatConfig = require(Shared.Config.CombatConfig)
 local FrameConfig = require(Shared.Config.FrameConfig)
 local TitanConfig = require(Shared.Config.TitanConfig)
 local Log = require(Shared.Modules.Log)
@@ -28,7 +32,8 @@ local Signal = require(Shared.Modules.Signal)
 
 local CollisionService = require(script.Parent.CollisionService)
 local CombatService = require(script.Parent.CombatService)
-local TitanLook = require(script.Parent.Parent.Titans.TitanLook)
+local Titans = script.Parent.Parent.Titans
+local TitanLook = require(Titans.TitanLook)
 
 local TAG = "TitanService"
 local PUBLISH = 0.1 -- seconds between HP / Poise attribute updates while they regenerate
@@ -36,23 +41,46 @@ local PUBLISH = 0.1 -- seconds between HP / Poise attribute updates while they r
 local TitanService = {}
 
 TitanService.Spawned = Signal.new()
-TitanService.Hit = Signal.new() -- (model, hit, { hp, poise, clamped })
+TitanService.Hit = Signal.new() -- (model, hit, { hp, poise, poiseDamage, clamped })
 TitanService.Died = Signal.new()
 
-local titans = {} -- [model] = { config, hp, poise, maxPoise, lastHurt, lastPoiseHurt, published, hurtboxes }
+local titans = {} -- [model] = entry
 local byId = {}
 local folder
 local nextId = 0
+local frozen = false -- debug: behaviors don't take their steps
 
 local function now()
 	return workspace:GetServerTimeNow()
 end
 
-local function publish(model, entry)
-	entry.published = now()
-	model:SetAttribute("HP", entry.hp)
-	model:SetAttribute("Poise", entry.poise)
-	model:SetAttribute("MaxPoise", entry.maxPoise)
+function TitanService.publish(model)
+	local entry = titans[model]
+	if entry then
+		entry.published = now()
+		model:SetAttribute("HP", entry.hp)
+		model:SetAttribute("Poise", entry.poise)
+		model:SetAttribute("MaxPoise", entry.maxPoise)
+	end
+end
+
+function TitanService.getEntry(model)
+	return titans[model]
+end
+
+function TitanService.playAnim(model, clip, speed)
+	model:SetAttribute("AnimSpeed", speed or 1)
+	model:SetAttribute("Anim", clip)
+	model:SetAttribute("AnimT0", now())
+end
+
+function TitanService.setState(model, state)
+	model:SetAttribute("State", state)
+end
+
+function TitanService.setCoreExposed(model, exposed, forSeconds)
+	model:SetAttribute("CoreUntil", if exposed and forSeconds then now() + forSeconds else 0)
+	model:SetAttribute("CoreExposed", exposed)
 end
 
 function TitanService.setHurtboxState(model, state)
@@ -82,21 +110,37 @@ local function takeHit(model, hit)
 	end
 	local t = now()
 	local downed = model:GetAttribute("State") == "Downed"
+	local poise = hit.poise
+	if entry.anklePoise and (hit.zone == "AnkleL" or hit.zone == "AnkleR") then
+		-- The planted leg is open after a Stomp: the ankle's poise multiplier rises (docs/10 §1.2).
+		poise = poise / CombatConfig.Zones.AnkleL.poiseMult * entry.anklePoise
+	end
 	local before = entry.hp
 	entry.hp = math.max(if downed then 0 else 1, entry.hp - hit.damage)
-	entry.poise = math.max(0, entry.poise - hit.poise)
+	entry.poise = math.max(0, entry.poise - poise)
 	entry.lastHurt = t
-	if hit.poise > 0 then
+	if poise > 0 then
 		entry.lastPoiseHurt = t
 	end
-	publish(model, entry)
+	TitanService.publish(model)
 	-- Reaching the clamp while standing forces a poise break (docs/10 §1.3); the behavior acts on it.
 	local clamped = not downed and before - hit.damage < 1
-	TitanService.Hit:Fire(model, hit, { hp = entry.hp, poise = entry.poise, clamped = clamped })
 	if entry.hp <= 0 then
 		entry.dead = true
+	end
+	TitanService.Hit:Fire(model, hit, { hp = entry.hp, poise = entry.poise, poiseDamage = poise, clamped = clamped })
+	if entry.dead then
 		TitanService.Died:Fire(model)
 	end
+end
+
+-- Where a Core Strike has to land, while the core shows.
+local function coreOf(model)
+	local entry = titans[model]
+	if entry and not entry.dead and model:GetAttribute("CoreExposed") then
+		return entry.hurtboxes.Core.Part1.Position
+	end
+	return nil
 end
 
 function TitanService.spawn(typeName, groundCFrame, opts)
@@ -126,9 +170,23 @@ function TitanService.spawn(typeName, groundCFrame, opts)
 	CollisionService.assignModel(model, "NoCollide")
 	CollisionService.assign(root, "TitanRoot")
 
+	-- Facing (docs/10 §1.5): the behavior turns this toward its target, limited by its turn rate.
+	local facingAttachment = Instance.new("Attachment")
+	facingAttachment.Name = "FacingAttachment"
+	facingAttachment.Parent = root
+	local facing = Instance.new("AlignOrientation")
+	facing.Name = "Facing"
+	facing.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	facing.Attachment0 = facingAttachment
+	facing.RigidityEnabled = false
+	facing.MaxTorque = math.huge
+	facing.Responsiveness = 40
+	facing.CFrame = groundCFrame.Rotation
+	facing.Parent = root
+
 	local entry = {
 		config = config, hp = config.hp, poise = config.poise.base, maxPoise = config.poise.base, lastHurt = 0, lastPoiseHurt = 0,
-		published = 0, hurtboxes = {}, id = id,
+		published = 0, hurtboxes = {}, id = id, typeName = typeName,
 	}
 	model:SetAttribute("TitanType", typeName)
 	model:SetAttribute("DisplayName", config.displayName)
@@ -136,6 +194,7 @@ function TitanService.spawn(typeName, groundCFrame, opts)
 	model:SetAttribute("TargetId", id)
 	model:SetAttribute("MaxHP", config.hp)
 	model:SetAttribute("State", "Idle")
+	model:SetAttribute("Attack", "")
 	model:SetAttribute("Enraged", false)
 	model:SetAttribute("CoreExposed", false)
 	model:SetAttribute("AnimSpeed", 1)
@@ -170,12 +229,39 @@ function TitanService.spawn(typeName, groundCFrame, opts)
 	titans[model] = entry
 	byId[id] = model
 	TitanService.setHurtboxState(model, "Standing")
-	publish(model, entry)
+	TitanService.publish(model)
 	root:SetNetworkOwner(nil)
 	CollectionService:AddTag(model, "PoseRig")
-	CombatService.registerTarget(id, function(hit)
-		takeHit(model, hit)
-	end)
+	CombatService.registerTarget(id, {
+		model = model,
+		takeHit = function(hit)
+			takeHit(model, hit)
+		end,
+		getCore = function()
+			return coreOf(model)
+		end,
+		-- A Core Strike has begun: the Titan stays down until it is over.
+		holdCore = function(seconds)
+			entry.coreHeld = now() + seconds
+			model:SetAttribute("CoreUntil", math.max(model:GetAttribute("CoreUntil") or 0, entry.coreHeld))
+		end,
+	})
+
+	-- The behavior: what this type of Titan does. A passive Titan (debug) only stands and takes hits.
+	local source = Titans:FindFirstChild("Behaviors") and Titans.Behaviors:FindFirstChild(config.rig)
+	if source and not opts.passive then
+		local ok, result = pcall(function()
+			return require(source).new({
+				model = model, root = root, humanoid = humanoid, facing = facing, config = config, entry = entry,
+				attacks = CombatConfig.TitanAttacks[typeName], service = TitanService,
+			})
+		end)
+		if ok then
+			entry.behavior = result
+		else
+			Log.error(TAG, "%s behavior failed to start: %s", typeName, tostring(result))
+		end
+	end
 	Log.info(TAG, "%s spawned as %s (hair %s)", typeName, id, tostring(model:GetAttribute("Hair")))
 	TitanService.Spawned:Fire(model)
 	return model
@@ -187,6 +273,9 @@ function TitanService.despawn(model)
 		titans[model] = nil
 		byId[entry.id] = nil
 		CombatService.registerTarget(entry.id, nil)
+		if entry.behavior and entry.behavior.destroy then
+			entry.behavior:destroy()
+		end
 	end
 	model:Destroy()
 end
@@ -207,12 +296,31 @@ function TitanService.setHP(model, hp)
 	local entry = titans[model]
 	if entry then
 		entry.hp = math.clamp(hp, 1, entry.config.hp)
-		publish(model, entry)
+		TitanService.publish(model)
 	end
 end
 
--- HP and poise come back after a quiet spell (docs/10 §1.3).
-local function regenerate(dt)
+-- Empties the Titan's poise as a hit would (debug: /titan down).
+function TitanService.breakPoise(model)
+	local entry = titans[model]
+	if entry and not entry.dead then
+		entry.poise = 0
+		TitanService.publish(model)
+		TitanService.Hit:Fire(model, { damage = 0, poise = 0, zone = "Body", move = "Debug" }, { hp = entry.hp, poise = 0, poiseDamage = 0, clamped = false })
+	end
+end
+
+-- Debug (/titan freeze): every behavior stops where it is; hits still count.
+function TitanService.setFrozen(on)
+	frozen = on
+end
+
+function TitanService.isFrozen()
+	return frozen
+end
+
+-- HP and poise come back after a quiet spell (docs/10 §1.3); then each Titan's behavior takes its step.
+local function step(dt)
 	local t = now()
 	for model, entry in pairs(titans) do
 		if not model.Parent then
@@ -220,21 +328,28 @@ local function regenerate(dt)
 			byId[entry.id] = nil
 			continue
 		end
-		if entry.dead then
-			continue
+		if not entry.dead then
+			local config = entry.config
+			local changed = false
+			local state = model:GetAttribute("State")
+			if entry.hp < config.hp and state ~= "Downed" and t - entry.lastHurt >= config.hpRegen.delay then
+				entry.hp = math.min(config.hp, entry.hp + config.hpRegen.rate * dt)
+				changed = true
+			end
+			if entry.poise < entry.maxPoise and state ~= "Downed" and t - entry.lastPoiseHurt >= config.poise.regenDelay then
+				entry.poise = math.min(entry.maxPoise, entry.poise + config.poise.regen * dt)
+				changed = true
+			end
+			if changed and t - entry.published >= PUBLISH then
+				TitanService.publish(model)
+			end
 		end
-		local config = entry.config
-		local changed = false
-		if entry.hp < config.hp and model:GetAttribute("State") ~= "Downed" and t - entry.lastHurt >= config.hpRegen.delay then
-			entry.hp = math.min(config.hp, entry.hp + config.hpRegen.rate * dt)
-			changed = true
-		end
-		if entry.poise < entry.maxPoise and t - entry.lastPoiseHurt >= config.poise.regenDelay then
-			entry.poise = math.min(entry.maxPoise, entry.poise + config.poise.regen * dt)
-			changed = true
-		end
-		if changed and t - entry.published >= PUBLISH then
-			publish(model, entry)
+		if entry.behavior and not frozen then
+			local ok, message = pcall(entry.behavior.step, entry.behavior, dt)
+			if not ok then
+				Log.error(TAG, "%s behavior stopped: %s", model.Name, tostring(message))
+				entry.behavior = nil
+			end
 		end
 	end
 end
@@ -249,7 +364,7 @@ function TitanService.Init()
 end
 
 function TitanService.Start()
-	RunService.Heartbeat:Connect(regenerate)
+	RunService.Heartbeat:Connect(step)
 end
 
 return TitanService

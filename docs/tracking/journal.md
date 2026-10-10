@@ -539,3 +539,41 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Next:** the user's approval of the Strider's look; then the behavior: state machine, attacks with telegraphs, flinch, Downed, Core Strike, death, the Titan HUD bar and lock-on.
 
 **Session 6, continued:** a Titan spawned during play was sometimes not animated on the client (its tag arrived before its parts: 2 of 3 in one run). `AnimationController.register` now waits for the root and tries again; after the fix 4 of 4 spawned Striders played `Idle`, Output clean. The `/titan` ground check was tested from the Training Yard spawn (`/zone training`, then `/titan strider` → a Strider 120 studs ahead at (−320, 29.5, −110)); a play-mode screenshot from behind the pilot shows two Striders from the front: glowing eyes, grins, different hair and skin, hunched idle.
+
+**Session 6, continued: the Strider's behavior (D-057)**
+
+**Done:**
+- `Server/Titans/Behaviors/Strider.lua`: the state machine of `10` §1.5 (Idle, Engage, Telegraph, Active, Recover, Flinch, Downed, GetUp, Dead), targeting, the weighted attack choice, turn rates, Sweep, Stomp, Lunge (server-driven, path checked), Roar and enrage, flinch, poise break, the tougher get-up, death with ash mounds and removal.
+- `Shared/Poses/Strider.lua`: clips for every attack and state. `CombatConfig.TitanAttacks.Strider`.
+- `TitanService`: behavior hook-up, facing, core exposure, the ankle bonus after a Stomp, `/titan freeze`.
+- `CombatService`: Titan hits on Frames (i-frames, dodge grace, mercy, hit stun, knockback, Disabled), Core Strike, `repair`. `FrameService.setIntegrity`, `getFrames`.
+- Client: `CombatController` (Core Strike request, knockback, `Hurt` signal), a camera shake when hit, separation from a Titan on its hands, root motion that stops when it ends.
+- Debug: `/titan down | freeze | <type> dormant`, `/repair`. `PoseCheck` now covers the Strider's clips.
+
+**Tested (how → result):** play mode in the Training Yard, Unit 02 against a debug-spawned Strider, with the server's state changes logged on server time.
+- Attack timings against the config: Lunge windup 1.30 / active 0.50 / recovery 2.21; Sweep 1.10 / 0.36 / 1.40; Stomp 0.90 / 0.15 / 1.60; Roar 0.60 / 0.90 / 0.60; pause between attacks 1.2–2.0 s. Enraged Sweep windup 0.95 (1.1 × 0.87).
+- Damage to the Frame: Sweep −180 (light stun 0.25 s), Stomp −220 and Lunge −260 (heavy stun 0.50 s); five hits (Lunge, Sweep, Sweep, Stomp, Sweep) took 1000 → 0 → `Disabled`, the Titan went idle. `/repair` brought the Frame back.
+- Knockback measured on the server: Sweep 12.0 studs, Stomp 18.0; after a Lunge 33.5 (25 plus the push out of the landed Titan). The Lunge travelled 50.0 studs.
+- Dodge: a dodge request 0.10 s before the active window → `Dodged`, no damage; 0.10 s after it began → `Grace`, no damage; no dodge → hit at active start + 0.15. Mercy: a second hit 0.1 s after the first → `Mercy`; a third after 0.55 s → hit. `/god` → `God`.
+- Frame attacks on the Titan: zone damage as in Session 6; three lights within 1.5 s (96 poise) → Flinch 0.60 s, next attack 1.33 s later.
+- Poise break: 300 poise gone → Downed, core exposed 1.00 s later for 5.00 s, GetUp 1.50 s, max poise 300 → 360 → 420. While it is down the Frame is pushed back to 34.8 studs.
+- Core Strike (F): started while the core showed → −700 at 0.62 s; the Titan stayed down until the strike's 1.6 s were over.
+- Half health → Roar at the next decision → `Enraged`.
+- Can't die standing: a Heavy on a standing Titan with 43 HP → HP 1 and Downed at once, with 250 poise left.
+- Death: Core Strike on a downed Titan with 503 HP → HP 0 → `Dead`; the model was gone and six ash mounds lay there when checked 17 s later; `TitanService.Died` fired.
+- HP regen +10/s from 4 s after the last hit; poise regen as before.
+- Server Heartbeat during the fight: 240 Hz. Output clean in four play runs (only the MCP's own mouse-automation messages).
+- `PoseCheck` PASS (136 checks). All changed files match Studio by checksum.
+
+**Bugs found and fixed here:** no pause after a Flinch or GetUp; the Frame stood on a downed Titan's head; dodges slid to 109–113 studs (see D-057); a split comment line in `CombatConfig` from my own edit script.
+
+**Not tested:** a whole fight played by a person (duration 2–3.5 min is acceptance test 1); dodge grace under simulated latency (test 3 asks for the Network Simulator); how the attack clips look in motion from the pilot's view (the camera sat behind the Frame in every screenshot); two Titans at once; the Lunge stopping at a wall on purpose (it did stop at the simulacrum by accident); the Roar's knockback and stagger on a Frame that isn't in `/god`; `/titan freeze` beyond switching it on and off; gamepad and touch.
+
+**Known:**
+- Nothing of the telegraph visuals, the Titan's health bar, the Core Strike prompt or the hit vignette exists yet: the fight is readable only from the animations. The Core Strike has no step-in and no camera, so the blade can come down well short of the core.
+- A Titan has no path-finding: it walks straight at its target and stopped against the training simulacrum, climbing 6 studs onto its arm.
+- A Lunge passes through the Frame (Titan and Frame roots don't collide); the Frame is then pushed out.
+- A dodge now travels 84.7 studs (config 88).
+- A Disabled Frame only kneels; the failure and retry flow comes with the damage states.
+
+**Next:** the Titan HUD bar, danger disc, glow telegraphs, hit flash and Ash Collapse visuals; Core Strike positioning and camera; lock-on; Frame damage states and the Disabled flow; then the Phase 3 acceptance tests.

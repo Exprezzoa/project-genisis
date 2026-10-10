@@ -79,6 +79,24 @@ function FrameService.moveTo(frame, groundCFrame)
 	end
 end
 
+-- Integrity is the Frame's health (docs/09 §4-5). CombatService decides the damage; this only stores it.
+function FrameService.setIntegrity(frame, value)
+	local max = frame:GetAttribute("IntegrityMax") or configOf(frame).integrity
+	frame:SetAttribute("Integrity", math.clamp(value, 0, max))
+	return frame:GetAttribute("Integrity")
+end
+
+-- Every unit of FrameConfig.Units that exists right now.
+function FrameService.getFrames()
+	local list = {}
+	for _, frame in pairs(frames) do
+		if frame.Parent then
+			table.insert(list, frame)
+		end
+	end
+	return list
+end
+
 function FrameService.getFrame(unitId)
 	return frames[unitId]
 end

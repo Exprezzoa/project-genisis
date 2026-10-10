@@ -5,18 +5,27 @@
 -- time, samples the attack boxes against hurtboxes, works out zones and damage, and checks Frame speed.
 -- Clients only ask and show: they never send damage, positions for hit tests or timestamps.
 --
--- Published on the Frame: Action (move name or ""), ActionT0 (server time), ActionSeq (the request that
--- started it), SpecialReadyAt, DodgeReadyAt (server times). State is "Attack" or "Dodge" while one runs.
+-- Published on the Frame: Action (move name, "HitReact" or ""), ActionT0 (server time), ActionSeq (the request
+-- that started it), SpecialReadyAt, DodgeReadyAt (server times). State is "Attack", "Dodge", "CoreStrike",
+-- "HitStunLight" or "HitStunHeavy" while one runs, and "Disabled" once the Integrity is gone.
 --
---   registerTarget(targetId, handler)     handler(hit) applies a hit to a real target (Titans, Phase 3).
---                                         hit = { attacker, frame, targetId, model, zone, damage, poise, move, position }
---   getAction(frame) -> { name, elapsed, queued }?        HitLanded: Signal(hit)
+--   registerTarget(targetId, handler)     a real target (a Titan). handler = { takeHit = function(hit),
+--                                         getCore = function() -> Vector3? (where its exposed core is),
+--                                         holdCore = function(seconds), model = Model }; a plain function(hit)
+--                                         also works. hit = { attacker, frame, targetId, model, zone, damage,
+--                                         poise, move, position, coreStrike? }
+--   hitFrame(frame, hit) -> "Hit" | "Pending" | the reason it was ignored      a Titan's attack touched a Frame
+--   repair(frame)                         full Integrity and out of Disabled (debug, later the retry flow)
+--   getAction(frame) -> { name, elapsed, queued }?
+--   HitLanded: Signal(hit)     FrameHit: Signal(frame, hit, { integrity, heavy, stun, disabled })
+--   FrameEvaded: Signal(frame, hit, reason)     FrameDisabled: Signal(frame)
 --
 -- A hurtbox is a part tagged "Hurtbox" with attribute Zone, inside a model with attribute TargetId. A target
 -- nobody registered is a training target: it takes no damage, and the hit is written on its model as the
 -- attributes HitCount, LastHitZone, LastHitDamage, LastHitPoise, LastHitMove.
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -33,10 +42,15 @@ local SAMPLE_INTERVAL = 1 / CombatConfig.SAMPLE_RATE
 local PAD = Vector3.one * CombatConfig.LAG_PAD
 local ROOT_MOTION_SLACK = 0.5 -- seconds a root-motion allowance outlasts its window (the pilot's updates arrive late and in bursts)
 local ROOT_MOTION_MARGIN = 1.2 -- share of an action's distance the speed check lets through
+local KNOCKBACK_TIME = 0.25 -- the pilot's client carries a knockback out over this long (docs/12 §7)
+local ACTION_STATES = { Attack = true, Dodge = true, CoreStrike = true, HitStunLight = true, HitStunHeavy = true }
 
 local CombatService = {}
 
 CombatService.HitLanded = Signal.new()
+CombatService.FrameHit = Signal.new()
+CombatService.FrameEvaded = Signal.new()
+CombatService.FrameDisabled = Signal.new()
 
 local actions = {} -- [frame] = { name, kind, move, t0, seq, player, hit, nextSample, lastSample, queued, direction }
 local cooldowns = {} -- [frame] = { Special = readyAt, Dodge = readyAt }
@@ -44,6 +58,8 @@ local locks = {} -- [player] = { targetId, zone }
 local targets = {} -- [targetId] = handler
 local speed = {} -- [frame] = { position, time, valid, violations }
 local rootBudget = {} -- [frame] = { distance, expires }: extra studs the running action may move the Frame
+local lastHit = {} -- [frame] = server time of the last hit it took (mercy)
+local pendingHits = {} -- { frame, hit, at, resolveAt }: hits waiting out the dodge grace
 
 local function now()
 	return workspace:GetServerTimeNow()
@@ -66,20 +82,23 @@ end
 local function finish(frame)
 	actions[frame] = nil
 	if frame.Parent then
-		local state = frame:GetAttribute("State")
-		if state == "Attack" or state == "Dodge" then
+		if ACTION_STATES[frame:GetAttribute("State")] then
 			FrameService.setState(frame, "Idle")
 		end
 		frame:SetAttribute("Action", "")
 	end
 end
 
-local function begin(frame, player, name, seq, direction)
+local function begin(frame, player, name, seq, direction, target)
 	local class = frame:GetAttribute("Class")
 	local t0 = now()
 	local action = { name = name, t0 = t0, seq = seq, player = player, hit = {}, nextSample = 0 }
 	local clip
-	if name == "Dodge" then
+	if name == "CoreStrike" then
+		local strike = CombatConfig.CoreStrike[class]
+		action.kind, action.move, action.target = "core", strike, target
+		clip = strike.clip
+	elseif name == "Dodge" then
 		local dodge = CombatConfig.Dodge[class]
 		action.kind, action.move, action.direction = "dodge", dodge, direction
 		clip = CombatConfig.dodgeClip(frame.PrimaryPart.CFrame:VectorToObjectSpace(direction))
@@ -99,7 +118,7 @@ local function begin(frame, player, name, seq, direction)
 		end
 	end
 	actions[frame] = action
-	FrameService.setState(frame, if name == "Dodge" then "Dodge" else "Attack")
+	FrameService.setState(frame, if name == "Dodge" or name == "CoreStrike" then name else "Attack")
 	publish(frame, name, t0, seq)
 	FrameService.playAnim(frame, clip)
 end
@@ -115,6 +134,30 @@ local function dodgeCancels(action, elapsed)
 	end
 	local recoveryStart = move.startup + move.active
 	return move.cancelRecovery == true and elapsed >= recoveryStart + move.recovery * CombatConfig.RECOVERY_CANCEL
+end
+
+-- The nearest exposed core the Frame may strike: within the strike's range and in front of the Frame, each
+-- with its tolerance (docs/12 §10). Returns the target's id.
+local function coreInReach(frame)
+	local strike = CombatConfig.CoreStrike[frame:GetAttribute("Class")]
+	local root = frame.PrimaryPart
+	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	local best, bestDistance = nil, strike.range + CombatConfig.Tolerance.coreStrikeRange
+	for targetId, handler in pairs(targets) do
+		local core = type(handler) == "table" and handler.getCore and handler.getCore()
+		if core then
+			local toward = (core - root.Position) * Vector3.new(1, 0, 1)
+			local distance = toward.Magnitude
+			local angle = 0
+			if distance > 0.1 and look.Magnitude > 0.1 then
+				angle = math.deg(math.acos(math.clamp(look.Unit:Dot(toward.Unit), -1, 1)))
+			end
+			if distance <= bestDistance and angle <= strike.facing + CombatConfig.Tolerance.facing then
+				best, bestDistance = targetId, distance
+			end
+		end
+	end
+	return best
 end
 
 local function onRequest(player, payload)
@@ -171,8 +214,22 @@ local function onRequest(player, payload)
 			direction = -root.CFrame.LookVector
 		end
 		begin(frame, player, "Dodge", seq, direction.Unit)
+	elseif name == "CoreStrike" then
+		if not idle then
+			return reject("Busy")
+		end
+		local targetId = coreInReach(frame)
+		if not targetId then
+			return reject("NoTarget")
+		end
+		-- The Titan stays down until the strike is over (docs/10 §1.5).
+		local handler = targets[targetId]
+		if handler.holdCore then
+			handler.holdCore(CombatConfig.CoreStrike[class].duration)
+		end
+		begin(frame, player, "CoreStrike", seq, nil, targetId)
 	else
-		reject("NoTarget") -- Core Strike needs a Titan with an exposed core (Phase 3)
+		reject("Rejected")
 	end
 end
 
@@ -188,28 +245,35 @@ local function targetOf(hurtbox)
 	return model
 end
 
-local function land(action, frame, model, hurtbox)
-	local move = action.move
-	local zoneName = hurtbox:GetAttribute("Zone") or "Body"
-	local zone = CombatConfig.Zones[zoneName] or CombatConfig.Zones.Body
-	local hit = {
-		attacker = action.player, frame = frame, targetId = model:GetAttribute("TargetId"), model = model, zone = zoneName,
-		damage = move.damage * zone.hpMult, poise = move.poise * zone.poiseMult, move = action.name, position = hurtbox.Position,
-	}
+-- Hands a hit to its target and tells the attacker.
+local function deliver(hit)
+	local model = hit.model
 	local handler = targets[hit.targetId]
-	if handler then
+	if type(handler) == "table" then
+		handler.takeHit(hit)
+	elseif handler then
 		handler(hit)
-	else
+	elseif model then
 		model:SetAttribute("HitCount", (model:GetAttribute("HitCount") or 0) + 1)
 		model:SetAttribute("LastHitZone", hit.zone)
 		model:SetAttribute("LastHitDamage", hit.damage)
 		model:SetAttribute("LastHitPoise", hit.poise)
 		model:SetAttribute("LastHitMove", hit.move)
 	end
-	feedback(action.player, {
+	feedback(hit.attacker, {
 		kind = "HitLanded", targetId = hit.targetId, zone = hit.zone, amount = hit.damage, poise = hit.poise, pos = hit.position, move = hit.move,
 	})
 	CombatService.HitLanded:Fire(hit)
+end
+
+local function land(action, frame, model, hurtbox)
+	local move = action.move
+	local zoneName = hurtbox:GetAttribute("Zone") or "Body"
+	local zone = CombatConfig.Zones[zoneName] or CombatConfig.Zones.Body
+	deliver({
+		attacker = action.player, frame = frame, targetId = model:GetAttribute("TargetId"), model = model, zone = zoneName,
+		damage = move.damage * zone.hpMult, poise = move.poise * zone.poiseMult, move = action.name, position = hurtbox.Position,
+	})
 end
 
 -- One hitbox sample: every target the box touches that this attack hasn't hit yet takes one hit, on the
@@ -261,6 +325,28 @@ local function stepActions()
 				finish(frame)
 			end
 			continue
+		elseif action.kind == "stun" then
+			if elapsed >= move.duration then
+				finish(frame)
+			end
+			continue
+		elseif action.kind == "core" then
+			-- Core Strike (docs/12 §3, §6): one flat hit on the core at the impact time, nothing else.
+			if not action.struck and elapsed >= move.impact then
+				action.struck = true
+				local handler = targets[action.target]
+				local core = type(handler) == "table" and handler.getCore()
+				if core then
+					deliver({
+						attacker = action.player, frame = frame, targetId = action.target, model = handler.model, zone = "Core",
+						damage = move.damage, poise = 0, move = "CoreStrike", position = core, coreStrike = true,
+					})
+				end
+			end
+			if elapsed >= move.duration then
+				finish(frame)
+			end
+			continue
 		end
 		local activeEnd = move.startup + move.active
 		if elapsed >= move.startup and not action.lastSample then
@@ -277,6 +363,122 @@ local function stepActions()
 		elseif elapsed >= CombatConfig.total(move) then
 			finish(frame)
 		end
+	end
+end
+
+----------------------------------------------------------------------------------------------------------------
+-- Titan attacks on Frames (docs/12 §7)
+----------------------------------------------------------------------------------------------------------------
+-- Why a hit doesn't count right now, or nil when it does.
+local function evades(frame, hit, t)
+	if frame:GetAttribute("God") then
+		return "God"
+	elseif frame:GetAttribute("State") == "Disabled" then
+		return "Disabled"
+	end
+	local action = actions[frame]
+	if action and action.kind == "core" then
+		return "CoreStrike"
+	elseif action and action.kind == "dodge" then
+		local elapsed = t - action.t0
+		local window = action.move.iFrames
+		-- The Roar is escaped by any dodge still under way; everything else only by the i-frames.
+		if (hit.anyDodge and elapsed <= action.move.duration) or (elapsed >= window.from and elapsed <= window.to) then
+			return "Dodged"
+		end
+	end
+	if t - (lastHit[frame] or 0) < CombatConfig.MERCY then
+		return "Mercy"
+	end
+	return nil
+end
+
+local function applyHit(frame, hit)
+	local t = now()
+	lastHit[frame] = t
+	local integrity = FrameService.setIntegrity(frame, (frame:GetAttribute("Integrity") or 0) - hit.damage)
+	local heavy = hit.damage >= CombatConfig.HitReact.heavyAt
+	local react = if heavy then CombatConfig.HitReact.Heavy else CombatConfig.HitReact.Light
+	local stun = hit.stagger or react.stun
+	local disabled = integrity <= 0
+	local player = Players:GetPlayerByUserId(frame:GetAttribute("Pilot") or 0)
+	if player and FrameService.getPiloted(player) == frame then
+		if disabled then
+			actions[frame] = nil
+			frame:SetAttribute("Action", "")
+			FrameService.setState(frame, "Disabled")
+			FrameService.playAnim(frame, "Disabled")
+		else
+			-- The hit stun is an action like any other: nothing else starts until it ends.
+			actions[frame] = { name = "HitReact", kind = "stun", move = { duration = stun }, t0 = t, seq = 0, player = player, hit = {}, nextSample = 0 }
+			FrameService.setState(frame, if heavy then "HitStunHeavy" else "HitStunLight")
+			publish(frame, "HitReact", t, 0)
+			FrameService.playAnim(frame, react.clip)
+		end
+		rootBudget[frame] = { distance = hit.knockback.Magnitude * ROOT_MOTION_MARGIN, expires = t + KNOCKBACK_TIME + ROOT_MOTION_SLACK }
+		feedback(player, {
+			kind = "HitTaken", damage = hit.damage, knockback = hit.knockback, time = KNOCKBACK_TIME, heavy = heavy, stun = stun,
+			attack = hit.attack, disabled = disabled,
+		})
+	elseif disabled then
+		FrameService.setState(frame, "Disabled")
+	end
+	CombatService.FrameHit:Fire(frame, hit, { integrity = integrity, heavy = heavy, stun = stun, disabled = disabled })
+	if disabled then
+		Log.info(TAG, "Unit %s is disabled", tostring(frame:GetAttribute("Unit")))
+		CombatService.FrameDisabled:Fire(frame)
+	end
+end
+
+-- A Titan's attack touched this Frame. hit = { damage, knockback = Vector3 (studs), attack = name, source = the
+-- Titan, activeStart = server time its active window began, stagger = seconds?, anyDodge = boolean? }.
+-- Dodge grace: a hit found less than DODGE_GRACE after the window began waits until that moment; a dodge that
+-- starts in the meantime escapes it.
+function CombatService.hitFrame(frame, hit)
+	local t = now()
+	local reason = evades(frame, hit, t)
+	if reason then
+		CombatService.FrameEvaded:Fire(frame, hit, reason)
+		return reason
+	end
+	local graceEnd = (hit.activeStart or 0) + CombatConfig.DODGE_GRACE
+	if t < graceEnd then
+		table.insert(pendingHits, { frame = frame, hit = hit, at = t, resolveAt = graceEnd })
+		return "Pending"
+	end
+	applyHit(frame, hit)
+	return "Hit"
+end
+
+local function stepHits()
+	local t = now()
+	for index = #pendingHits, 1, -1 do
+		local entry = pendingHits[index]
+		if t >= entry.resolveAt then
+			table.remove(pendingHits, index)
+			local frame = entry.frame
+			if frame.Parent then
+				local action = actions[frame]
+				-- A dodge begun since the hit was found (or just before, its i-frames not yet running) escapes it.
+				local late = action and action.kind == "dodge" and action.t0 >= entry.at - action.move.iFrames.from
+				local reason = if late then "Grace" else evades(frame, entry.hit, t)
+				if reason then
+					CombatService.FrameEvaded:Fire(frame, entry.hit, reason)
+				else
+					applyHit(frame, entry.hit)
+				end
+			end
+		end
+	end
+end
+
+-- Full Integrity, and back on its feet if it was Disabled.
+function CombatService.repair(frame)
+	FrameService.setIntegrity(frame, math.huge)
+	lastHit[frame] = nil
+	if frame:GetAttribute("State") == "Disabled" then
+		FrameService.setState(frame, "Idle")
+		FrameService.playAnim(frame, "")
 	end
 end
 
@@ -344,6 +546,7 @@ function CombatService.Start()
 	Net.on("Frame_Action", onRequest)
 	Net.on("Frame_Lock", onLock)
 	RunService.Heartbeat:Connect(stepActions)
+	RunService.Heartbeat:Connect(stepHits)
 	game:GetService("Players").PlayerRemoving:Connect(function(player)
 		locks[player] = nil
 	end)
