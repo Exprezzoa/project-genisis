@@ -83,6 +83,7 @@
 
 Publicly, intelligent Titans don't exist until the Chapter 3 Halden incident. Internally:
 - **Shifters:** rare individuals who move between human and Titan form, keeping their mind and memory. Their glow is cyan.
+- **How a Shifter transforms (user direction, 2026-10-10, D-039):** the change is triggered by **pain the Shifter inflicts on themselves**. A **bolt of yellow lightning** comes down on them with a **crack of thunder**; when the flash clears, the Titan form stands there. Shown without blood or visible injury (a sharp, deliberate gesture and a wince). The yellow lightning belongs to the moment of transformation only; a Shifter's glow afterwards is still cyan.
 - **The Remnants:** a loose network who believe humanity must learn the truth. Methods differ: communication, sabotage, and a militant minority.
 - **The Ascendants:** a radical movement that sees the Lattice as the next stage of evolution. Some will sacrifice others.
 - **The Unbound:** independents. Some want quiet lives, some revenge, some just to survive.

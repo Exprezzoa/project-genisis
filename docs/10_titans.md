@@ -9,6 +9,19 @@ Rig layouts: `08_rigs_and_animation.md` §3.2–3.3. Colors: `06_art_direction.m
 4. **Species-specific weak point** (the core node). Regeneration makes chip damage insufficient: you must break poise and strike the core.
 5. **No blood or gore.** Hits release pale bone-dust and grey vapor.
 
+### Look direction from the user (2026-10-10, D-039) — overrides rule 2 and the skin, face and head rows below
+
+**Frames look like machines; Titans look like giant people.** The contrast is the point.
+
+- **Human skin.** Titan bodies use human skin tones (SmoothPlastic), not the grey `STR_SKIN`. The palette gets a small set of skin tones in `06` §3 when the Strider is built; each Titan picks one.
+- **Human faces.** A Titan's head carries a human face: eyes with whites and irises, brows, a nose, a mouth with lips and teeth. It is built from parts (the built-in default face decal is allowed on top if it reads better at that size). The "wide lipless mouth" and the dark eye sockets of §1.1 go; the too-human eyes stay and become the rule.
+- **Random hair.** Each Titan gets a hair style picked at random (seeded per spawn) from a list of hair accessories from the Roblox marketplace, scaled to the head. This is an approved exception to "built from parts" (`01` §3). **Every asset ID in that list must be verified first** through the Studio MCP (search the asset, insert it, check that it loads and what it looks like); no ID is ever typed from memory. If no usable hair can be inserted, the fallback is part-built hair like the human characters' (`03`).
+- **What stays:** the silhouettes and proportions (a Strider is still lanky and hunched with arms to its knees), the heights and rigs of `08` §3, every attack, telegraph, hurtbox and number, the species weak point (the Strider's Dorsal Core under its back plates), the feral orange-red glow of eyes and core, the Ash Collapse, and **no blood or gore**.
+- **What is still open until Phase 3:** how much of the Strider's exposed muscle, sinew and bone plating stays on a human-skinned body (recommended: keep the back plates over the core and the forearm vein glow, because attacks and the Core Strike depend on them; drop the rest). The part-by-part table below is rewritten at the start of Phase 3 and shown to the user before the rig is built.
+- **Still an original world.** Human-looking Titans are fine; names, designs, sounds and story beats of existing series are not copied (`01` §7).
+
+**Shifter transformation (user direction, same date):** a Shifter changes form after **hurting themselves on purpose**; a **bolt of yellow lightning** strikes where they stand, with a **thunder-crack sound**, and the Titan form stands there when the flash clears. Details in `02` §8 and `06` §6.
+
 ---
 
 ## 1. Strider-class (Class-3 specimen in Chapter 1)

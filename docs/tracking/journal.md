@@ -330,3 +330,7 @@ Status: fixed (strong keys; Net resets a leaving player's buckets on PlayerRemov
 **Not tested:** anything in play mode (a Frame walking the yard, the barriers stopping it); no screenshot (viewport captures still come back black).
 
 **Next:** step 5, FrameService (park Units 01 and 02 in their bays, board from the Bay 2 bridge, dismount at the pad, ownership, the action state machine, energy), with Unit 03 as a static prop in Bay 3.
+
+**Session 5, continued: new direction from the user (written down, nothing built)**
+
+Titans get human skin, human faces and random marketplace hair; Frames stay machines. Shifters transform in a bolt of yellow lightning with a thunder crack after hurting themselves. Recorded as D-039 in `10`, `01`, `02`, `06`, `15` and `CLAUDE.md`; questions Q-011 (yellow and cyan together) and Q-012 (how the pain is shown) are open. The Strider's part-by-part table is rewritten at the start of Phase 3; the simulacrum in the Training Yard stays a steel effigy.

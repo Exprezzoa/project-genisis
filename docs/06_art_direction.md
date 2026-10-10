@@ -81,6 +81,7 @@ Three words: **Heavy. Worn. Warm-under-grey.**
 | `TITAN_GLOW` | `#FF7A2E` | Feral Titan eyes and core |
 | `TITAN_GLOW_DEEP` | `#E25B2D` | Feral veins, crest |
 | `LATTICE_CYAN` | `#7FE3F0` | **RESERVED: resonance / Shifters only** |
+| `SHIFT_LIGHTNING` | `#FFE14A` | **RESERVED: the lightning of a Shifter's transformation only** (user direction, D-039) |
 
 ### Nature (outpost, wilderness)
 | Key | Hex | Use |
@@ -212,6 +213,7 @@ Built-in textures only: `rbxasset://textures/particles/sparkles_main.dds`, `rbxa
 | **Titan regen** | ParticleEmitter on the body | Color `#9C9893`, Size 1→3, Transparency 0.6→1, Rate 6, only while regenerating |
 | **Ash collapse (death)** | See `10_titans.md` §8 | |
 | **Resonance ping** | Screen effect (UI) plus a world sphere | Ball part, Neon cyan, Size 2→120 over 0.6 s, Transparency 0.5→1 (client) |
+| **Shifter transformation** (user direction, D-039; built with the first on-screen shift, not in the Vertical Slice unless a scene needs it) | A jagged bolt from the sky to the Shifter: 6–9 Neon segments `SHIFT_LIGHTNING` with 2–3 short forks, redrawn 3 times; a full-screen yellow-white flash (UI); a ground ring and dust; a PointLight burst | Bolt visible 0.35 s; flash 0.12 s up, 0.6 s down (**Reduce Flashing: flash at 30%**); light Brightness 8 → 0, Range 60; sound `SFX_SHIFT_THUNDER`; the human model is swapped for the Titan while the screen is white |
 | **Beacon spin** | SpotLight in a rotating housing (client TweenService loop, 1.2 s/rev) | `WARNING_ORANGE`, Brightness 4, Range 40, Angle 40 |
 
 ### Camera feel parameters (`Config/CameraFeel`)

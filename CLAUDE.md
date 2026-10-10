@@ -98,7 +98,8 @@ This file is short on purpose. The full specification lives in `docs/`. **Read t
 - **Naming:** PascalCase for instances (`Bay2_AccessBridge`), `UPPER_SNAKE` for config keys and flags (`CH1_BRIEFED`), camelCase for Luau locals and functions.
 - **Tags (CollectionService):** `Interactable`, `DismountPad`, `Trigger`, `AmbientMover`, `Hurtbox`, `CinematicCam`, `SpawnPoint`, `EvidenceItem`, `NoCollideCamera`, `PoseRig`.
 - **Colors:** use only palette hex values from `docs/06_art_direction.md`.
-- **Colors are meaning:** amber = Directorate/UI. Orange-red glow = feral Titans. **Cyan (#7FE3F0) = Lattice resonance / Shifters. Use cyan nowhere else.**
+- **Colors are meaning:** amber = Directorate/UI. Orange-red glow = feral Titans. **Cyan (#7FE3F0) = Lattice resonance / Shifters. Use cyan nowhere else.** Yellow lightning (`SHIFT_LIGHTNING`) = the moment a Shifter transforms, nowhere else.
+- **Frames look like machines, Titans look like giant people** (human skin, human faces, random marketplace hair with MCP-verified IDs): `docs/10_titans.md` "Look direction".
 
 ## 8. Definition of done (every task)
 

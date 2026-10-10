@@ -26,6 +26,7 @@
 
 - **Allowed:** Part (Block, Ball, Cylinder, Wedge, CornerWedge), WedgePart, CornerWedgePart, TrussPart, Seat, SpawnLocation, small and sparing UnionOperations, Roblox **default avatar bodies** (R15 MeshParts from `HumanoidDescription`), Decals and Textures **only** from built-in `rbxasset://` content (e.g. the default face), SurfaceGui/BillboardGui text, ParticleEmitter/Beam/Trail with built-in textures, Lights, Atmosphere/Sky/post-effects.
 - **Not allowed:** imported meshes, uploaded images, uploaded animations, Terrain (except an approved exception in `decisions.md`), Toolbox models (unless the user explicitly approves a specific one).
+- **Approved exception (user, 2026-10-10, D-039):** hair accessories from the Roblox marketplace on **Titans**, picked at random per Titan. Each asset ID is verified through the Studio MCP before it enters the list (`10` "Look direction").
 - **Animation:** player characters use Roblox's default avatar animations. Frames, Titans and gestures use the **procedural pose animator** (`docs/08_rigs_and_animation.md`).
 
 ## 4. Scope of the first release: the Vertical Slice

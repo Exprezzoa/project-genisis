@@ -46,6 +46,7 @@ Settings sliders control Music, SFX and Ambience (and UI follows SFX).
 ### Frames
 | Key | Description | Search terms |
 |---|---|---|
+| `SFX_SHIFT_THUNDER` | The thunder crack of a Shifter's transformation (user direction, D-039): one huge, close lightning strike with a short rolling tail. An original or Roblox-licensed thunder sound, not audio from an existing series | thunder crack close lightning strike |
 | `SFX_VG_STEP` | Heavy mech footstep | mech footstep heavy metal stomp |
 | `SFX_VG_SERVO` | Servo whine for joint movement (short) | servo motor whine robot |
 | `SFX_VG_BOOT` | Systems power-up | power up machine startup sci-fi |
