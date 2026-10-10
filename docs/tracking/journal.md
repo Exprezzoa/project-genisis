@@ -396,3 +396,28 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Not tested:** the same on a second player's client (one-player Studio test only); re-boarding a kneeling Frame after this change (it uses the same path).
 
 **Next:** step 6 (FrameController and the Frame camera), then combat.
+
+**Session 5, continued: step 6 (FrameController and the Frame camera)**
+
+**Done:** `Client/Controllers/CameraController` (scripted orbit camera behind the piloted Frame: pivot, distance with wheel zoom, pitch limits, shoulder offset, mouse / right stick / touch-drag look with the sensitivity and invert settings, sphere-cast collision with instant zoom-in and slow zoom-out, stride FOV, mouse lock while piloting). `Client/Controllers/FrameController` (piloting from the `Pilot` attribute, camera-relative movement with acceleration and deceleration, stride, turn-rate limited facing, limp scale, input context and camera switching, hidden pilot). `Bindings.Frame.Stride`. D-048. The user recolored the Watcher model's eyes themselves (Q-015 closed).
+
+**Tested (how → result), play mode, Unit 02 boarded through the dev bridge, keys sent with the MCP keyboard tool, values sampled on the client:**
+- Boarding → context `Frame`, camera `Scriptable`, mouse `LockCenter`, the pilot's character hidden.
+- Hold W → 0 to 48.0 studs/s in about 0.43 s (config: 48 at 112 studs/s²), straight out of the bay along +Z, root height 30.4 throughout.
+- Add Left Shift → speed climbing past 64.7 toward 76.8 before the south wall stopped it; FOV 70 → 78; back to 70 after.
+- Hold D (camera looking +Z) → the Frame walks toward −X and turns from yaw 180° to 90° in about 0.6 s (config: 150°/s).
+- Release → 48 to 0 in about 0.33 s (config: 144 studs/s²).
+- Camera → squeezed to 22 studs in the bay (the north wall is 23 behind the Frame), back out to 99.2 at 48 studs/s as the Frame walked clear; squeezed again at the west wall.
+- Dismount on `PAD_TRAINING` → context `OnFoot`, camera `Custom` on the character, FOV 70, mouse free, character visible, jump enabled again.
+- Output clean after the fixes below. All files match Studio by checksum.
+
+**Bugs found and fixed here:** `Spherecast` arguments in the wrong order (an error every frame); no `PlayerModule` in this place, so the move vector is read from the pilot's `MoveDirection` instead.
+
+**Not tested:** looking around with a real mouse, a gamepad stick or a touch drag (the turn code ran only through its start-up values); wheel zoom; the touch `SPRINT` button as stride; the walk animation seen by eye; a second player watching.
+
+**Known:**
+- In the bay the camera sits only about 22 studs from the Frame's head until it walks out, because of the wall behind it.
+- At the south wall the Frame's root rose by 3.2 studs for a moment (it stepped up on something there) and came back down.
+- `CharacterController.getControls` waits for the same missing `PlayerModule`, so its control lock (menus, dialogue) may not stop on-foot movement; found here, not fixed, to be checked.
+
+**Next:** step 7 (combat: `Frame_Action` requests, server timelines, hitboxes against the simulacrum, root motion, separation), then the Frame HUD and feel.

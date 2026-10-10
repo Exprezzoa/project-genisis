@@ -88,8 +88,8 @@ Buttons: tilted (−8°) ink squares (were circles before the angular restyle, `
 
 ## 5. Frame movement (client-side on the pilot's machine)
 
-1. Read the move input (Vector2), apply the deadzone (0.15 for gamepad).
-2. Rotate it by the **camera yaw** to get the world direction `dir`.
+1. Read the move input: the seated pilot's own `Humanoid.MoveDirection`. Roblox's control script fills it from the keyboard, gamepad or touch stick with its deadzone, and a seated Humanoid doesn't act on it (D-048; this place has no `PlayerModule` to ask for a move vector).
+2. It is already turned by the camera, so it is the world direction `dir`; its length is the input amount.
 3. Target speed = (stride ? 48 : 30) × `|input|` (×0.75 when limping, 0 during non-moving actions).
 4. Current speed approaches the target at 70 studs/s² (accelerate) / 90 studs/s² (decelerate). Write `frameHumanoid.WalkSpeed = currentSpeed` and call `frameHumanoid:Move(dir)` each frame (works because the pilot owns the Frame's physics).
 5. **Facing:** free mode, so turn toward `dir` at 150°/s (stride 110°/s) via AlignOrientation. Locked mode: face the target at 220°/s; movement strafes.

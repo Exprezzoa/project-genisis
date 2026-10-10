@@ -3,7 +3,7 @@
 --
 -- Action -> inputs per input context, bound through ContextActionService by InputController.
 -- Movement, camera, jump and ProximityPrompt interaction (E / X / tap) stay with the Roblox defaults.
--- The Frame, Dialogue and Cinematic contexts get their actions with their systems (Phases 2 and 5).
+-- The Frame context gets its combat actions with combat; Dialogue and Cinematic with Phase 5.
 
 local K = Enum.KeyCode
 
@@ -19,6 +19,7 @@ return {
 		Menu = MENU_KEYS.Menu,
 	},
 	Frame = {
+		Stride = { K.LeftShift, K.ButtonL3 },
 		MissionLog = MENU_KEYS.MissionLog,
 		Menu = MENU_KEYS.Menu,
 	},
@@ -36,8 +37,8 @@ return {
 
 	-- Glyph text per device for the UI (docs/11 §1 "Device glyphs").
 	Glyphs = {
-		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", MissionLog = "TAB", Menu = "P" },
-		Gamepad = { Interact = "X", Sprint = "L3", MissionLog = "VIEW", Menu = "D-PAD" },
-		Touch = { Interact = "TAP", Sprint = "SPRINT", MissionLog = "LOG", Menu = "≡" },
+		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", MissionLog = "TAB", Menu = "P" },
+		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", MissionLog = "VIEW", Menu = "D-PAD" },
+		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", MissionLog = "LOG", Menu = "≡" },
 	},
 }

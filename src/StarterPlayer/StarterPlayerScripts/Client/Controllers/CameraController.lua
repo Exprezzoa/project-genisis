@@ -1,0 +1,217 @@
+--!strict
+-- Client/Controllers/CameraController.lua  (docs/11_controls_and_camera.md §3-4, Config/CameraFeel)
+--
+-- The Frame camera: a scripted orbit camera behind the piloted Frame. On foot the Roblox default camera runs
+-- and this controller does nothing.
+--
+--   setFrame(model?)         start or stop following a Frame (nil = back to the on-foot camera)
+--   getYaw() -> radians      the camera's heading; FrameController turns the move input by it
+--   setStride(on)            the wider stride field of view
+--   getState() -> { yaw, pitch, distance, wanted, fov }      -- for tests
+--
+-- Angles: yaw 0 looks along -Z and grows turning left; pitch is the camera's elevation above the pivot.
+
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local CameraFeel = require(Shared.Config.CameraFeel)
+local GameConfig = require(Shared.Config.GameConfig)
+
+local InputController = require(script.Parent.InputController)
+local SettingsController = require(script.Parent.SettingsController)
+
+local Feel = CameraFeel.Frame
+local STEP_NAME = "PG_FrameCamera"
+local ZOOM_STEP = 0.1 -- share of the zoom range per wheel notch
+local STICK_DEADZONE = 0.15
+
+local CameraController = {}
+
+local player = Players.LocalPlayer
+local frame: Model? = nil
+local root: BasePart? = nil
+local yaw, pitch = 0, math.rad(Feel.pitch.default)
+local wanted = Feel.distance.default -- the distance the player asked for
+local distance = Feel.distance.default -- the distance in use (shorter while something is in the way)
+local stride = false
+local fov = Feel.fov.base
+local stick = Vector2.zero
+local lookTouch: InputObject? = nil
+local params = RaycastParams.new()
+
+local function sensitivity(): number
+	return SettingsController.get("camSensitivity") or 1
+end
+
+local function turn(deltaYaw: number, deltaPitch: number)
+	if SettingsController.get("invertY") then
+		deltaPitch = -deltaPitch
+	end
+	yaw = (yaw - math.rad(deltaYaw)) % (2 * math.pi)
+	pitch = math.clamp(pitch + math.rad(deltaPitch), math.rad(Feel.pitch.min), math.rad(Feel.pitch.max))
+end
+
+-- The player looks around only while piloting with nothing (menu, dialogue, cinematic) in the way.
+local function active(): boolean
+	return frame ~= nil and InputController.getContext() == "Frame"
+end
+
+local function refreshMouse()
+	if frame then
+		UserInputService.MouseBehavior = if active() then Enum.MouseBehavior.LockCenter else Enum.MouseBehavior.Default
+	end
+end
+
+local function refreshFilter()
+	local ignore: { Instance } = CollectionService:GetTagged("NoCollideCamera")
+	for _, name in ipairs({ "Frames", "Titans" }) do
+		local folder = workspace:FindFirstChild(name)
+		if folder then
+			table.insert(ignore, folder)
+		end
+	end
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other.Character then
+			table.insert(ignore, other.Character)
+		end
+	end
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	-- "Debris" only collides with the map: the cast passes barriers, Frames, Titans and characters.
+	params.CollisionGroup = "Debris"
+end
+
+local function update(dt: number)
+	local camera = workspace.CurrentCamera
+	local rootPart = root
+	if not (camera and rootPart and rootPart.Parent) then
+		return
+	end
+	if active() and stick.Magnitude > STICK_DEADZONE then
+		-- Quadratic response: fine aim near the center, full speed at the rim.
+		local rate = Feel.sensitivity.gamepad * sensitivity() * stick.Magnitude * dt
+		turn(stick.X * rate, stick.Y * rate)
+	end
+
+	local pivot = rootPart.Position + Vector3.new(0, Feel.pivotHeight, 0)
+	local rotation = CFrame.Angles(0, yaw, 0) * CFrame.Angles(-pitch, 0, 0)
+	local offset = rotation * Vector3.new(Feel.shoulder, 0, wanted)
+
+	-- Something between the pivot and the camera: come in at once, go back out slowly.
+	local allowed = wanted
+	local hit = workspace:Spherecast(pivot, Feel.collision.radius, offset, params)
+	if hit then
+		allowed = math.max(Feel.collision.minDistance, hit.Distance / offset.Magnitude * wanted - Feel.collision.pad)
+	end
+	if allowed < distance then
+		distance = allowed
+	else
+		distance = math.min(allowed, distance + Feel.collision.zoomOutSpeed * dt)
+	end
+
+	local target = if stride then Feel.fov.stride else Feel.fov.base
+	fov += (target - fov) * math.min(1, dt / Feel.fov.strideBlend * 3)
+
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.CFrame = CFrame.new(pivot + rotation * Vector3.new(Feel.shoulder, 0, distance)) * rotation
+	camera.FieldOfView = fov
+	camera.Focus = CFrame.new(pivot)
+end
+
+function CameraController.getYaw(): number
+	return yaw
+end
+
+function CameraController.setStride(on: boolean)
+	stride = on
+end
+
+function CameraController.getState()
+	return { yaw = yaw, pitch = pitch, distance = distance, wanted = wanted, fov = fov, following = frame ~= nil }
+end
+
+function CameraController.setFrame(model: Model?)
+	if model == frame then
+		return
+	end
+	local camera = workspace.CurrentCamera
+	if frame then
+		RunService:UnbindFromRenderStep(STEP_NAME)
+	end
+	frame = model
+	root = if model then model.PrimaryPart else nil
+	stride = false
+	lookTouch = nil
+	if model and root then
+		-- Start behind the Frame.
+		local look = root.CFrame.LookVector
+		yaw = math.atan2(-look.X, -look.Z)
+		pitch = math.rad(Feel.pitch.default)
+		wanted = Feel.distance.default
+		distance = wanted
+		fov = Feel.fov.base
+		refreshFilter()
+		RunService:BindToRenderStep(STEP_NAME, Enum.RenderPriority.Camera.Value + 1, update)
+		refreshMouse()
+	else
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		if camera then
+			camera.CameraType = Enum.CameraType.Custom
+			camera.FieldOfView = GameConfig.Character.CAMERA_FOV
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				camera.CameraSubject = humanoid
+			end
+		end
+	end
+end
+
+function CameraController.Start()
+	UserInputService.InputChanged:Connect(function(input, processed)
+		if not active() then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			local scale = Feel.sensitivity.mouse * sensitivity()
+			turn(input.Delta.X * scale, input.Delta.Y * scale)
+		elseif input.UserInputType == Enum.UserInputType.MouseWheel and not processed then
+			local range = Feel.distance.max - Feel.distance.min
+			wanted = math.clamp(wanted - input.Position.Z * range * ZOOM_STEP, Feel.distance.min, Feel.distance.max)
+		elseif input.KeyCode == Enum.KeyCode.Thumbstick2 then
+			stick = Vector2.new(input.Position.X, -input.Position.Y)
+		elseif input == lookTouch then
+			local scale = Feel.sensitivity.touch * sensitivity()
+			turn(input.Delta.X * scale, input.Delta.Y * scale)
+		end
+	end)
+	-- Touch: a drag that starts on the empty right half of the screen looks around.
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if input.UserInputType == Enum.UserInputType.Touch and not processed and active() and not lookTouch then
+			local camera = workspace.CurrentCamera
+			if camera and input.Position.X > camera.ViewportSize.X / 2 then
+				lookTouch = input
+			end
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input == lookTouch then
+			lookTouch = nil
+		elseif input.KeyCode == Enum.KeyCode.Thumbstick2 then
+			stick = Vector2.zero
+		end
+	end)
+	InputController.ContextChanged:Connect(refreshMouse)
+	Players.PlayerAdded:Connect(function(other)
+		other.CharacterAdded:Connect(refreshFilter)
+	end)
+	for _, other in ipairs(Players:GetPlayers()) do
+		other.CharacterAdded:Connect(refreshFilter)
+	end
+end
+
+return CameraController
