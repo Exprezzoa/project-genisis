@@ -84,13 +84,20 @@ return {
 			},
 			events = { { t = 0.6, name = "VisorOn" } },
 		},
+		-- Blade swings (D-050): RightWrist near -85 lays the blade in line with the forearm, so arm and blade
+		-- sweep one long arc at chest height; with the idle wrist the blade stood up and the swing read as a punch.
+		-- Right to left.
 		Light1 = {
 			duration = 0.60, blendIn = 0.06, blendOut = 0.12,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.18, ease = "QuadOut", pose = { Waist = r(0, -35, 0), RightShoulder = r(20, 0, 70), RightElbow = r(60), LeftShoulder = r(10, 0, -10) } },
-				{ t = 0.24, ease = "Linear", pose = { Waist = r(0, 10, 0), RightShoulder = r(70, 40, 30), RightElbow = r(20) } },
-				{ t = 0.30, ease = "Linear", pose = { Waist = r(0, 35, 0), RightShoulder = r(60, 80, -10), RightElbow = r(15) } },
+				{ t = 0.18, ease = "QuadOut", pose = {
+					Waist = r(0, -45, 0), RightShoulder = r(30, 0, 80), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
+				} },
+				{ t = 0.24, ease = "Linear", pose = { Waist = r(0, 0, 0), RightShoulder = r(80, 0, 20), RightElbow = r(5), RightWrist = r(-85) } },
+				{ t = 0.30, ease = "Linear", pose = {
+					Waist = r(0, 50, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
+				} },
 				{ t = 0.60, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
@@ -98,13 +105,18 @@ return {
 				{ t = 0.30, name = "HitboxEnd" }, { t = 0.32, name = "TrailOff" },
 			},
 		},
+		-- Left to right, back along the same arc.
 		Light2 = {
 			duration = 0.58, blendIn = 0.06, blendOut = 0.12,
 			keys = {
 				{ t = 0.00, pose = "Idle" },
-				{ t = 0.16, ease = "QuadOut", pose = { Waist = r(0, 40, 0), RightShoulder = r(60, 90, -20), RightElbow = r(70) } },
-				{ t = 0.22, ease = "Linear", pose = { Waist = r(0, 0, 0), RightShoulder = r(70, 30, 20) } },
-				{ t = 0.28, ease = "Linear", pose = { Waist = r(0, -35, 0), RightShoulder = r(40, -20, 60), RightElbow = r(20) } },
+				{ t = 0.16, ease = "QuadOut", pose = {
+					Waist = r(0, 50, 0), RightShoulder = r(70, 0, -40), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-15, 0, -8),
+				} },
+				{ t = 0.22, ease = "Linear", pose = { Waist = r(0, 5, 0), RightShoulder = r(85, 0, 5), RightElbow = r(5), RightWrist = r(-85) } },
+				{ t = 0.28, ease = "Linear", pose = {
+					Waist = r(0, -45, 0), RightShoulder = r(45, 0, 75), RightElbow = r(10), RightWrist = r(-85), LeftShoulder = r(15, 0, -15),
+				} },
 				{ t = 0.58, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
@@ -139,11 +151,14 @@ return {
 			keys = {
 				{ t = 0.00, pose = "Idle" },
 				{ t = 0.35, ease = "QuadOut", pose = crouch(24, {
-					Root = p(0, -1.5, 0), Waist = r(0, -70, 0), RightShoulder = r(10, 0, 85), RightElbow = r(30),
+					Root = p(0, -1.5, 0), Waist = r(0, -70, 0), RightShoulder = r(15, 0, 85), RightElbow = r(25), RightWrist = r(-85),
+					LeftShoulder = r(20, 0, -20),
 				}) },
 				{ t = 0.55, ease = "Linear", pose = {} }, -- holds the windup until the release
-				{ t = 0.64, ease = "Linear", pose = { Waist = r(0, 20, 0), RightShoulder = r(75, 60, 20) } },
-				{ t = 0.73, ease = "Linear", pose = { Waist = r(0, 70, 0), RightShoulder = r(60, 100, -10) } },
+				{ t = 0.64, ease = "Linear", pose = { Waist = r(0, 10, 0), RightShoulder = r(80, 0, 25), RightElbow = r(0), RightWrist = r(-88) } },
+				{ t = 0.73, ease = "Linear", pose = {
+					Waist = r(0, 70, 0), RightShoulder = r(70, 0, -45), RightElbow = r(20), RightWrist = r(-85), LeftShoulder = r(-20, 0, -8),
+				} },
 				{ t = 1.43, ease = "QuadInOut", pose = "Idle" },
 			},
 			events = {
