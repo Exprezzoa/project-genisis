@@ -644,3 +644,21 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 **Not tested:** fight length with 6000 HP (needs the user); Light3, Heavy and the Pile Driver's new boxes in play; `/hitboxes` drawing the new sizes.
 
 **Phase 3 status:** everything built; acceptance test 1 stays open until the user has timed three fights with the new health. The user approved moving on to Phase 4.
+
+---
+
+## Session 6, continued — Phase 4 start: Outpost 07 blockout
+
+**Done:**
+- `builders/maps/outpost07/Layout.lua` (origin, local-coordinate helpers), `Compound.lua` (Ground, Road, Perimeter, Courtyard, Bunker with interior and Pad A, PowerStation, Yard, Residential with the mess hall interior and the Watcher's footprints, Tower with its stair), `Wilds.lua` (Trail, Basin, Ridge with the rover and Pad B). **Blockout pass only**: sizes, collisions, markers, cameras, triggers, barriers, prompts on stand-ins. No props, no lights.
+
+**Tested (how → result):**
+- Builders run in edit mode → 453 parts, no warnings. Registry check: all 53 ids of `map_03` §16 exist exactly once, plus 14 `TRG_OOB_*` triggers.
+- Screenshots from above (compound) and from over the ramp (basin): the layout matches `map_03` §1.
+- Play mode: `/tp SPAWN_OP_BUNKER` → on foot on the bunker floor, zone Bunker. Unit 02 moved to `FRAME_OP_START_02`, `FRAME_OP_BREAKER`, `FRAME_OP_NORTHGATE`, `FRAME_OP_FIGHT`, `FRAME_OP_POSTFIGHT` → standing on the ground each time (root at 30.3–30.4 in the compound, 18.4 on the basin floor at −12), zones Outpost and Basin, weapons free. Output clean.
+
+**Not tested:** driving the route end to end (road → gate → breaker → Pad A → north gate → trail → ramp → basin) and whether every barrier holds; the on-foot route (console, clues, logs, tower stair, mess hall door); dismounting on Pad A and Pad B; the prompts (most are disabled until their steps exist); the Strider fighting in the basin among the rocks.
+
+**Known:** it is a blockout: grey boxes, by design (D-066). No lighting preset work, no out-of-bounds handling yet (the triggers exist, nothing listens).
+
+**Next (Phase 4):** drive and walk the routes and fix what snags; the structure pass of the outpost; then SequenceService with the mission steps S10–S33, deployment, AllyFrameService, checkpoints.

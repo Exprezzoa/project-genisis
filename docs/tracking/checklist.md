@@ -45,7 +45,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [ ] Phase 3 acceptance tests all PASS — 2 to 8 pass (journal); **1 (three fights, 2–3.5 min) needs the user**: their first fight took about a minute, health was raised to 6000 (D-064), re-timing wanted. The user said to go on to Phase 4 (2026-10-10)
 
 ## Phase 4 — First mission flow
-- [ ] Outpost 07 blockout + structure (all areas)
+- [ ] Outpost 07 blockout + structure (all areas) — **blockout built** (D-067): 453 parts, all 53 registry ids, spawns play-tested; routes not yet driven or walked end to end; structure pass to do
 - [ ] SequenceService + actions/conditions; CH1 S10–S33
 - [ ] AllyFrameService
 - [ ] Checkpoints + restore + fail/retry
