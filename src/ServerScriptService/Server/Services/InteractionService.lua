@@ -63,11 +63,22 @@ function InteractionService.canInteract(player: Player, interactId: string): (bo
 	if not humanoid or not root or not root:IsA("BasePart") or humanoid.Health <= 0 then
 		return false, "no living character"
 	end
-	local limit = entry.prompt.MaxActivationDistance + GameConfig.Interaction.DISTANCE_SLACK
-	if (root.Position - entry.part.Position).Magnitude > limit then
-		return false, "too far"
-	end
 	local piloting = isPiloting(humanoid)
+	local frameOnly = entry.part:GetAttribute("FrameOnly") == true
+	local seat = humanoid.SeatPart
+	local frameRoot = if piloting and seat then seat.AssemblyRootPart else nil
+	if frameOnly and frameRoot then
+		-- A Frame-scale prompt is in reach when the Frame is, along the ground; where the pilot sits doesn't count.
+		local apart = (frameRoot.Position - entry.part.Position) * Vector3.new(1, 0, 1)
+		if apart.Magnitude > GameConfig.Interaction.FRAME_REACH + GameConfig.Interaction.DISTANCE_SLACK then
+			return false, "too far"
+		end
+	else
+		local limit = entry.prompt.MaxActivationDistance + GameConfig.Interaction.DISTANCE_SLACK
+		if (root.Position - entry.part.Position).Magnitude > limit then
+			return false, "too far"
+		end
+	end
 	if entry.part:GetAttribute("FrameOnly") and not piloting then
 		return false, "Frame only"
 	end

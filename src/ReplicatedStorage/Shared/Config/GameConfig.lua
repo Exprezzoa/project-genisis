@@ -25,6 +25,13 @@ GameConfig.Tick = {
 GameConfig.Interaction = {
 	-- Added to a prompt's MaxActivationDistance when the server re-checks the distance (latency allowance).
 	DISTANCE_SLACK = 4,
+	-- Frame-scale prompts (docs/13 §4 gives 30 studs, for the 40-stud Frame). The engine measures a prompt from
+	-- the player's character, and the pilot of a 64-stud Frame sits about 49 studs up: with 30 no Frame prompt
+	-- could be reached at all (D-068). So the prompt itself gets FRAME_PROMPT_DISTANCE, which covers the seat's
+	-- height, and the server checks what the doc means: the Frame's root within FRAME_REACH of the prompt,
+	-- measured along the ground (30 x 1.6).
+	FRAME_PROMPT_DISTANCE = 70,
+	FRAME_REACH = 48,
 }
 
 -- Saving (docs/17_saving_progression_monetization.md §2-5).

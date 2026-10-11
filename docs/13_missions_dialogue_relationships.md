@@ -157,6 +157,7 @@ Lines tagged `[E-thought]` in the script use `speaker = "E"` with `style = "thou
 - Every interactable is a part tagged `Interactable` with a `ProximityPrompt` child and attributes: `InteractId` (unique), `FrameOnly` (bool), `OnFootOnly` (bool), `Once` (bool).
 - **The server listens to `ProximityPrompt.Triggered`** (no custom remote). It validates the context (piloting vs. on foot, distance, step state) and routes to the handler registered for that `InteractId` (by the Sequence Runner or by static handlers, e.g. photo, locker, poster).
 - **Prompt visibility:** the server enables a prompt only when it's relevant (step-gated prompts start disabled). **Frame-scale prompts** use `MaxActivationDistance = 30` and `RequiresLineOfSight = false`, and the client only shows them while piloting.
+- **As built (D-068):** Frame-only prompts carry `MaxActivationDistance` 70, because the engine measures from the pilot, who sits about 49 studs up in the 64-stud Frame; the server checks the Frame's root within 48 studs of the prompt along the ground (`GameConfig.Interaction`). **Step-gated prompts** are enabled in the world and switched off per player until their step (D-069).
 - **Custom prompt style:** `ProximityPrompt.Style = Custom`. The client draws its own BillboardGui (`14_ui.md` §4).
 
 ## 5. Triggers (`TriggerService`)

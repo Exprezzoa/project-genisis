@@ -24,6 +24,7 @@ local TitanService = require(script.Parent.TitanService)
 local TitanConfig = require(Shared.Config.TitanConfig)
 local FlagService = require(script.Parent.FlagService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local SequenceService = require(script.Parent.SequenceService)
 
 local TAG = "DebugService"
 
@@ -268,6 +269,25 @@ function handlers.repair(player)
 	end
 	CombatService.repair(frame)
 	return "Frame repaired"
+end
+
+-- /step <stepId>: the Sequence Runner enters that step the way a checkpoint load would.
+function handlers.step(player, args)
+	if not args[1] then
+		local state = SequenceService.getState(player)
+		return if state then ("at %s (%s)"):format(tostring(state.stepId), tostring(state.objective)) else "usage: " .. Debug.Commands.step.usage
+	end
+	local ok, message = SequenceService.jump(player, args[1])
+	return if ok then "step " .. tostring(message) else tostring(message)
+end
+
+-- /checkpoint <id>: load a checkpoint as if rejoining.
+function handlers.checkpoint(player, args)
+	if not args[1] then
+		return "usage: " .. Debug.Commands.checkpoint.usage
+	end
+	local ok, message = SequenceService.loadCheckpoint(player, args[1])
+	return if ok then ("checkpoint %s -> step %s"):format(args[1], tostring(message)) else tostring(message)
 end
 
 function handlers.timescale()

@@ -18,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local UIStyle = require(Shared.Config.UIStyle)
 local Speakers = require(Shared.Dialogue.Speakers)
+local Objectives = require(Shared.Objectives)
 local Net = require(Shared.Modules.Net)
 
 local Components = require(script.Parent.Parent.UI.Components)
@@ -285,6 +286,18 @@ function HUDController.Start()
 	Net.on("UI_Toast", function(payload)
 		if type(payload.text) == "string" then
 			HUDController.toast(payload.text)
+		end
+	end)
+	-- The Sequence Runner's step: its objective, with {n} filled from the step's counter (docs/13 §1.1).
+	Net.on("Seq_State", function(payload)
+		local text = payload.objectiveId and (Objectives :: any)[payload.objectiveId]
+		if text and type(payload.objectiveArgs) == "table" then
+			for key, value in pairs(payload.objectiveArgs) do
+				text = string.gsub(text, "{" .. tostring(key) .. "}", tostring(value))
+			end
+		end
+		if text ~= state.objective then
+			HUDController.setObjective(text)
 		end
 	end)
 	Net.on("Dialogue_Node", function(payload)

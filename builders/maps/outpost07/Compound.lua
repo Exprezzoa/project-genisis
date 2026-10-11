@@ -9,7 +9,7 @@
 --
 --   Builder.Build({ BK = BK, Common = Common, Layout = Layout, pass = "blockout", areas = { "Bunker" } })
 --
--- Prompt texts are placeholders until the mission steps are wired (docs/05).
+-- Prompt texts of the mission's own prompts are the script's (docs/05 S22-S25); the logs' are ours.
 
 local Builder = {}
 
@@ -133,7 +133,7 @@ function areas.Bunker(ctx, T)
 	end
 	-- What the mission needs inside (stand-ins): the comm console and the LOG1 terminal's desk.
 	local console = T.standIn("CommConsole", -4, 0, -42, 4, 3, -38)
-	T.prompt(console, "INT_COMMS_CONSOLE", "Use Comm Console", { hold = 3.0, onFootOnly = true, enabled = false })
+	T.prompt(console, "INT_COMMS_CONSOLE", "Reroute Signal", { hold = 3.0, onFootOnly = true, enabled = false })
 	local log1 = T.standIn("Log1Terminal", -22, 0, -46.5, -18, 3, -43.5)
 	T.prompt(log1, "INT_EV_LOG1", "Read Log", { onFootOnly = true })
 	BK.tag(log1, "EvidenceItem")
@@ -141,7 +141,7 @@ function areas.Bunker(ctx, T)
 	T.box(S, "CommMast", -1.5, 15.5, -31.5, 1.5, 85.5, -28.5, T.STEEL)
 	T.standIn("JunctionBox", 41, 1, -31.5, 43, 4, -28.5)
 	local cable = T.standIn("CutCable", 44.2, 1, -30.8, 45.8, 2, -29.2, { Color = P.STEEL_DARK, CanCollide = false })
-	T.prompt(cable, "INT_CLUE_A", "Examine Cable", { hold = 1.5, onFootOnly = true, enabled = false })
+	T.prompt(cable, "INT_CLUE_A", "Investigate", { hold = 1.5, onFootOnly = true, enabled = false })
 	BK.tag(cable, "EvidenceItem")
 	T.mark("SPAWN_OP_BUNKER", 0, 0, -30, "-Z")
 	T.mark("WP_OP_CONSOLE", 0, 0, -40, "-Z")
@@ -166,7 +166,7 @@ function areas.PowerStation(ctx, T)
 		CanCollide = false,
 	})
 	lever.PrimaryPart = arm
-	T.prompt(arm, "INT_BREAKER", "Throw Breaker", { hold = 2.0, frameOnly = true, dist = 30, enabled = false })
+	T.prompt(arm, "INT_BREAKER", "Reset Breaker", { hold = 2.0, frameOnly = true, enabled = false })
 	T.mark("FRAME_OP_BREAKER", -70, 0, -115, "-X")
 	T.mark("WP_OP_BREAKER", -92, 0, -115, "-X")
 	T.barrier("FrameBarrier_Transformers", -172, -152, -98, -78)
@@ -195,7 +195,7 @@ function areas.Yard(ctx, T)
 		BK.cyl(S, { Name = "FuelTank" .. index, Axis = "X", Size = Vector3.new(22, 6, 6), CFrame = CFrame.new(T.W(-135, 3.5, z)), Color = P.RUST, Material = "CorrodedMetal" })
 	end
 	local gauge = T.standIn("FuelGauge", -124.4, 2, -16.5, -123.6, 4.5, -13.5)
-	T.prompt(gauge, "INT_CLUE_B", "Check Fuel Gauge", { hold = 1.5, onFootOnly = true, enabled = false })
+	T.prompt(gauge, "INT_CLUE_B", "Investigate", { hold = 1.5, onFootOnly = true, enabled = false })
 	BK.tag(gauge, "EvidenceItem")
 	T.barrier("FrameBarrier_Garage", -172, 18, -108, 82)
 	T.barrier("FrameBarrier_Depot", -152, -32, -118, 2)
@@ -232,7 +232,7 @@ function areas.Residential(ctx, T)
 		})
 		if index == 10 then
 			local clue = T.standIn("FootprintClue", at[1] - 1, 0.1, at[2] - 1, at[1] + 1, 0.6, at[2] + 1, { Color = P.STEEL_DARK, CanCollide = false })
-			T.prompt(clue, "INT_CLUE_C", "Examine Footprint", { hold = 1.5, onFootOnly = true, enabled = false })
+			T.prompt(clue, "INT_CLUE_C", "Investigate", { hold = 1.5, onFootOnly = true, enabled = false })
 			BK.tag(clue, "EvidenceItem")
 			print.Name = "WatcherFootprint10_ClueC"
 		end

@@ -676,3 +676,22 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 **Not tested:** the routes driven and walked by a person; actually dismounting on a pad and using a prompt in the outpost; the Strider among the basin's rocks.
 
 **Noted:** in edit mode every collision group collides with every other (the game sets the pairs at run time), so barrier checks have to run in play mode.
+
+**Phase 4, continued: the Sequence Runner and the mission from the arrival to the basin (D-068, D-069)**
+
+**Done:**
+- `Server/Services/SequenceService.lua`; `Shared/Sequences/CH1.lua` (S20–S27); `Shared/Objectives.lua`; `Shared/Dialogue/CH1_Mission.lua` (the script's radio lines AR, SG, PW, CM, IN, TW); the HUD's objective follows `Seq_State`; `/step` and `/checkpoint`; debug phase 4; the outpost's mission prompts carry the script's texts.
+- Fixes: Frame triggers (`who = "frame"`) now fire; Frame-scale prompts are reachable from a 64-stud Frame.
+
+**Tested (how → result):** play mode, driven from the server, the Frame placed with `FrameService.moveTo`.
+- `/checkpoint CH1_DEPLOYED` → S20: fade, Overcast, boarded at the start. Frame into `TRG_OP_SOUTHGATE` → S21, breaker prompt on. Breaker → Power true on `Map.Outpost07`, checkpoint `M01_POWER`, S23. Dismount on Pad A → S24, console on. Console → `M01_COMMS`, S25 with 0/3. Clue B → 1/3; B again → still 1/3; A → 2/3 (flags `CH1_CLUE_A`, `CH1_CLUE_B`); C → S26. Boarding → `M01_TRAIL`, S27. Frame through the three trail triggers and into `TRG_BASIN_ENTRY` → the sequence ends. Fourteen step signals in order.
+- A load: `/checkpoint M01_COMMS` with clues A and B flagged → on foot in the bunker, objective on the client "Investigate the damage (2/3).", only clue C's prompt on.
+- Prompts: before any step all eight step-gated prompts are off and LOG1 is on.
+- **Real prompt holds from the client:** the breaker from `FRAME_OP_BREAKER` → accepted, S23, Power true (from 130 studs away the server refuses it); the Dismount prompt on Pad A → the pilot stands at the exit point (16, 3.2, 24), the Frame kneels, S24.
+- Output clean. All changed files match Studio by checksum.
+
+**Not tested:** the mission played by a person at walking pace (my runs jumped the Frame from trigger to trigger, so the queued radio lines trailed far behind the steps); the console and clue prompts by a real hold on foot; whether the client draws the custom prompt for Frame-scale prompts (the hold worked; I didn't see the prompt's UI); saving and rejoining for real (loads were made with `/checkpoint` in one session); `timer`, `any`, `all` conditions (no step uses them yet).
+
+**Known:** no waypoint markers yet (the positions are sent in `Seq_State`, nothing draws them); the power coming on changes nothing visible (no lights in the blockout); Mara isn't there; radio lines of a finished step keep playing after a fast player has moved on.
+
+**Next:** waypoint markers; S28–S33 (the Strider's rise and the fight, victory, the Watcher, the rover, the upload) with the deployment and return; AllyFrameService; fail and retry through checkpoints; the outpost's structure pass.

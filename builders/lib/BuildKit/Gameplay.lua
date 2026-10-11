@@ -47,7 +47,8 @@ return function(BK)
 	end
 
 	-- ProximityPrompt with the custom style (the client draws the UI, docs/14 section 4).
-	-- frameOnly prompts default to MaxActivationDistance 30 and no line-of-sight check (docs/13 section 4).
+	-- frameOnly prompts default to MaxActivationDistance 70 and no line-of-sight check: the engine measures from
+	-- the pilot, who sits about 49 studs up in a 64-stud Frame (docs/13 section 4 gives 30; GameConfig, D-068).
 	-- Extra opts: once, enabled (step-gated prompts start disabled), lineOfSight, objectText.
 	function BK.prompt(onPart, id, actionText, opts)
 		checkId(id, "BK.prompt")
@@ -63,7 +64,7 @@ return function(BK)
 		prompt.ActionText = actionText or ""
 		prompt.ObjectText = opts.objectText or ""
 		prompt.HoldDuration = opts.hold or 0
-		prompt.MaxActivationDistance = opts.dist or (if frameOnly then 30 else 8)
+		prompt.MaxActivationDistance = opts.dist or (if frameOnly then 70 else 8)
 		prompt.RequiresLineOfSight = if opts.lineOfSight ~= nil then opts.lineOfSight else not frameOnly
 		prompt.Style = Enum.ProximityPromptStyle.Custom
 		prompt.Enabled = opts.enabled ~= false

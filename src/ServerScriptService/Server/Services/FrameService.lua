@@ -23,6 +23,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local FrameConfig = require(Shared.Config.FrameConfig)
+local GameConfig = require(Shared.Config.GameConfig)
 local Log = require(Shared.Modules.Log)
 local Net = require(Shared.Modules.Net)
 local Signal = require(Shared.Modules.Signal)
@@ -30,6 +31,7 @@ local Signal = require(Shared.Modules.Signal)
 local CharacterService = require(script.Parent.CharacterService)
 local CollisionService = require(script.Parent.CollisionService)
 local InteractionService = require(script.Parent.InteractionService)
+local TriggerService = require(script.Parent.TriggerService)
 local ZoneService = require(script.Parent.ZoneService)
 
 local TAG = "FrameService"
@@ -453,6 +455,12 @@ function FrameService.Start()
 		end
 	end
 	RunService.Heartbeat:Connect(regenerate)
+	-- Triggers with who = "frame" test the root of the Frame the player pilots (docs/13 §5).
+	TriggerService.setPointProvider("frame", function(player)
+		local frame = piloted[player]
+		local root = frame and frame.PrimaryPart
+		return if root then root.Position else nil
+	end)
 	ZoneService.ZoneChanged:Connect(updateWeaponsLock)
 	-- Dismount prompts: one Frame-scale prompt per pad.
 	local function addPad(pad)
@@ -461,7 +469,7 @@ function FrameService.Start()
 		if type(padId) ~= "string" or not anchor or anchor:FindFirstChildOfClass("ProximityPrompt") then
 			return
 		end
-		addPrompt(anchor, padId, "Dismount", "", { hold = 0.8, dist = 30, frameOnly = true })
+		addPrompt(anchor, padId, "Dismount", "", { hold = 0.8, dist = GameConfig.Interaction.FRAME_PROMPT_DISTANCE, frameOnly = true })
 		InteractionService.register(padId, function(player)
 			local ok, reason = FrameService.dismount(player, padId)
 			if not ok then
