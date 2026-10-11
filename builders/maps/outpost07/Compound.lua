@@ -272,6 +272,14 @@ function areas.Tower(ctx, T)
 	for _, rail in ipairs({ { "N", -10, -10, 10, -9.5 }, { "W", -10, -10, -9.5, 10 }, { "E", 9.5, -10, 10, 6.5 } }) do
 		T.box(S, "Rail_" .. rail[1], cx + rail[2], 50, cz + rail[3], cx + rail[4], 53.5, cz + rail[5], { Color = P.STEEL_DARK, Material = "Metal" })
 	end
+	-- Rails round the stairwell opening and the arrival landing, so nobody steps off the platform's edge onto
+	-- the flight below or off the landing's outer sides.
+	local rail = { Color = P.STEEL_DARK, Material = "Metal" }
+	T.box(S, "Rail_Well_N", cx - 7, 50, cz + 6, cx + 6.5, 53.5, cz + 6.5, rail)
+	T.box(S, "Rail_Well_W", cx - 7, 50, cz + 6.5, cx - 6.5, 53.5, cz + 10, rail)
+	T.box(S, "Rail_Landing_E", cx + 10, 50, cz + 6.5, cx + 10.5, 53.5, cz + 10.5, rail)
+	T.box(S, "Rail_Landing_S", cx + 6.5, 50, cz + 10, cx + 10.5, 53.5, cz + 10.5, rail)
+	T.box(S, "Rail_SW_S", cx - 10, 50, cz + 9.5, cx - 7, 53.5, cz + 10, rail)
 	local light = T.standIn("Searchlight", cx - 1.5, 50, cz - 1.5, cx + 1.5, 54, cz + 1.5)
 	T.prompt(light, "INT_EV_LOG3", "Read Note", { onFootOnly = true })
 	BK.tag(light, "EvidenceItem")

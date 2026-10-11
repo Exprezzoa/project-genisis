@@ -662,3 +662,17 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 **Known:** it is a blockout: grey boxes, by design (D-066). No lighting preset work, no out-of-bounds handling yet (the triggers exist, nothing listens).
 
 **Next (Phase 4):** drive and walk the routes and fix what snags; the structure pass of the outpost; then SequenceService with the mission steps S10–S33, deployment, AllyFrameService, checkpoints.
+
+**Phase 4, continued: the outpost's routes checked**
+
+**Tested (how → result):** play mode, real collision groups.
+- A box the size of a Frame's root moved along Unit 02's route in 4-stud steps (road, east lane past the truck, south gate, courtyard, breaker, Pad A, round the bunker's east side, north gate, trail, ramp, basin, Pad B; 485 samples) → nothing in the way except one courtyard floodlight pole my test path clipped. The same box pushed at the west wall and over the bunker → stopped by their FrameBarriers. At both gates and the east breach a Frame is free.
+- A character-sized box along the on-foot route (Pad A's exit, bunker door, corridor, ops room, Clue A, Clue C, mess hall door, the table with LOG2, Clue B; 281 samples) → clear apart from a pole and the yard truck on my test path. Bunk room and armory doors clear. On foot the gates, the breach and the rover fence are closed by their PlayerBarriers.
+- The tower stair walked with `Humanoid:MoveTo`: all five landings reached at heights 10.3, 20.3, 30.3, 40.3 and 50.2 in 20.7 s; from the top landing north and west to the searchlight, 4.5 studs from the LOG3 prompt.
+- Both dismount pads got their Dismount prompt from FrameService. Output clean.
+
+**Changed:** rails round the tower platform's stairwell opening and the arrival landing (458 parts in all). I first read the character's drop to 46 studs as a fall into the well; it had walked down the top flight, which is what heading west off the landing does.
+
+**Not tested:** the routes driven and walked by a person; actually dismounting on a pad and using a prompt in the outpost; the Strider among the basin's rocks.
+
+**Noted:** in edit mode every collision group collides with every other (the game sets the pairs at run time), so barrier checks have to run in play mode.
