@@ -73,7 +73,7 @@ Offsets are relative to the HRP center. The **server swaps the weld C0** when th
 
 | Stat | Value |
 |---|---|
-| HP | 2400 |
+| HP | **6000** (was 2400; raised after the user's one-minute fight, D-064) |
 | HP regen | +10 HP/s when not `Downed` and no HP damage taken for 4.0 s |
 | Poise | 300 base; **+60 max poise after each break** (300 → 360 → 420 → 480 cap) |
 | Poise regen | 25/s after 3.0 s without poise damage |

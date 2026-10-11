@@ -632,3 +632,15 @@ Titans get human skin, human faces and random marketplace hair; Frames stay mach
 **Known:** the retry card promises a checkpoint that doesn't exist yet; the reticle shows while locked on; a Lunge passes through the Frame; no path-finding; no sounds; the limp is slower walking only, not a limp in the animation.
 
 **Next:** the user's three fights for acceptance test 1 and their verdict on feel; then Phase 4 (first mission flow).
+
+**Session 6, continued: the user's fight, swing hit areas (D-064, D-065, D-066)**
+
+The user fought the Strider: "It took about a minute", against a target of 2–3.5 minutes; the swings' hit areas felt wrong ("just a huge box and not the sword"); the built structures look too simple (they are the blockout / structure passes; the dressed pass is Phase 7, D-066). The user said to go on to Phase 4.
+
+**Done:** Strider health 2400 → 6000; swing boxes enlarged to the blade's sweep, with a `reach` that trims their corners.
+
+**Tested (how → result):** blade extents measured on the clips in edit mode (Light1: 82 studs ahead, 74 left, 94 right). Play mode: one Light1 with passive Striders 70 studs ahead, 60 to the side and 25 ahead, and 105 ahead → the first two lost 61 HP each, the third none. Studio had been restarted: helpers redefined, all sources still matched by checksum.
+
+**Not tested:** fight length with 6000 HP (needs the user); Light3, Heavy and the Pile Driver's new boxes in play; `/hitboxes` drawing the new sizes.
+
+**Phase 3 status:** everything built; acceptance test 1 stays open until the user has timed three fights with the new health. The user approved moving on to Phase 4.

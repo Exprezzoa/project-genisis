@@ -13,7 +13,7 @@ TitanConfig.Strider = {
 	displayName = "STRIDER-CLASS — UNREGISTERED",
 	classTier = 3,
 	height = 56,
-	hp = 2400,
+	hp = 6000, -- was 2400: the user's fight took about a minute against a 2-3.5 minute target (D-064)
 	hpRegen = { rate = 10, delay = 4.0 }, -- per second, once no HP damage came for `delay`; never while Downed
 	poise = { base = 300, perBreak = 60, cap = 480, regen = 25, regenDelay = 3.0 },
 	flinch = { threshold = 60, window = 1.5, duration = 0.6, cooldown = 4.0 },

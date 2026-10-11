@@ -64,6 +64,8 @@ Boxes are defined in the **Frame HRP's local space** (HRP center at Y 19 above t
 | Heavy | 34 × 30 × 30 | (0, −2, −14) | (0, −1, −20) → ~18 above ground |
 | Pile Driver | 10 × 12 × 26 | (−4, −7, −16) | (−3, −9, −24) → ~10 above ground |
 
+**As built (2026-10-10, D-065, user direction):** the boxes above are replaced by ones that cover what the blade sweeps: Light1 / Light2 100 × 30 × 56 at (0, −2, −24.5); Light3 29 × 34 × 51 at (7, −3, −27); Heavy 105 × 30 × 59 at (0, −2, −25.5); Pile Driver 22.5 × 15 × 30 at (−7.5, −6.5, −16). A move's `reach` (52.5; Heavy 55) leaves out hurtboxes whose near side is further from the Frame than that. Aim points are unchanged.
+
 **Sampling:** during the Active window, the server runs `workspace:GetPartBoundsInBox(boxCFrame, size, overlapParams)` at **20 Hz** (first sample at active start, last at active end), with `OverlapParams` whitelisting parts tagged `Hurtbox` that have `CanQuery = true`. **Each target can be hit at most once per attack.**
 
 **Zone choice** (one zone per target per attack):

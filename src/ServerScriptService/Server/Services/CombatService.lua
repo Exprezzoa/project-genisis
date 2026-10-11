@@ -300,6 +300,16 @@ local function land(action, frame, model, hurtbox)
 	})
 end
 
+-- A swing's box is as wide as the blade's sweep, so its far corners lie further out than the blade gets:
+-- a hurtbox counts only if its near side is within the move's reach of the Frame.
+local function inReach(root, hurtbox, reach)
+	if not reach then
+		return true
+	end
+	local offset = (hurtbox.Position - root.Position) * Vector3.new(1, 0, 1)
+	return offset.Magnitude - math.max(hurtbox.Size.X, hurtbox.Size.Z) / 2 <= reach + CombatConfig.LAG_PAD
+end
+
 -- One hitbox sample: every target the box touches that this attack hasn't hit yet takes one hit, on the
 -- locked zone if the box touches it, else on the touched hurtbox nearest to the move's aim point.
 local function sample(frame, action)
@@ -317,7 +327,7 @@ local function sample(frame, action)
 	local best = {} -- [model] = { hurtbox, distance }
 	for _, hurtbox in ipairs(parts) do
 		local model = targetOf(hurtbox)
-		if model and not action.hit[model] then
+		if model and not action.hit[model] and inReach(root, hurtbox, move.reach) then
 			local locked = lock and lock.targetId == model:GetAttribute("TargetId") and lock.zone == hurtbox:GetAttribute("Zone")
 			local distance = if locked then -1 else (hurtbox.Position - aim).Magnitude
 			if not best[model] or distance < best[model].distance then
