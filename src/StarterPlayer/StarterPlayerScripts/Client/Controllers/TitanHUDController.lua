@@ -34,6 +34,7 @@ local PROMPT = Vector2.new(260, 64)
 local VIGNETTE = { depth = 0.34, peak = 0.55, reduced = 0.25, time = 0.3 } -- docs/14 §5.1, §7 (Reduce Flashing)
 local BAR_Y = 28
 local JITTER = { pixels = 3, time = 0.15 }
+local NO_BAR = { Dead = true, Dormant = true, Rising = true, Standby = true } -- the bar appears when the fight starts (docs/05 S28)
 
 local root
 local frame = nil -- the piloted Frame
@@ -276,7 +277,7 @@ local function pick(model)
 	local best, bestDistance = nil, SHOW_WITHIN
 	for _, titan in ipairs(folder:GetChildren()) do
 		local titanRoot = titan:IsA("Model") and titan.PrimaryPart
-		if titanRoot and titan:GetAttribute("State") ~= "Dead" and titan:GetAttribute("HP") ~= nil then
+		if titanRoot and not NO_BAR[titan:GetAttribute("State")] and titan:GetAttribute("HP") ~= nil then
 			local distance = (titanRoot.Position - rootPart.Position).Magnitude
 			if distance < bestDistance then
 				best, bestDistance = titan, distance

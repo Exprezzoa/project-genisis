@@ -3,7 +3,7 @@
 --
 -- The radio lines of the Outpost 07 mission up to the basin. Line ids and text are exactly the script's; the
 -- dialogue ids (DLG_M01_...) are ours. All are "radio" mode: the server steps through them by itself.
--- S28 onward (the fight, the Watcher, the rover) is added with those steps.
+-- The fight's lines (S28, S30) are here; the Watcher and the rover (S31-S33) are added with those steps.
 
 local function radio(lines: { { string } })
 	local nodes = {}
@@ -72,5 +72,19 @@ return {
 	}),
 	DLG_M01_TRAIL_3 = radio({
 		{ "TW_07", "O", "Ember Squad, you're approaching Kessler Basin. Old reservoir. Visibility's going to drop." },
+	}),
+	DLG_M01_CONTACT = radio({
+		{ "ST_01", "M", "Contact! That's—that's no Class-Two!" },
+		{ "ST_02", "O", "Ember Squad, readings put it at Class-Three. You're authorized to withdraw—" },
+		{ "ST_03", "M", "It's sitting on the trail. We take it here. Eli, ankles first—bring it down!" },
+	}),
+	DLG_M01_FAIL = radio({
+		{ "FAIL_M1", "M", "Eli! Come on—get up, get up!" },
+	}),
+	DLG_M01_VICTORY = radio({
+		{ "VI_01", "M", "...Is it—" },
+		{ "VI_02", "E", "It's ashing." },
+		{ "VI_03", "M", "Good. Good. Ember-1 to Overwatch. Target down." },
+		{ "VI_04", "O", "Overwatch copies. Nice work, both of you. Secure the area." },
 	}),
 }

@@ -51,6 +51,16 @@ return {
 	},
 	clips = {
 		Idle = { duration = 1, loop = true, keys = { { t = 0, pose = "Idle" } } },
+		-- Before the fight (docs/05 S28): crouched with its hands on the ground, then it rises in 2.5 s.
+		Dormant = { duration = 1, loop = true, blendIn = 0, keys = { { t = 0, pose = downed() } } },
+		Rise = {
+			duration = 2.5, blendIn = 0, blendOut = 0.25,
+			keys = {
+				{ t = 0.00, pose = downed() },
+				{ t = 1.10, ease = "SineInOut", pose = crouch(55, { Root = p(0, -10, 0), Waist = r(-45), Neck = r(25), LeftShoulder = r(30, 0, -15), RightShoulder = r(30, 0, 15) }) },
+				{ t = 2.50, ease = "QuadInOut", pose = "Idle" },
+			},
+		},
 
 		-- The right arm pulls back across the body, then sweeps a wide arc at chest height.
 		Sweep = {

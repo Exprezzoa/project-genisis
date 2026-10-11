@@ -6,7 +6,9 @@
 -- (its state machine, attacks, Downed, death) is its behavior module's job: Server/Titans/Behaviors/<type>,
 -- one instance per Titan, stepped from here. Titans are server-owned.
 --
---   spawn(typeName, groundCFrame, opts?) -> model        opts: { seed = number, passive = boolean }
+--   spawn(typeName, groundCFrame, opts?) -> model        opts: { seed, passive, dormant (crouched and untouchable
+--                                                        until told to rise), firstSweepWindup (docs/05 S28) }
+--   command(model, name)              a word for the behavior: "Rise", "StartFight"
 --   despawn(model)        getTitans() -> { model }       getById(targetId) -> model?
 --   getEntry(model) -> entry          (the behavior reads and writes hp, poise, maxPoise, anklePoise, coreHeld)
 --   setHurtboxState(model, "Standing" | "Downed" | "LungeRecover")
@@ -69,10 +71,20 @@ function TitanService.getEntry(model)
 	return titans[model]
 end
 
-function TitanService.playAnim(model, clip, speed)
+-- offset = seconds into the clip to start at (to pick a clip up at a known point at another speed).
+function TitanService.playAnim(model, clip, speed, offset)
 	model:SetAttribute("AnimSpeed", speed or 1)
 	model:SetAttribute("Anim", clip)
-	model:SetAttribute("AnimT0", now())
+	model:SetAttribute("AnimT0", now() - (offset or 0))
+end
+
+function TitanService.command(model, name)
+	local entry = titans[model]
+	if entry and entry.behavior and entry.behavior.command then
+		entry.behavior:command(name)
+		return true
+	end
+	return false
 end
 
 function TitanService.setState(model, state)
@@ -106,7 +118,7 @@ end
 -- A hit of a Frame's attack on this Titan (docs/12 §6).
 local function takeHit(model, hit)
 	local entry = titans[model]
-	if not entry or entry.dead then
+	if not entry or entry.dead or entry.invulnerable then
 		return
 	end
 	local t = now()
@@ -187,7 +199,7 @@ function TitanService.spawn(typeName, groundCFrame, opts)
 
 	local entry = {
 		config = config, hp = config.hp, poise = config.poise.base, maxPoise = config.poise.base, lastHurt = 0, lastPoiseHurt = 0,
-		published = 0, hurtboxes = {}, id = id, typeName = typeName, spawn = groundCFrame,
+		published = 0, hurtboxes = {}, id = id, typeName = typeName, spawn = groundCFrame, invulnerable = opts.dormant == true,
 	}
 	model:SetAttribute("TitanType", typeName)
 	model:SetAttribute("DisplayName", config.displayName)
@@ -255,6 +267,7 @@ function TitanService.spawn(typeName, groundCFrame, opts)
 			return require(source).new({
 				model = model, root = root, humanoid = humanoid, facing = facing, config = config, entry = entry,
 				attacks = CombatConfig.TitanAttacks[typeName], service = TitanService,
+				dormant = opts.dormant == true, firstSweepWindup = opts.firstSweepWindup,
 			})
 		end)
 		if ok then

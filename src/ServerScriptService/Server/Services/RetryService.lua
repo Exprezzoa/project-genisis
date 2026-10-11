@@ -7,6 +7,7 @@
 -- screen fades in. Nothing is lost or saved here.
 --
 --   getSafe(frame) -> CFrame?        the ground CFrame a retry would use
+--   setOwner(fn)                     fn(frame) -> true when something else (the Sequence Runner) handles this one
 --   Retried: Signal(frame)
 
 local Players = game:GetService("Players")
@@ -33,6 +34,7 @@ RetryService.Retried = Signal.new()
 
 local safe = {} -- [frame] = ground CFrame
 local running = {} -- [frame] = true while a retry runs
+local owner = nil
 
 local function groundCFrame(frame)
 	local root = frame.PrimaryPart
@@ -53,12 +55,16 @@ local function titansNear(position, range)
 	return list
 end
 
+function RetryService.setOwner(fn)
+	owner = fn
+end
+
 function RetryService.getSafe(frame)
 	return safe[frame]
 end
 
 local function retry(frame)
-	if running[frame] then
+	if running[frame] or (owner and owner(frame)) then
 		return
 	end
 	running[frame] = true

@@ -2,7 +2,8 @@
 -- Shared/Sequences/CH1.lua  (docs/13_missions_dialogue_relationships.md §1; docs/05_chapter1_script.md)
 --
 -- Chapter 1 as data for the Sequence Runner. So far: the Outpost 07 mission from the arrival to the basin's edge
--- (S20-S27). The hub scenes (S01-S10) come with Phase 5, the fight and what follows (S28-S33) next.
+-- and the fight (S20-S30). The hub scenes (S01-S10) come with Phase 5; the Watcher, the rover and the upload
+-- (S31-S33) next. The cinematics of S28 are Phase 5's: for now the Strider just rises while the lines play.
 -- Step ids follow the script's scene numbers. A step with `checkpoint` saves when it completes, or when it
 -- begins with checkpointOnEnter (docs/13 §1.1). `checkpoints` says which step a saved checkpoint loads into
 -- (docs/05 §11); that step's onRestore puts the player where the table says.
@@ -10,6 +11,7 @@
 local CLUES = { "INT_CLUE_A", "INT_CLUE_B", "INT_CLUE_C" }
 local CLUE_FLAGS = { INT_CLUE_A = "CH1_CLUE_A", INT_CLUE_B = "CH1_CLUE_B", INT_CLUE_C = "CH1_CLUE_C" }
 local POWER_ON = { "zoneState", zone = "Outpost07", key = "Power", value = true }
+local STRIDER_DORMANT = { "spawnTitan", type = "Strider", id = "STRIDER", spawn = "TITAN_STRIDER_DORMANT", state = "Dormant", firstSweepWindup = 1.8 }
 local TUT_DISMOUNT = { "tutorial", id = "TUT_DISMOUNT", text = "DISMOUNT — Stand on a landing pad and use the prompt. You can only leave your Frame on pads." }
 -- A clue's prompt stays off for a player who found it before a reload.
 local CLUE_PROMPTS = {
@@ -31,6 +33,7 @@ return {
 		M01_POWER = "S23_DISMOUNT",
 		M01_COMMS = "S25_INVESTIGATE",
 		M01_TRAIL = "S27_TRAIL",
+		M01_FIGHT = "S28_STRIDER",
 	},
 	steps = {
 		{
@@ -91,6 +94,10 @@ return {
 			onEnter = CLUE_PROMPTS,
 			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "teleport", spawn = "SPAWN_OP_BUNKER" }, table.unpack(CLUE_PROMPTS) },
 			objective = "OBJ_M01_INVESTIGATE",
+			waypoint = {
+				{ interact = "INT_CLUE_A", unlessFlag = "CH1_CLUE_A" }, { interact = "INT_CLUE_B", unlessFlag = "CH1_CLUE_B" },
+				{ interact = "INT_CLUE_C", unlessFlag = "CH1_CLUE_C" },
+			},
 			-- Found clues are kept as flags, so they survive a reload (docs/05 §11).
 			complete = { "counter", ids = CLUES, n = 3, flags = CLUE_FLAGS },
 			parallel = { clue("A"), clue("B"), clue("C") },
@@ -105,7 +112,9 @@ return {
 		},
 		{
 			id = "S27_TRAIL",
-			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_NORTHGATE" } },
+			-- The Strider waits in the basin, crouched with its back to the trail (docs/05 S28).
+			onEnter = { STRIDER_DORMANT },
+			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_NORTHGATE" }, STRIDER_DORMANT },
 			objective = "OBJ_M01_TRAIL",
 			waypoint = { spawn = "FRAME_OP_FIGHT" },
 			parallel = {
@@ -114,6 +123,38 @@ return {
 				{ when = { "trigger", id = "TRG_TRAIL_3", who = "frame" }, actions = { { "dialogue", id = "DLG_M01_TRAIL_3" } } },
 			},
 			complete = { "trigger", id = "TRG_BASIN_ENTRY", who = "frame" },
+		},
+		{
+			id = "S28_STRIDER", -- and S30: the fight and the victory
+			checkpoint = "M01_FIGHT", checkpointOnEnter = true,
+			onEnter = {
+				{ "titanCommand", id = "STRIDER", command = "Rise" },
+				{ "wait", seconds = 2.5 },
+				{ "dialogue", id = "DLG_M01_CONTACT", block = true },
+				{ "titanCommand", id = "STRIDER", command = "StartFight" },
+				{ "objective", id = "OBJ_M01_FIGHT" }, -- set when ST_03 finishes (docs/05 §13)
+				{ "tutorial", id = "TUT_LOCK", text = "LOCK ON — R / R3 / LOCK. Cycle targets with C / D-pad ← → / tap LOCK again." },
+			},
+			-- A retry: the Frame repaired at the fight spawn, the Strider already standing, no rise (docs/05 S28).
+			onRestore = {
+				{ "lighting", preset = "OVERCAST", instant = true }, POWER_ON,
+				{ "frame", command = "forceBoard", spawn = "FRAME_OP_FIGHT" },
+				{ "frame", command = "repair" },
+				{ "spawnTitan", type = "Strider", id = "STRIDER", spawn = "TITAN_STRIDER_DORMANT" },
+				{ "fade", to = 0, duration = 0.35 },
+				{ "titanCommand", id = "STRIDER", command = "StartFight" },
+				{ "objective", id = "OBJ_M01_FIGHT" },
+			},
+			onFail = {
+				{ "dialogue", id = "DLG_M01_FAIL", block = true },
+				{ "fade", to = 1, duration = 0.35 },
+			},
+			complete = { "event", name = "TitanDefeated" },
+			onComplete = {
+				{ "wait", seconds = 3 },
+				{ "dialogue", id = "DLG_M01_VICTORY", block = true },
+				{ "checkpoint", id = "M01_TITAN_DOWN" },
+			},
 		},
 	},
 }

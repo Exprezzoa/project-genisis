@@ -7,7 +7,10 @@
 -- One instance per Titan, made and stepped by TitanService. Numbers: TitanConfig.Strider and
 -- CombatConfig.TitanAttacks.Strider.
 --
--- Published State: Idle | Engage | Telegraph | Active | Recover | Flinch | Downed | GetUp | Dead, with Attack,
+-- Before a scripted fight it can start Dormant (crouched, untouchable): command("Rise") stands it up, and it
+-- then waits, turning to its target, until command("StartFight").
+--
+-- Published State: Dormant | Rising | Standby | Idle | Engage | Telegraph | Active | Recover | Flinch | Downed | GetUp | Dead, with Attack,
 -- AttackT0 and AttackWindup while an attack runs (clients draw the telegraphs from these).
 
 local Debris = game:GetService("Debris")
@@ -24,6 +27,7 @@ local FrameService = require(Server.Services.FrameService)
 
 local SAMPLE_INTERVAL = 1 / 20 -- hit tests per second during an active window (docs/12 §7)
 local RETARGET = 1.0
+local RISE_TIME = 2.5 -- the Rise clip (docs/05 S28, Shot 2)
 local APPROACH_COMMIT = 1.0 -- seconds it keeps walking after the attack choice came out as "Approach"
 local LUNGE_STOP = 2 -- studs short of a wall the Lunge ends
 local UNTARGETABLE = { Parked = true, Kneeling = true, Starting = true, Disabled = true }
@@ -253,6 +257,47 @@ end
 ----------------------------------------------------------------------------------------------------------------
 local STATES = {}
 
+-- Before a scripted fight (docs/05 S28): crouched with its hands on the ground until told to rise.
+STATES.Dormant = {
+	enter = function(machine)
+		local self = machine.context
+		self:stop()
+		self.service.setState(self.model, "Dormant")
+		self.service.playAnim(self.model, "Dormant")
+	end,
+}
+
+STATES.Rising = {
+	enter = function(machine)
+		local self = machine.context
+		self.service.setState(self.model, "Rising")
+		self.service.playAnim(self.model, "Rise")
+	end,
+	update = function(machine)
+		if machine:timeInState() >= RISE_TIME then
+			machine:transition("Standby")
+		end
+	end,
+}
+
+-- On its feet, turning to whoever is there, not attacking yet.
+STATES.Standby = {
+	enter = function(machine)
+		local self = machine.context
+		self.service.setState(self.model, "Standby")
+		self.service.playAnim(self.model, "Idle")
+	end,
+	update = function(machine, dt)
+		local self = machine.context
+		self.retargetClock += dt
+		if self.retargetClock >= RETARGET or not self.target then
+			self.retargetClock = 0
+			self:pickTarget()
+		end
+		self:face(dt, self.config.turnRate.approach)
+	end,
+}
+
 STATES.Idle = {
 	enter = function(machine)
 		local self = machine.context
@@ -321,11 +366,17 @@ STATES.Telegraph = {
 		self:stop()
 		local spec = self.attacks[name]
 		local scale = if self.enraged and name ~= "Roar" then self.attacks.enrage.windupScale else 1
-		self.attack = { name = name, spec = spec, windup = spec.windup * scale, hit = {} }
+		local windup, resync = spec.windup * scale, false
+		if name == "Sweep" and self.firstSweepWindup and not self.sweptOnce then
+			-- The first Sweep of a scripted fight is slow, so the player can learn to read it (docs/05 S28).
+			self.sweptOnce = true
+			windup, resync = self.firstSweepWindup, true
+		end
+		self.attack = { name = name, spec = spec, windup = windup, hit = {}, resync = resync }
 		table.insert(self.history, name)
 		self.service.setState(self.model, "Telegraph")
-		-- Played faster when enraged, so the clip reaches its strike as the shorter windup ends.
-		self.service.playAnim(self.model, spec.clip, 1 / scale)
+		-- The clip's speed follows the windup, so it reaches its strike as the windup ends.
+		self.service.playAnim(self.model, spec.clip, spec.windup / windup)
 		self.model:SetAttribute("AttackT0", now())
 		self.model:SetAttribute("AttackWindup", self.attack.windup)
 		self.model:SetAttribute("Attack", name)
@@ -344,6 +395,10 @@ STATES.Active = {
 		local self = machine.context
 		self.service.setState(self.model, "Active")
 		self.attack.activeStart = now()
+		if self.attack.resync then
+			-- A slowed windup is over: the strike and the recovery play at their own speed.
+			self.service.playAnim(self.model, self.attack.spec.clip, 1, self.attack.spec.windup)
+		end
 		self.sampleClock = SAMPLE_INTERVAL
 		if self.attack.spec.shape == "Path" then
 			self:startLunge()
@@ -564,6 +619,18 @@ function Strider:reset()
 	self.machine:transition("Idle")
 end
 
+-- A word from the mission's script (TitanService.command).
+function Strider:command(name)
+	local state = self.machine:getState()
+	if name == "Rise" and state == "Dormant" then
+		self.machine:transition("Rising")
+	elseif name == "StartFight" and (state == "Dormant" or state == "Rising" or state == "Standby") then
+		self.entry.invulnerable = nil
+		self.cooldownUntil = now() + 1
+		self.machine:transition("Engage")
+	end
+end
+
 function Strider:step(dt)
 	self.machine:update(dt)
 end
@@ -589,7 +656,7 @@ function Strider.new(context)
 	self.decisionClock, self.retargetClock, self.lastMove = 0, 0, 0
 	self.cooldownUntil, self.nextRoar, self.flinchReadyAt = now() + 1, 0, 0
 	self.enraged = false
-	self.machine = StateMachine.new(STATES, "Idle", self)
+	self.machine = StateMachine.new(STATES, if self.dormant then "Dormant" else "Idle", self)
 	self.hitConnection = self.service.Hit:Connect(function(model, hit, result)
 		if model == self.model then
 			self:onHit(hit, result)

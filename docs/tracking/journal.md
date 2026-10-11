@@ -695,3 +695,23 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 **Known:** no waypoint markers yet (the positions are sent in `Seq_State`, nothing draws them); the power coming on changes nothing visible (no lights in the blockout); Mara isn't there; radio lines of a finished step keep playing after a fast player has moved on.
 
 **Next:** waypoint markers; S28–S33 (the Strider's rise and the fight, victory, the Watcher, the rover, the upload) with the deployment and return; AllyFrameService; fail and retry through checkpoints; the outpost's structure pass.
+
+**Phase 4, continued: waypoints, the Strider's rise and the fight step (S28, S30)**
+
+**Done:**
+- `WaypointController` (markers in screen space: diamond and distance on the spot, an arrow on the screen's edge while it is off screen); the three clues are waypoints until found.
+- Strider: `Dormant`, `Rising`, `Standby` states, `command("Rise" / "StartFight")`, untouchable until the fight starts, the first Sweep with a 1.8 s windup; clips `Dormant` and `Rise`. The Titan bar stays away until the fight starts.
+- Sequence Runner: `spawnTitan`, `despawnTitan`, `titanCommand`, `proximity`, a poll for unannounced conditions, `onFail` (the card, the step's fail actions, the checkpoint loaded again; RetryService stands back for such a step). Step S28 with the script's lines ST, FAIL, VI.
+
+**Tested (how → result):** play mode.
+- `/checkpoint M01_TRAIL` → S27, the Strider crouched in the basin (state Dormant) at its marker. Frame into the basin → S28, checkpoint `M01_FIGHT`; Rising for 2.5 s, Standby while the three lines play, Engage at 15.0 s with the objective "Defeat the Titan." and the Titan bar on.
+- The first Sweep's windup 1.80 s, the next 1.10 (0.96 once enraged).
+- Fail: Frame disabled → 6.5 s later step S28 again, Frame Idle with 1000 Integrity at the fight spawn, the old Strider gone, a new one engaging with 6000 HP.
+- Kill: Strider at 400 HP brought down, a Core Strike requested by a client script the moment the core showed → Dead 1.9 s after the break → victory lines → checkpoint `M01_TITAN_DOWN` → the sequence ends; no Titan left.
+- Output clean.
+
+**Bug found and fixed:** `WaypointController` was already in the client's load list, so my added entry loaded it twice.
+
+**Not tested:** the waypoint markers themselves (state and picture; the controller was loaded twice in this run); the Rise clip and the slow Sweep as animation; a Core Strike kill from a key press in a real fight (mine arrived after the core had closed, so the kill was made with a timed script).
+
+**Known:** S28's three shots are a Phase 5 cinematic; for now the Strider rises while the player keeps control. The tutorial hints of S28 other than `TUT_LOCK`, and the fight barks, wait for their controllers.

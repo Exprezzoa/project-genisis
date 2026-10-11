@@ -15,9 +15,11 @@
 --
 -- Built so far (the rest of docs/13 §1.2-1.3 comes with the steps that need it): actions fade, lighting,
 -- teleport, wait, setFlag, clearFlag, objective, prompt, dialogue (radio lines, stepped here until
--- DialogueService exists), tutorial (a toast for now), zoneState, checkpoint, frame (forceBoard, repair);
--- conditions trigger, interact, counter, event, timer, any, all.
+-- DialogueService exists), tutorial (a toast for now), zoneState, checkpoint, frame (forceBoard, repair),
+-- spawnTitan, despawnTitan, titanCommand; conditions trigger, interact, counter, event, timer, proximity, any,
+-- all. A step's onFail runs when the player's Frame is disabled during it, then its checkpoint is loaded.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -32,12 +34,15 @@ local FlagService = require(script.Parent.FlagService)
 local FrameService = require(script.Parent.FrameService)
 local InteractionService = require(script.Parent.InteractionService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local RetryService = require(script.Parent.RetryService)
 local TitanService = require(script.Parent.TitanService)
 local TriggerService = require(script.Parent.TriggerService)
 
 local TAG = "SequenceService"
 local LINE_GAP = 0.25 -- seconds of silence between two radio lines
 local PLAYER_UNIT = "02"
+local POLL = 0.25 -- seconds between looks at the conditions nothing announces (proximity)
+local FAIL_CARD = 2.5 -- the FRAME DISABLED card (docs/14) before a failed step's onFail runs
 
 local SequenceService = {}
 
@@ -102,6 +107,15 @@ local function waypointsOf(runner, spec)
 			end
 		elseif entry.pos then
 			table.insert(list, entry.pos)
+		elseif entry.interact then
+			-- The interactable itself, unless the player has the flag that says it is done.
+			if not (entry.unlessFlag and FlagService.has(runner.player, entry.unlessFlag)) then
+				for _, part in ipairs(CollectionService:GetTagged("Interactable")) do
+					if part:GetAttribute("InteractId") == entry.interact and part:IsA("BasePart") then
+						table.insert(list, part.Position)
+					end
+				end
+			end
 		elseif entry.entity == "Frame:Player" then
 			local frame = FrameService.getFrame(PLAYER_UNIT)
 			if frame and frame.PrimaryPart then
@@ -231,6 +245,32 @@ function actions.frame(runner, a)
 	end
 end
 
+-- Titans of the mission are known to the steps by an id of their own (docs/13 §1.2).
+function actions.despawnTitan(runner, a)
+	local model = runner.titans[a.id]
+	runner.titans[a.id] = nil
+	if model and model.Parent then
+		TitanService.despawn(model)
+	end
+end
+
+function actions.spawnTitan(runner, a)
+	actions.despawnTitan(runner, a)
+	local cframe = CharacterService.getSpawnCFrame(a.spawn)
+	if not cframe then
+		Log.warn(TAG, "spawnTitan: no spawn %s", tostring(a.spawn))
+		return
+	end
+	runner.titans[a.id] = TitanService.spawn(a.type, cframe, { dormant = a.state == "Dormant", firstSweepWindup = a.firstSweepWindup })
+end
+
+function actions.titanCommand(runner, a)
+	local model = runner.titans[a.id]
+	if model and model.Parent then
+		TitanService.command(model, a.command)
+	end
+end
+
 local function runActions(runner, token, list, restoring)
 	for _, action in ipairs(list or {}) do
 		if runner.token ~= token or not runner.player.Parent then
@@ -318,6 +358,16 @@ local function compile(runner, token, cond)
 				return elapsed
 			end,
 		}
+	elseif kind == "proximity" then
+		-- The player's Frame (or the character on foot) within `radius` of a spawn marker, along the ground.
+		local function near()
+			local frame = FrameService.getPiloted(player)
+			local character = player.Character
+			local body = if frame then frame.PrimaryPart else (character and character:FindFirstChild("HumanoidRootPart"))
+			local cframe = CharacterService.getSpawnCFrame(cond.spawn)
+			return body ~= nil and cframe ~= nil and ((body.Position - cframe.Position) * Vector3.new(1, 0, 1)).Magnitude <= cond.radius
+		end
+		return { ready = near, on = near }
 	elseif kind == "any" or kind == "all" then
 		local children, met = {}, {}
 		for index, child in ipairs(cond) do
@@ -425,6 +475,27 @@ function SequenceService.notify(player, kind, key, who)
 	end
 end
 
+-- The player's Frame was disabled during a step that says what happens then (docs/13 §1.4): the card, the step's
+-- onFail actions, and the last checkpoint is loaded again.
+local function fail(runner)
+	local token = runner.token
+	local step = runner.step
+	runner.armed = false
+	task.spawn(function()
+		task.wait(FAIL_CARD)
+		runActions(runner, token, step.onFail)
+		if runner.token ~= token or not runner.player.Parent then
+			return
+		end
+		local profile = PlayerDataService.getProfile(runner.player)
+		local checkpoint = profile and profile.story.checkpoint
+		local ok, message = SequenceService.loadCheckpoint(runner.player, checkpoint)
+		if not ok then
+			Log.warn(TAG, "retry of %s: %s", step.id, tostring(message))
+		end
+	end)
+end
+
 function SequenceService.start(player, sequenceId, stepId, restoring)
 	local sequence = sequences[sequenceId]
 	if not sequence then
@@ -444,7 +515,7 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 	end
 	local runner = runners[player]
 	if not runner then
-		runner = { player = player, token = 0, lines = {}, speaking = false }
+		runner = { player = player, token = 0, lines = {}, speaking = false, titans = {} }
 		runners[player] = runner
 	end
 	runner.sequence = sequence
@@ -476,6 +547,11 @@ function SequenceService.stop(player)
 		runner.token += 1
 		runner.armed = false
 		runners[player] = nil
+		for _, model in pairs(runner.titans) do
+			if model.Parent then
+				TitanService.despawn(model)
+			end
+		end
 	end
 end
 
@@ -562,7 +638,29 @@ function SequenceService.Start()
 	CombatService.FrameDisabled:Connect(function(frame)
 		local player = Players:GetPlayerByUserId(frame:GetAttribute("Pilot") or 0)
 		if player then
-			SequenceService.notify(player, "event", "FrameDisabled")
+			local runner = runners[player]
+			if runner and runner.armed and runner.step and runner.step.onFail then
+				fail(runner)
+			else
+				SequenceService.notify(player, "event", "FrameDisabled")
+			end
+		end
+	end)
+	-- A step with onFail handles its own retry; otherwise RetryService's plain one runs.
+	RetryService.setOwner(function(frame)
+		local player = Players:GetPlayerByUserId(frame:GetAttribute("Pilot") or 0)
+		local runner = player and runners[player]
+		return runner ~= nil and runner.step ~= nil and runner.step.onFail ~= nil
+	end)
+	-- Conditions nothing announces are looked at a few times a second.
+	task.spawn(function()
+		while true do
+			task.wait(POLL)
+			for player, runner in pairs(runners) do
+				if runner.armed then
+					SequenceService.notify(player, "tick", "")
+				end
+			end
 		end
 	end)
 	Players.PlayerRemoving:Connect(SequenceService.stop)
