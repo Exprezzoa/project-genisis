@@ -750,3 +750,9 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 - Placeholders until Phase 5: hub scenes S01–S07 and S40–S43, the cinematics (S09, S10, S28, S31, S33), choice C3, barks, tutorials as toasts; Mara stays parked during S08–S10 (her bay is ringed by barriers).
 
 **Decisions made:** D-070 to D-077.
+
+**Session 7, continued: Outpost 07 structure pass (compound) (D-078)**
+- **Done:** lights, signs, gates, towers, wall trims, window rows, fence, transformers, breaker, comm mast for every compound area; the power-on effect. 924 parts, 46 lights (4 shadowed), no builder warnings.
+- **Tested:** edit-mode screenshots (south gate with sign and leaves, power station, rover); play: `/checkpoint CH1_DEPLOYED` → 32 OutpostLights off, bunker dark and red; then a load with power → 32/32 on, emergency lamps 0.3, 3 spark emitters on, lever exactly at its down CFrame; before/after screenshots of the ops room.
+- **Not done (next session):** the structure pass of the Trail and the Basin (dam markers, intake tower details, rock formations, signpost); the bunker's one flickering fixture (client ambient); the lever and flicker not watched in motion.
+- **Next steps:** finish the Trail/Basin structure pass and tick the Phase 4 map item; then Phase 5. **User:** please save/publish the place (File → Publish to Roblox), and time three Strider fights (Phase 3 test 1; the autopilot won in ~73 s).
