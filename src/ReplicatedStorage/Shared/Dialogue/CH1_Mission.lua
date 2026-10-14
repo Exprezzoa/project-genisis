@@ -1,7 +1,7 @@
 --!strict
--- Shared/Dialogue/CH1_Mission.lua  (docs/05_chapter1_script.md S20-S27; format: docs/13 §2)
+-- Shared/Dialogue/CH1_Mission.lua  (docs/05_chapter1_script.md S08-S33; format: docs/13 §2)
 --
--- The radio lines of the Outpost 07 mission up to the basin. Line ids and text are exactly the script's; the
+-- The radio lines of the deployment and the Outpost 07 mission. Line ids and text are exactly the script's; the
 -- dialogue ids (DLG_M01_...) are ours. All are "radio" mode: the server steps through them by itself.
 -- S31's choice C3 and the lines that hang on it (WA_09a-WA_10b, WA_09c) need the dialogue UI and come with
 -- DialogueService (Phase 5); so do the VOICE lines of S33.
@@ -15,6 +15,21 @@ local function radio(lines: { { string } })
 end
 
 return {
+	-- The deployment (S08-S10). BD_01-03 belong to the first-boarding shot of Phase 5; until then they play as radio.
+	DLG_CH1_BOARD = radio({
+		{ "BD_01", "M", "Did you do the tap thing?" },
+		{ "BD_02", "E", "...No." },
+		{ "BD_03", "M", "You did the tap thing." },
+		{ "BD_04", "O", "Ember Squad, Halden Overwatch. You're cleared to proceed to Launch One." },
+	}),
+	DLG_CH1_DOOR = radio({
+		{ "DR_01", "M", "Never gets old." },
+		{ "DR_02", "E", "We've done this once." },
+		{ "DR_03", "M", "And it never got old." },
+	}),
+	DLG_CH1_LAUNCH = radio({
+		{ "LA_01", "O", "Ember-1, Ember-2, Launch One is yours. Corridor gate opening. Good hunting." },
+	}),
 	DLG_M01_ARRIVAL = radio({
 		{ "AR_01", "M", "Ember-1 to Overwatch. We're on the Seven approach. Visibility's poor." },
 		{ "AR_02", "O", "Overwatch copies. Still no signal from the outpost on any band." },

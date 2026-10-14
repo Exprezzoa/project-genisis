@@ -6,6 +6,7 @@
 --
 --   setFrame(model?)         start or stop following a Frame (nil = back to the on-foot camera)
 --   getYaw() -> radians      the camera's heading; FrameController turns the move input by it
+--   setYaw(radians)          snap the heading (after the server moved the Frame)
 --   setLock(point?)          lock-on: point() -> Vector3? is what to keep in view (nil = free camera)
 --   setShot(shot?, blendIn?, blendOut?)   a directed view laid over the gameplay camera: shot() -> CFrame;
 --                            nil hands the view back over blendOut seconds (the Core Strike camera)
@@ -219,6 +220,11 @@ end
 
 function CameraController.getYaw(): number
 	return yaw
+end
+
+-- Snaps the camera's heading (the server moved the Frame and turned it).
+function CameraController.setYaw(value: number)
+	yaw = value % (2 * math.pi)
 end
 
 function CameraController.setLock(point: (() -> Vector3?)?)

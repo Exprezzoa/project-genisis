@@ -454,7 +454,8 @@ function SequenceService.Start()
 		end
 	end)
 	-- A returning player goes back to the saved checkpoint as soon as their first character exists (docs/13 §1.4,
-	-- docs/05 §11). A checkpoint no step loads into (the hub's, until Phase 5) leaves them where they spawned.
+	-- docs/05 §11). A checkpoint no step loads into (the hub's, until Phase 5) leaves them where they spawned; a
+	-- profile without one starts the chapter.
 	local resumed = {}
 	CharacterService.Spawned:Connect(function(player)
 		if resumed[player] then
@@ -468,6 +469,9 @@ function SequenceService.Start()
 				local _, message = SequenceService.loadCheckpoint(player, checkpoint)
 				Log.info(TAG, "%s resumes at %s: %s", player.Name, checkpoint, tostring(message))
 			end)
+		else
+			-- A new profile starts the chapter at its first step (S08 until Phase 5 writes S01-S07).
+			task.defer(SequenceService.start, player, "CH1")
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

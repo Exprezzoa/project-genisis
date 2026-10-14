@@ -25,6 +25,7 @@ local TitanConfig = require(Shared.Config.TitanConfig)
 local FlagService = require(script.Parent.FlagService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local SequenceService = require(script.Parent.SequenceService)
+local Doors = require(script.Parent.Parent.Sequence.Doors)
 
 local TAG = "DebugService"
 
@@ -196,6 +197,10 @@ function handlers.door(_, args)
 		return "usage: " .. Debug.Commands.door.usage
 	end
 	local open = string.lower(args[2] or "open") ~= "close"
+	-- A built door moves (Server/Sequence/Doors); a stand-in just lets things through.
+	if Doors.set(doorId, open) then
+		return doorId .. (if open then " opening" else " closing")
+	end
 	if not setDoor(doorId, open) then
 		return doorId .. " isn't in the map"
 	end

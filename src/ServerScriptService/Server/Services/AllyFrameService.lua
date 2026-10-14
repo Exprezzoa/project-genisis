@@ -40,7 +40,8 @@ local CATCH_UP = 60 * S -- strides when its follow spot is further than this
 local FORMATION = 12 * S -- following, it strides to close up when it is further than this from its spot
 local ROUTE_EVERY = 0.25 -- seconds between looks at what is in its way
 local STUCK = { seconds = 2.5, unseen = 300 } -- stuck this long: moved, if the player can't see it (behind, or this far)
-local LOST = { distance = 250 * S, seconds = 4 } -- this far from the player's Frame this long: put back behind it
+local LOST = { distance = 250 * S, seconds = 4, below = -300 } -- this far from the player's Frame this long (or fallen
+-- below `below`): put back behind it
 local COMBAT = {
 	radius = 45 * S, -- circles the Titan this far out
 	angle = 150, -- degrees around the Titan from the player
@@ -127,8 +128,9 @@ end
 local function activate(player)
 	local frame = FrameService.getFrame(UNIT)
 	if not (frame and frame.Parent and frame.PrimaryPart) then
-		Log.warn(TAG, "Unit %s isn't there", UNIT)
-		return false
+		-- Lost or broken (it fell out of the world): a fresh one from the template, parked, then taken out.
+		Log.warn(TAG, "Unit %s was missing or broken; spawning it again", UNIT)
+		frame = FrameService.spawnFrame(UNIT)
 	end
 	ally.player, ally.frame = player, frame
 	if frame:GetAttribute("AllyActive") then
@@ -361,14 +363,20 @@ local function decide(root, mine)
 		if ally.goal and flat(ally.goal - root.Position).Magnitude <= ARRIVE then
 			ally.faceYaw = yawOf(flat(mine.PrimaryPart.CFrame.LookVector))
 		end
-		-- Left far behind (stuck on the map, or the player was moved): back to its spot behind the player.
-		if flat(mine.PrimaryPart.Position - root.Position).Magnitude > LOST.distance then
+		-- Left far behind (stuck on the map, or the player was moved) or fallen: back behind the player, on a spot a
+		-- Frame can stand on (its formation spot, else the player's own trail).
+		if flat(mine.PrimaryPart.Position - root.Position).Magnitude > LOST.distance or root.Position.Y < LOST.below then
 			ally.lostSince = ally.lostSince or os.clock()
-			if os.clock() - ally.lostSince > LOST.seconds then
+			if os.clock() - ally.lostSince > LOST.seconds or root.Position.Y < LOST.below then
 				local spot, yaw = followSpot(mine)
-				stand(ally.frame, CFrame.new(spot) * CFrame.Angles(0, yaw, 0))
+				if not AllyNavigation.clear(mine.PrimaryPart.Position, spot, rootHeight(), rootRadius()) then
+					spot = trail:behind(FOLLOW_OFFSET.Magnitude)
+				end
+				if spot then
+					stand(ally.frame, CFrame.new(spot) * CFrame.Angles(0, yaw, 0))
+					Log.debug(TAG, "Unit %s was put back behind %s", UNIT, ally.player.Name)
+				end
 				ally.lostSince = nil
-				Log.debug(TAG, "Unit %s was put back behind %s", UNIT, ally.player.Name)
 			end
 		else
 			ally.lostSince = nil

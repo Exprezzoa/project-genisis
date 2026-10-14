@@ -8,6 +8,7 @@
 -- The move input is the seated pilot's own Humanoid.MoveDirection: Roblox's control script keeps filling it
 -- from the keyboard, gamepad or touch stick, already turned by the camera, and a seated Humanoid doesn't act
 -- on it. (This place has no PlayerModule in PlayerScripts to ask for a move vector.)
+-- While the server sets the Frame's attribute AutoWalkTo (a Vector3), the Frame walks there instead (S10, S20).
 --
 --   getFrame() -> Model?          the Frame this player pilots
 --   setAction(busy, velocity?, moveScale?, faceYaw?)   CombatController: while an action runs the Frame walks at moveScale
@@ -38,6 +39,7 @@ local SettingsController = require(script.Parent.SettingsController)
 local MOVING_STATES = { Idle = true, Attack = true }
 local INPUT_EPSILON = 0.05
 local SEPARATION_REFRESH = 1 -- seconds between looks for the bodies to keep away from
+local AUTO_ARRIVE = 6 -- an auto-walk stops this close to its point
 
 local FrameController = {}
 
@@ -65,6 +67,7 @@ local actionYaw: number? = nil -- the heading the running action turns the Frame
 local rootMotion: LinearVelocity? = nil
 local bodies: { { root: BasePart, radius: number, titan: Model? } } = {}
 local bodiesAt = 0
+local movedConnection: RBXScriptConnection? = nil -- the server moved the Frame: take its heading
 
 -- The pilot sits inside the chest: hidden on their own screen, and never able to jump out of the seat.
 local function setPilotHidden(hidden: boolean)
@@ -156,6 +159,13 @@ local function update(dt: number)
 	if lockYaw then
 		steer = CFrame.Angles(0, lockYaw - CameraController.getYaw(), 0) * steer
 	end
+	-- The server walks the Frame (the launch, the arrival): toward AutoWalkTo, whatever the input says.
+	local autoWalk = model:GetAttribute("AutoWalkTo")
+	if typeof(autoWalk) == "Vector3" then
+		local toward = (autoWalk - rootPart.Position) * Vector3.new(1, 0, 1)
+		steer = if toward.Magnitude > AUTO_ARRIVE then toward.Unit else Vector3.zero
+		lockYaw = nil
+	end
 	intent = if steer.Magnitude > 1 then steer.Unit else steer
 
 	-- Root motion (docs/11 §5.6): the action moves the Frame, not the legs.
@@ -190,7 +200,7 @@ local function update(dt: number)
 	end
 
 	local limping = (model:GetAttribute("Integrity") or 1) / (model:GetAttribute("IntegrityMax") or 1) < config.limp.threshold
-	local stride = striding and amount > 0 and not limping and not busy
+	local stride = striding and amount > 0 and not limping and not busy and typeof(autoWalk) ~= "Vector3"
 	CameraController.setStride(stride)
 
 	target = (if stride then config.strideSpeed else config.walkSpeed) * amount * (if limping then config.limp.walkScale else 1) * moveScale
@@ -234,6 +244,10 @@ local function stop()
 		return
 	end
 	RunService:UnbindFromRenderStep("PG_FrameMove")
+	if movedConnection then
+		movedConnection:Disconnect()
+		movedConnection = nil
+	end
 	if rootMotion then
 		rootMotion:Destroy()
 		rootMotion = nil
@@ -283,6 +297,17 @@ local function start(model: Model)
 	drive.Enabled = false
 	drive.Parent = rootPart
 	rootMotion = drive
+	-- A move by the server (a checkpoint, the launch, a bounds recall) comes with the heading to face: the Frame and
+	-- the camera take it instead of turning back to where they were going.
+	movedConnection = model:GetAttributeChangedSignal("MovedAt"):Connect(function()
+		local yaw = model:GetAttribute("MovedYaw")
+		if type(yaw) == "number" then
+			heading = yaw
+			moveDirection = CFrame.Angles(0, yaw, 0).LookVector
+			speed = 0
+			CameraController.setYaw(yaw)
+		end
+	end)
 	setPilotHidden(true)
 	InputController.setContext("Frame")
 	CameraController.setFrame(model)

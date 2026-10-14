@@ -11,7 +11,8 @@
 --
 --   spawnFrame(unitId, spawnId?) -> Model      getFrame(unitId) -> Model?      getPiloted(player) -> Model?
 --   board(player, frame) -> ok, reason         dismount(player, padId) -> ok, reason
---   park(player, exitCFrame) -> ok             back to the bay, the pilot on foot (the end of a sortie)
+--   park(player, exitCFrame, unitId?) -> ok    back to the bay, the pilot on foot (the end of a sortie, a hub load)
+--   kneelAt(player, unitId, groundCFrame, exitCFrame)   kneeling at a pad, the pilot on foot (a load after a dismount)
 --   playAnim(frame, clip, speed?)              setState(frame, state)
 --   spendEnergy(frame, amount) -> boolean      setEnergy(frame, value)
 --   Boarded(player, frame)   Dismounted(player, frame)
@@ -77,7 +78,11 @@ end
 function FrameService.moveTo(frame, groundCFrame)
 	local root = frame.PrimaryPart
 	frame:PivotTo(groundCFrame * CFrame.new(0, configOf(frame).hipHeight + root.Size.Y / 2, 0))
-	frame:SetAttribute("MovedAt", now()) -- tells the speed check this jump was the server's own
+	-- The pilot's client turns the Frame (and its camera) to this heading; MovedAt also tells the speed check
+	-- this jump was the server's own.
+	local look = groundCFrame.LookVector
+	frame:SetAttribute("MovedYaw", math.atan2(-look.X, -look.Z))
+	frame:SetAttribute("MovedAt", now())
 	if frame:FindFirstChild("BoardPoint") then
 		frame.BoardPoint.CFrame = root.CFrame * BOARD_POINT
 	end
@@ -394,14 +399,39 @@ local function release(player, frame, exitCFrame)
 end
 
 -- The sortie is over: the pilot is put on foot at exitCFrame and the unit stands parked in its bay again.
-function FrameService.park(player, exitCFrame)
+-- unitId parks that unit when nobody pilots it (a checkpoint that starts in the hub).
+function FrameService.park(player, exitCFrame, unitId)
 	local frame = piloted[player]
-	if not frame then
+	if frame then
+		unitId = frame:GetAttribute("Unit")
+		release(player, frame, exitCFrame)
+	end
+	if unitId then
+		FrameService.spawnFrame(unitId)
+	end
+	return frame ~= nil
+end
+
+-- A checkpoint that starts on foot after a dismount: the unit kneels at a pad's marker as if just left there, and
+-- whoever piloted it is put on foot at exitCFrame first (docs/05 §11, M01_COMMS).
+function FrameService.kneelAt(player, unitId, groundCFrame, exitCFrame)
+	local frame = frames[unitId]
+	if not (frame and frame.Parent) then
+		frame = FrameService.spawnFrame(unitId)
+	end
+	if piloted[player] == frame then
+		release(player, frame, exitCFrame)
+	end
+	if frame:GetAttribute("Pilot") ~= 0 then
 		return false
 	end
-	local unitId = frame:GetAttribute("Unit")
-	release(player, frame, exitCFrame)
-	FrameService.spawnFrame(unitId)
+	frame.PrimaryPart.Anchored = true
+	FrameService.moveTo(frame, groundCFrame)
+	FrameService.setState(frame, "Kneeling")
+	FrameService.playAnim(frame, "KneelIdle")
+	frame.BoardPoint.CFrame = frame.PrimaryPart.CFrame * BOARD_POINT
+	setPrompt(frame, "Hand", true)
+	setPrompt(frame, "Hatch", false)
 	return true
 end
 

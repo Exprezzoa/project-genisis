@@ -24,7 +24,7 @@ local IDS = {
 			"WP_HANGAR_ENTRANCE", "WP_BRIEFING_DOOR", "WP_MEDICAL_ARCH", "WP_QUARTERS", "WP_DECK",
 			"MARK_MARA_DECK", "MARK_VOSS_MED", "MARK_TAMSIN", "WP_BAY2_BRIDGE", "WP_DEPLOY_DOOR",
 			"WP_LAUNCH_CENTER", "MARK_HOLLIS_START", "MARK_HOLLIS_TALK", "MARK_MARA_VIEW", "MARK_VALE_RETURN",
-			"MARK_RHEIN_RETURN", "SPAWN_TRAINING",
+			"MARK_RHEIN_RETURN", "SPAWN_TRAINING", "AUTO_CAUSEWAY_END",
 		},
 	},
 	Interactable = {
@@ -47,14 +47,15 @@ local IDS = {
 	},
 	Door = {
 		attribute = "DoorId",
-		ids = { "DOOR_RESEARCH", "DOOR_HANGAR_EAST", "DOOR_HANGAR_WEST" },
+		ids = { "DOOR_RESEARCH", "DOOR_HANGAR_EAST", "DOOR_HANGAR_WEST", "DOOR_BULWARK_GATE" },
 	},
 }
 
--- Phase 2: the boarding prompts (with FrameService). Phase 5: NPCs. Later: the Bulwark gate.
+-- Phase 2: the boarding prompts (with FrameService). Phase 5: NPCs.
+local HUB_ZONES = { "CentralCommand", "Hangar", "Backdrops" }
+
 local DEFERRED = {
 	InteractId = { "TALK_TAMSIN", "TALK_OKAFOR", "INT_BOARD_BAY1", "INT_BOARD_BAY2" },
-	DoorId = { "DOOR_BULWARK_GATE" },
 }
 
 -- { zone, area, min, max } with half the wall thickness included. Y: slab bottom to roof or parapet top.
@@ -71,9 +72,10 @@ local BOUNDS = {
 	{ "CentralCommand", "Arrival", V(-80, -1, 40), V(80, 19, 130) },
 	{ "CentralCommand", "Exterior", V(-421, -4.1, -321), V(421, 60, 421) },
 	{ "CentralCommand", "TrainingYard", V(-421, -1, -301), V(-122, 56, -39) }, -- the simulacrum is 56 tall
-	{ "Hangar", "Shell", V(-121.5, -1, -231.5), V(121.5, 92, -68.5) },
+	{ "Hangar", "Shell", V(-121.5, -1, -231.5), V(134.5, 92, -68.5) }, -- the east door's housing reaches X 134.5 (map_02 §4)
 	{ "Hangar", "GateCorridor", V(-16, -1, -70), V(16, 17, -40) },
 	{ "Hangar", "LaunchPlatform", V(123, -0.1, -190), V(200, 0.5, -110) },
+	{ "Hangar", "Causeway", V(200, -1.1, -177), V(420, 60, -123) }, -- deck and its FrameBarriers (map_02 §8)
 }
 
 local BUDGETS = { CentralCommand = { parts = 9000, lights = 220 }, Hangar = { parts = 6000, lights = 90 } }
@@ -99,6 +101,16 @@ end
 
 function Check.Run()
 	local map = workspace:FindFirstChild("Map")
+	-- The hub's zones only: Outpost 07 has its own registry (map_03 §16).
+	local function inHub(instance)
+		for _, zone in ipairs(HUB_ZONES) do
+			local folder = map:FindFirstChild(zone)
+			if folder and instance:IsDescendantOf(folder) then
+				return true
+			end
+		end
+		return false
+	end
 	local errors = {}
 	local function fail(message)
 		table.insert(errors, message)
@@ -109,7 +121,7 @@ function Check.Run()
 	for tag, spec in pairs(IDS) do
 		local seen = {}
 		for _, instance in ipairs(CollectionService:GetTagged(tag)) do
-			if instance:IsDescendantOf(map) then
+			if inHub(instance) then
 				local id = instance:GetAttribute(spec.attribute)
 				if id ~= nil then
 					seen[id] = (seen[id] or 0) + 1

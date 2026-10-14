@@ -1,10 +1,10 @@
 --!nonstrict
 -- Shared/Sequences/CH1.lua  (docs/13_missions_dialogue_relationships.md §1; docs/05_chapter1_script.md)
 --
--- Chapter 1 as data for the Sequence Runner. So far: the Outpost 07 mission from the arrival to the basin's edge
--- to the return (S20-S33). The hub scenes (S01-S10, S40-S43) come with Phase 5, and so do the cinematics: for
--- now the Strider just rises while its lines play, the Watcher is a stand-in the player watches from the
--- cockpit (no choice C3 yet), and S33's anomaly is a fade to black. Mara's Unit 01 is the "ally" action
+-- Chapter 1 as data for the Sequence Runner. So far: the deployment from boarding to the launch (S08-S10) and the
+-- Outpost 07 mission to the return (S20-S33). The other hub scenes (S01-S07, S40-S43) come with Phase 5, and so do
+-- the cinematics: for now the Strider just rises while its lines play, the Watcher is a stand-in the player
+-- watches from the cockpit (no choice C3 yet), and S33's anomaly is a fade to black. Mara's Unit 01 is the "ally" action
 -- (AllyFrameService): she follows on the road and the trail, holds in the courtyard and at the regroup mark, and
 -- fights beside the player.
 -- Step ids follow the script's scene numbers. A step with `checkpoint` saves when it completes, or when it
@@ -35,6 +35,7 @@ return {
 	id = "CH1",
 	title = "THE LAST QUIET MORNING",
 	checkpoints = {
+		CH1_BRIEFED = "S08_BOARD",
 		CH1_DEPLOYED = "S20_ARRIVAL",
 		M01_POWER = "S23_DISMOUNT",
 		M01_COMMS = "S25_INVESTIGATE",
@@ -45,6 +46,51 @@ return {
 	},
 	steps = {
 		{
+			-- Until S01-S07 are written (Phase 5) a new profile starts here, on foot where it spawned; CH1_BRIEFED puts
+			-- the player at the briefing room door in the morning (docs/05 §11).
+			id = "S08_BOARD",
+			onRestore = {
+				{ "lighting", preset = "MORNING", instant = true }, { "frame", command = "park", spawn = "SPAWN_BRF_DOOR" }, { "ally", mode = "Parked" },
+			},
+			objective = "OBJ_CH1_BOARD",
+			waypoint = { spawn = "WP_BAY2_BRIDGE" },
+			complete = { "event", name = "FrameBoarded" },
+			onComplete = {
+				{ "dialogue", id = "DLG_CH1_BOARD" },
+				{ "tutorial", id = "TUT_MOVE", text = "MOVE — WASD / Left Stick / Thumbstick. Your Frame is heavy: it takes time to speed up and turn. Hold SHIFT / L3 for Stride." },
+			},
+		},
+		{
+			-- The door rises in 4 s (map_02 §4); the two shots of S09 are Phase 5's, so the player keeps control.
+			id = "S09_DOOR",
+			objective = "OBJ_CH1_DOOR",
+			waypoint = { spawn = "WP_DEPLOY_DOOR" },
+			complete = { "trigger", id = "TRG_DEPLOY_DOOR", who = "frame" },
+			onComplete = {
+				{ "door", id = "DOOR_HANGAR_EAST", open = true },
+				{ "dialogue", id = "DLG_CH1_DOOR" },
+			},
+		},
+		{
+			-- Launch (docs/05 S10): the Frame walks itself east along the causeway while the Bulwark's gate opens (6 s),
+			-- black at 7 s, the transit card, then the outpost (S20). The crane shot is Phase 5's.
+			id = "S10_LAUNCH",
+			objective = "OBJ_CH1_LAUNCH",
+			waypoint = { spawn = "WP_LAUNCH_CENTER" },
+			complete = { "proximity", spawn = "WP_LAUNCH_CENTER", radius = 20 },
+			onComplete = {
+				{ "dialogue", id = "DLG_CH1_LAUNCH" },
+				{ "frame", command = "autoWalk", to = "AUTO_CAUSEWAY_END" },
+				{ "door", id = "DOOR_BULWARK_GATE", open = true },
+				{ "wait", seconds = 6 },
+				{ "fade", to = 1, duration = 1.0 },
+				{ "frame", command = "stopWalk" },
+				{ "card", kind = "Transit", lines = { "TRANSIT — 41 KM EAST", "FRONTIER OUTPOST 07 \"GREYWATCH\"" }, seconds = 3.0 },
+				{ "door", id = "DOOR_HANGAR_EAST", open = false }, -- it closes after the launch (map_02 §4)
+				{ "door", id = "DOOR_BULWARK_GATE", open = false },
+			},
+		},
+		{
 			id = "S20_ARRIVAL",
 			checkpoint = "CH1_DEPLOYED", checkpointOnEnter = true,
 			onEnter = {
@@ -53,6 +99,7 @@ return {
 				{ "frame", command = "forceBoard", spawn = "FRAME_OP_START_02" }, -- already piloting after the launch; boards on a load
 				{ "ally", mode = "Follow", place = "FRAME_OP_START_01" },
 				{ "fade", to = 0, duration = 1.0 },
+				{ "frame", command = "autoWalk", to = "WP_OP_SOUTHGATE", seconds = 2 }, -- both walk north 2 s, then control returns
 				{ "dialogue", id = "DLG_M01_ARRIVAL" },
 			},
 			objective = "OBJ_M01_REACH",
@@ -102,7 +149,11 @@ return {
 		{
 			id = "S25_INVESTIGATE",
 			onEnter = CLUE_PROMPTS,
-			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "teleport", spawn = "SPAWN_OP_BUNKER" }, MARA_COURTYARD, table.unpack(CLUE_PROMPTS) },
+			-- On foot in the bunker, Unit 02 kneeling on Pad A where it was left (docs/05 §11).
+			onRestore = {
+				{ "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "kneel", spawn = "WP_OP_PADA", exit = "SPAWN_OP_BUNKER" },
+				MARA_COURTYARD, table.unpack(CLUE_PROMPTS),
+			},
 			objective = "OBJ_M01_INVESTIGATE",
 			waypoint = {
 				{ interact = "INT_CLUE_A", unlessFlag = "CH1_CLUE_A" }, { interact = "INT_CLUE_B", unlessFlag = "CH1_CLUE_B" },
@@ -250,7 +301,9 @@ return {
 			-- The return to the hangar. Only where M01_COMPLETE puts the player for now (docs/05 §11); Vale, Rhein and
 			-- the rest of S40 come with Phase 5.
 			id = "S40_RETURN",
-			onRestore = { { "lighting", preset = "EVENING", instant = true }, { "teleport", spawn = "SPAWN_HANGAR_FLOOR" } },
+			onRestore = {
+				{ "lighting", preset = "EVENING", instant = true }, { "frame", command = "park", spawn = "SPAWN_HANGAR_FLOOR" }, { "ally", mode = "Parked" },
+			},
 		},
 	},
 }

@@ -11,9 +11,9 @@
 --
 -- Built so far (the rest of docs/13 §1.2 comes with the steps that need it): fade, lighting, teleport, wait,
 -- setFlag, clearFlag, objective, prompt, dialogue (radio lines, stepped by SequenceService until DialogueService
--- exists), tutorial (a toast for now), toast, zoneState, checkpoint, frame (forceBoard, park, repair),
--- spawnTitan, despawnTitan, titanCommand (with the Watcher's stand-in: WatcherPath, PeelRover, TakeCanister,
--- WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01).
+-- exists), tutorial (a toast for now), toast, zoneState, checkpoint, frame (forceBoard, park, repair,
+-- autoWalk, stopWalk), door, card, spawnTitan, despawnTitan, titanCommand (with the Watcher's stand-in:
+-- WatcherPath, PeelRover, TakeCanister, WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01).
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,6 +30,7 @@ local FlagService = require(Services.FlagService)
 local FrameService = require(Services.FrameService)
 local InteractionService = require(Services.InteractionService)
 local TitanService = require(Services.TitanService)
+local Doors = require(script.Parent.Doors)
 local WatcherStandIn = require(script.Parent.Parent.Titans.WatcherStandIn)
 
 local TAG = "SequenceService"
@@ -139,10 +140,47 @@ function actions.frame(runner, a)
 			FrameService.board(player, frame, true) -- yields for the fade and the boot
 		end
 	elseif a.command == "park" then
-		-- Back in its bay, the pilot on foot at a spawn (the return to the hub).
+		-- Back in its bay, the pilot on foot at a spawn (the return to the hub, a load in the hub).
 		local cframe = CharacterService.getSpawnCFrame(a.spawn)
 		if cframe then
-			FrameService.park(player, cframe)
+			FrameService.park(player, cframe, PLAYER_UNIT)
+			CharacterService.teleport(player, a.spawn)
+		end
+	elseif a.command == "kneel" then
+		-- The player's unit kneels at a pad's marker, the player on foot at `exit` (a load after a dismount).
+		local at, exit = CharacterService.getSpawnCFrame(a.spawn), CharacterService.getSpawnCFrame(a.exit)
+		if at and exit then
+			FrameService.kneelAt(player, PLAYER_UNIT, at, exit)
+			CharacterService.teleport(player, a.exit)
+		end
+	elseif a.command == "autoWalk" then
+		-- The pilot's client walks the Frame toward a spawn marker (or straight ahead), whatever the input says;
+		-- `seconds` ends it (block = true waits), else "stopWalk" does.
+		local frame = FrameService.getPiloted(player)
+		local root = frame and frame.PrimaryPart
+		if root then
+			local marker = a.to and CharacterService.getSpawnCFrame(a.to)
+			local ahead = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+			local to = if marker then marker.Position else root.Position + ahead.Unit * 2000
+			frame:SetAttribute("AutoWalkTo", to)
+			if a.seconds then
+				local function stop()
+					if frame.Parent and frame:GetAttribute("AutoWalkTo") == to then
+						frame:SetAttribute("AutoWalkTo", nil)
+					end
+				end
+				if a.block then
+					task.wait(a.seconds)
+					stop()
+				else
+					task.delay(a.seconds, stop)
+				end
+			end
+		end
+	elseif a.command == "stopWalk" then
+		local frame = FrameService.getPiloted(player) or FrameService.getFrame(PLAYER_UNIT)
+		if frame then
+			frame:SetAttribute("AutoWalkTo", nil)
 		end
 	elseif a.command == "repair" then
 		local frame = FrameService.getPiloted(player)
@@ -152,6 +190,24 @@ function actions.frame(runner, a)
 	else
 		Log.warn(TAG, "frame command %s isn't built yet", tostring(a.command))
 	end
+end
+
+-- A big door of the map (Server/Sequence/Doors): { "door", id, open = true | false, block? }.
+function actions.door(_, a)
+	if not Doors.set(a.id, a.open ~= false, a.block == true) then
+		Log.warn(TAG, "door %s isn't in the map", tostring(a.id))
+	end
+end
+
+-- A full-screen card (docs/14 §9): { "card", kind, lines, seconds }. The card brings its own black, so the fade
+-- layer is lifted while it shows and put back to black before it goes; it blocks for `seconds`.
+function actions.card(runner, a)
+	local seconds = a.seconds or 3
+	Net.fireClient(runner.player, "UI_Card", { kind = a.kind, lines = a.lines, seconds = seconds, show = true })
+	Net.fireClient(runner.player, "Fade", { to = 0, duration = 0 })
+	task.wait(seconds)
+	Net.fireClient(runner.player, "Fade", { to = 1, duration = 0 })
+	Net.fireClient(runner.player, "UI_Card", { kind = a.kind, show = false })
 end
 
 -- Mara's Unit 01 (docs/09 §7): { "ally", mode = "Follow" | "Hold" | "Combat" | "Scripted" | "Parked", place?, at?,

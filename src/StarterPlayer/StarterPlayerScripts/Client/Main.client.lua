@@ -25,6 +25,7 @@ local ORDER = {
 	"CameraController",
 	"CharacterController",
 	"HUDController",
+	"CardController",
 	"InteractionController",
 	"WaypointController",
 	"MobileControlsController",
