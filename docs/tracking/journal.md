@@ -715,3 +715,38 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 **Not tested:** the waypoint markers themselves (state and picture; the controller was loaded twice in this run); the Rise clip and the slow Sweep as animation; a Core Strike kill from a key press in a real fight (mine arrived after the core had closed, so the kill was made with a timed script).
 
 **Known:** S28's three shots are a Phase 5 cinematic; for now the Strider rises while the player keeps control. The tutorial hints of S28 other than `TUT_LOCK`, and the fight barks, wait for their controllers.
+
+---
+
+### Session 7 — 2026-10-14 — Phase 4 (mission flow complete; structure pass started)
+**Goal this session:** finish Phase 4's systems: the unjournaled S31–S33 work, AllyFrameService, checkpoints with resume, out of bounds, the deployment; then the acceptance tests.
+
+**Studio state found at start:** Studio restarted (session helpers gone), all 132 scripts matched the local files by checksum, including uncommitted, untested S31–S33 work from a cut-off session (`WatcherStandIn`, rover prompts, `FrameService.park`). Outpost 07 at blockout (453 parts). Profile checkpoint `M01_COMPLETE`-era data. The user is away until about 22:00 EDT and asked for questions to be kept until then.
+
+**Done:**
+- **S31–S33 verified and fixed** (D-071): the Watcher walked backwards (stand-in turned by π; its model faces its pivot's look) and peeled the roof while still walking; now walk 12 s → peel → canister into its hand → turns to Unit 02 → leaves carrying it. The upload objective waits for RV_08; the case's lock light goes cyan 0.6 s then off (clue 10). **Rover SR-12 rebuilt hollow** (D-070, Ridge area at structure pass): bay the player walks into over the peeled roof, cradle with label and the T-V canister, MetalCase with LockLight, ECHO rings and SR-12 stencil, wheels, skid marks, debris.
+- **Bug fixed:** `FrameService.park` re-registered the units' board prompts (error, and the handlers pointed at the destroyed Frame).
+- **SequenceService split** into `Server/Sequence/Actions` and `Conditions` (`16` §2; it was 724 lines). New actions: `ally`, `door`, `card`, `unlock`, `frame autoWalk/stopWalk/park/kneel`; `say(player, id, urgent)`.
+- **Resume on join** (D-072): a returning player loads the saved checkpoint behind black; a new profile starts CH1 at S08. Event conditions FrameBoarded/FrameDismounted count when already true (no soft-lock). Every load despawns leftover Titans.
+- **Out of bounds** (D-073): `BoundsService` + the Frame HUD warning panel (`Client/UI/BoundsWarning`), OOB_01 urgent, recall after 6 s to the nearest return point.
+- **AllyFrameService** (D-074): Mara's Unit 01 follows, holds (scanning), fights at 150° round the Titan with the 10% cap, walks round obstacles on the player's trail; wired through S20–S33.
+- **Deployment** (D-075): S08 board → S09 east door (real 4-segment door, `map_02` §4) → S10 launch (auto-walk, Bulwark gate, Transit card) → S20. New builders: `hangar/Causeway`, `backdrops/Bulwark`; `CardController`; HubCheck limited to the hub's zones.
+- **Restore fixes** (D-076, D-077): on-foot loads take the pilot out of the Frame first; after `M01_COMMS` Unit 02 kneels on Pad A; server moves publish `MovedYaw` and the pilot's Frame and camera take it; Frames kneel facing their pad's exit direction.
+
+**Tested (how → result):** play mode throughout; Output clean at the end of every run.
+- S31→S33 by real prompt holds (marking, cradle, case, both boards) → PASS; Watcher order and facing sampled every 0.5 s; lock light red → cyan (0.60 s) → off seen on the client; upload objective 17.7 s after the case (lines first).
+- **Acceptance 2, rejoin at all 7 mission checkpoints** (`/checkpoint <id> save`, stop, start): `CH1_DEPLOYED` (outpost start, Mara at her mark), `M01_POWER` (piloting at the breaker, power on, Mara in the courtyard), `M01_COMMS` (on foot in the bunker, Unit 02 kneeling on Pad A, board by real hold → S27), `M01_TRAIL` (north gate, Strider dormant), `M01_FIGHT` (fight running, Mara in Combat), `M01_TITAN_DOWN` (post-fight spot, Watcher starts), `M01_COMPLETE` (hangar floor, Evening) → PASS.
+- **Acceptance 3, clues persist** → PASS (clue A found, rejoin: its prompt off for this player, counter 1/3, 2 waypoints).
+- **Acceptance 4, out of bounds** → PASS on the road (recalled to `FRAME_OP_START_02`) and the basin (to `FRAME_OP_POSTFIGHT`), 6.0 s countdown, panel seen in a screenshot; OOB_01 holds the radio 3.5 s.
+- **Acceptance 5, Mara**: follows at ~48 studs on the road and steps round the overturned truck; holds in the courtyard facing north with a ±40° head sweep; fight: 150–160° round the Titan, never in the corridor, chains every 4.7–5.9 s, no swing while Downed, cap stops her HP damage (HP kept regenerating through her swings, 8 poise each); **camera blocked 0 frames** in 30 s of fight and 13 s of following with a turn (ray from the camera to the Frame each frame); walks to the regroup mark and turns to the Watcher; parked in Bay 1 at the end → PASS.
+- **Acceptance 1, launch to Mission Complete without debug commands**: an autopilot on the client (steering through the Frame's `AutoWalkTo`, Humanoid:MoveTo on foot, real prompt holds, combat through `Frame_Action`) ran S08 → S20 (board by the hatch, door, launch, card, arrival) and, after a rejoin at `CH1_DEPLOYED`, S20 → S40: breaker, Pad A, console, clues A/B/C, remount, trail, fight (won in ~73 s after the rise, never disabled, Unit 02 at 560/1000), Watcher, Pad B, cradle, case, upload, return. Six checkpoints saved in order, no warnings → PASS. Two stops were my waypoints (a stand point 7.7 studs from clue C; the walk to the board point, which the kneel-facing fix then moved).
+- **Acceptance 6, no soft-lock**: every completion condition of S08–S33 was triggered for real in the runs above (boarding, triggers, proximity, interacts, counter, TitanDefeated, any(proximity, timer)) → PASS.
+- Deployment: the east door rose and closed, the Bulwark leaves opened and closed (positions sampled); Transit card: shown 3.1 s, both lines typed in 1.7 s, black before and after; HubCheck PASS.
+
+**Known bugs / not done:**
+- The **Outpost 07 structure pass** (lights, materials, signage) is not done beyond the Ridge; power-on still changes nothing visible.
+- Fight balance: the autopilot (no dodging) wins in ~73 s; Phase 3's acceptance test 1 (2–3.5 min) still needs the user's fights.
+- Not seen by eye: the Watcher stand-in in motion, Mara's gait, the door and gate moving, the rover peel.
+- Placeholders until Phase 5: hub scenes S01–S07 and S40–S43, the cinematics (S09, S10, S28, S31, S33), choice C3, barks, tutorials as toasts; Mara stays parked during S08–S10 (her bay is ringed by barriers).
+
+**Decisions made:** D-070 to D-077.

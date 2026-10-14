@@ -1,6 +1,6 @@
 # Implementation Checklist
 
-**Current phase: 1 — Foundation.** (Phase 0 completed 2026-10-09; see journal Session 1.)
+**Current phase: 4 — First mission flow** (structure pass of Outpost 07 left). Phases 0–3 are built; their open acceptance tests need the user (touch and gamepad in Phases 1–2, timed fights in Phase 3). See the journal.
 
 Tick an item only after it was **tested** and the journal records how. Full task lists and acceptance tests: `docs/18_roadmap.md`.
 
@@ -45,11 +45,11 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [ ] Phase 3 acceptance tests all PASS — 2 to 8 pass (journal); **1 (three fights, 2–3.5 min) needs the user**: their first fight took about a minute, health was raised to 6000 (D-064), re-timing wanted. The user said to go on to Phase 4 (2026-10-10)
 
 ## Phase 4 — First mission flow
-- [ ] Outpost 07 blockout + structure (all areas) — **blockout built** (D-067): 453 parts, all 53 registry ids, spawns play-tested; routes swept and the tower stair walked in play (journal); structure pass to do
-- [ ] SequenceService + actions/conditions; CH1 S10–S33 — runner built, **S20–S27 play-tested** (D-069); S10 and S28–S33 to do
-- [ ] AllyFrameService
-- [ ] Checkpoints + restore + fail/retry
-- [ ] Phase 4 acceptance tests all PASS
+- [ ] Outpost 07 blockout + structure (all areas) — **blockout built** (D-067), routes swept, driven and walked end to end in the Session 7 autopilot run; **structure pass: Ridge (the rover, D-070) done, the other areas to do**
+- [x] SequenceService + actions/conditions; CH1 S10–S33 — S08–S33 built and play-tested (D-069, D-071, D-075; journal Session 7); split into Sequence/Actions and Conditions; cinematics, C3 and the hub scenes are Phase 5
+- [x] AllyFrameService — Follow, Hold, Combat, Scripted, Parked (D-074); play-tested (journal Session 7); Scripted not used by any step yet
+- [x] Checkpoints + restore + fail/retry — resume on join, all 7 mission checkpoints rejoined for real (D-072, D-076; journal Session 7); fail/retry of S28 from Session 6
+- [x] Phase 4 acceptance tests all PASS — 1–6 PASS (journal Session 7; test 1 by a client autopilot with no debug commands, in two legs joined by a rejoin)
 
 ## Phase 5 — Story introduction
 - [ ] All NPCs, Watcher rig, MemorySet
