@@ -31,6 +31,7 @@ local FrameService = require(Services.FrameService)
 local InteractionService = require(Services.InteractionService)
 local TitanService = require(Services.TitanService)
 local Doors = require(script.Parent.Doors)
+local ZoneEffects = require(script.Parent.ZoneEffects)
 local WatcherStandIn = require(script.Parent.Parent.Titans.WatcherStandIn)
 
 local TAG = "SequenceService"
@@ -120,6 +121,7 @@ function actions.zoneState(_, a)
 	local zone = map and map:FindFirstChild(a.zone)
 	if zone then
 		zone:SetAttribute(a.key, a.value)
+		ZoneEffects.apply(zone, a.key, a.value) -- what the state looks like (the outpost's lights coming on)
 	end
 	hooks.zoneState:Fire(a.zone, a.key, a.value)
 end

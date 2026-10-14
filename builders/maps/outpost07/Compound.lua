@@ -4,7 +4,8 @@
 -- Bunker with Pad A, the power station, the maintenance yard, the residential block and the observation tower.
 --
 -- BLOCKOUT pass: right sizes and places, walls, floors, openings, stairs, collisions, markers, triggers, prompts
--- on stand-ins. Flat colors, no props, no lights. Areas are separate folders under Workspace.Map.Outpost07 and
+-- on stand-ins. Flat colors, no props, no lights. The STRUCTURE pass (lights, signs, windows, gates, trims) is in
+-- CompoundStructure, passed in as opts.Structure and run per area when the pass is "structure" or higher. Areas are separate folders under Workspace.Map.Outpost07 and
 -- can be rebuilt one at a time:
 --
 --   Builder.Build({ BK = BK, Common = Common, Layout = Layout, pass = "blockout", areas = { "Bunker" } })
@@ -77,7 +78,7 @@ function areas.Perimeter(ctx, T)
 		T.barrier("FrameBarrier_" .. run[1], run[2], run[3], run[4], run[5])
 	end
 	for _, corner in ipairs({ { "SW", -180, 200 }, { "SE", 180, 200 }, { "NW", -180, -160 }, { "NE", 180, -160 } }) do
-		T.box(S, "GuardTower_" .. corner[1], corner[2] - 4, 0, corner[3] - 4, corner[2] + 4, 24, corner[3] + 4, T.CONCRETE_DARK)
+		T.box(S, "GuardTower_" .. corner[1], corner[2] - 4, 0, corner[3] - 4, corner[2] + 4, 18, corner[3] + 4, T.CONCRETE_DARK) -- base; platform at 18, roof at 24
 	end
 	-- Gates: posts 4 x 22 x 4 at X +-22, and the south gate's arch beam at Y 20.
 	for _, gate in ipairs({ { "South", 200 }, { "North", -160 } }) do
@@ -138,7 +139,9 @@ function areas.Bunker(ctx, T)
 	T.prompt(log1, "INT_EV_LOG1", "Read Log", { onFootOnly = true })
 	BK.tag(log1, "EvidenceItem")
 	-- Outside: the comm mast on the roof, the junction box and the cut cable (Clue A) on the east wall.
-	T.box(S, "CommMast", -1.5, 15.5, -31.5, 1.5, 85.5, -28.5, T.STEEL)
+	if ctx.level < 2 then
+		T.box(S, "CommMast", -1.5, 15.5, -31.5, 1.5, 85.5, -28.5, T.STEEL) -- the lattice mast comes with the structure pass
+	end
 	T.standIn("JunctionBox", 41, 1, -31.5, 43, 4, -28.5)
 	local cable = T.standIn("CutCable", 44.2, 1, -30.8, 45.8, 2, -29.2, { Color = P.STEEL_DARK, CanCollide = false })
 	T.prompt(cable, "INT_CLUE_A", "Investigate", { hold = 1.5, onFootOnly = true, enabled = false })
@@ -192,7 +195,7 @@ function areas.Yard(ctx, T)
 		T.box(S, "Bund_" .. wall[1], wall[2], 0, wall[3], wall[4], 1.5, wall[5], T.CONCRETE)
 	end
 	for index, z in ipairs({ -25, -15, -5 }) do
-		BK.cyl(S, { Name = "FuelTank" .. index, Axis = "X", Size = Vector3.new(22, 6, 6), CFrame = CFrame.new(T.W(-135, 3.5, z)), Color = P.RUST, Material = "CorrodedMetal" })
+		BK.cyl(S, { Name = "FuelTank" .. index, Axis = "X", Size = Vector3.new(16, 8, 8), CFrame = CFrame.new(T.W(-135, 4.6, z)), Color = "#7B848C", Material = "Metal" }) -- 07 §6 FuelTank
 	end
 	local gauge = T.standIn("FuelGauge", -124.4, 2, -16.5, -123.6, 4.5, -13.5)
 	T.prompt(gauge, "INT_CLUE_B", "Investigate", { hold = 1.5, onFootOnly = true, enabled = false })
@@ -204,7 +207,9 @@ end
 function areas.Residential(ctx, T)
 	local S, BK, P = ctx.Structure, ctx.BK, ctx.P
 	T.box(S, "R1_BarracksA", 120, 0, 100, 170, 30, 150, T.CONCRETE_LIGHT)
-	T.box(S, "R2_BarracksB", 125, 0, 10, 170, 30, 70, T.CONCRETE_LIGHT)
+	-- R2: the NE corner (X 155..170, Z 10..25) has collapsed (map_03 §9).
+	T.box(S, "R2_BarracksB", 125, 0, 25, 170, 30, 70, T.CONCRETE_LIGHT)
+	T.box(S, "R2_BarracksB_S", 125, 0, 10, 155, 30, 25, T.CONCRETE_LIGHT)
 	-- R3 Mess Hall: one story, 12 tall, enterable through the south door (X 86..94, 9 tall).
 	local inner = { Color = P.WALL_INTERIOR }
 	T.slab(S, "R3_Floor", 70, 110, 40, 76, 0, 0.5, { Color = P.FLOOR_INTERIOR })
@@ -294,6 +299,10 @@ function Builder.Build(opts)
 		local ctx = C.begin(opts, L.ZONE, area)
 		ctx.C = C
 		build(ctx, L.tools(ctx))
+		local more = opts.Structure and opts.Structure[area]
+		if more and ctx.level >= 2 then
+			more(ctx, L.tools(ctx))
+		end
 		reports[area] = C.finish(ctx)
 		opts.BK.breathe()
 	end
