@@ -4,7 +4,9 @@
 -- Chapter 1 as data for the Sequence Runner. So far: the Outpost 07 mission from the arrival to the basin's edge
 -- to the return (S20-S33). The hub scenes (S01-S10, S40-S43) come with Phase 5, and so do the cinematics: for
 -- now the Strider just rises while its lines play, the Watcher is a stand-in the player watches from the
--- cockpit (no choice C3 yet), and S33's anomaly is a fade to black.
+-- cockpit (no choice C3 yet), and S33's anomaly is a fade to black. Mara's Unit 01 is the "ally" action
+-- (AllyFrameService): she follows on the road and the trail, holds in the courtyard and at the regroup mark, and
+-- fights beside the player.
 -- Step ids follow the script's scene numbers. A step with `checkpoint` saves when it completes, or when it
 -- begins with checkpointOnEnter (docs/13 §1.1). `checkpoints` says which step a saved checkpoint loads into
 -- (docs/05 §11); that step's onRestore puts the player where the table says.
@@ -13,6 +15,9 @@ local CLUES = { "INT_CLUE_A", "INT_CLUE_B", "INT_CLUE_C" }
 local CLUE_FLAGS = { INT_CLUE_A = "CH1_CLUE_A", INT_CLUE_B = "CH1_CLUE_B", INT_CLUE_C = "CH1_CLUE_C" }
 local POWER_ON = { "zoneState", zone = "Outpost07", key = "Power", value = true }
 local STRIDER_DORMANT = { "spawnTitan", type = "Strider", id = "STRIDER", spawn = "TITAN_STRIDER_DORMANT", state = "Dormant", firstSweepWindup = 1.8 }
+-- Mara's Unit 01 (docs/09 §7): where she is and what she does in each step.
+local MARA_COURTYARD = { "ally", mode = "Hold", place = "MARK_MARA_COURTYARD", at = "MARK_MARA_COURTYARD" }
+local MARA_REGROUP = { "ally", mode = "Hold", place = "MARK_MARA_REGROUP", at = "MARK_MARA_REGROUP" }
 local TUT_DISMOUNT = { "tutorial", id = "TUT_DISMOUNT", text = "DISMOUNT — Stand on a landing pad and use the prompt. You can only leave your Frame on pads." }
 -- A clue's prompt stays off for a player who found it before a reload.
 local CLUE_PROMPTS = {
@@ -46,6 +51,7 @@ return {
 				{ "fade", to = 1, duration = 0 },
 				{ "lighting", preset = "OVERCAST", instant = true },
 				{ "frame", command = "forceBoard", spawn = "FRAME_OP_START_02" }, -- already piloting after the launch; boards on a load
+				{ "ally", mode = "Follow", place = "FRAME_OP_START_01" },
 				{ "fade", to = 0, duration = 1.0 },
 				{ "dialogue", id = "DLG_M01_ARRIVAL" },
 			},
@@ -62,6 +68,7 @@ return {
 			onEnter = {
 				{ "dialogue", id = "DLG_M01_GATE" },
 				{ "prompt", id = "INT_BREAKER", enabled = true },
+				{ "ally", mode = "Hold", at = "MARK_MARA_COURTYARD" }, -- docs/05 S21: she holds in the courtyard, scanning
 			},
 			objective = "OBJ_M01_POWER",
 			waypoint = { spawn = "WP_OP_BREAKER" },
@@ -75,7 +82,7 @@ return {
 		{
 			id = "S23_DISMOUNT",
 			onEnter = { TUT_DISMOUNT },
-			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_BREAKER" }, TUT_DISMOUNT },
+			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_BREAKER" }, MARA_COURTYARD, TUT_DISMOUNT },
 			objective = "OBJ_M01_DISMOUNT",
 			waypoint = { spawn = "WP_OP_PADA" },
 			complete = { "event", name = "FrameDismounted" },
@@ -95,7 +102,7 @@ return {
 		{
 			id = "S25_INVESTIGATE",
 			onEnter = CLUE_PROMPTS,
-			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "teleport", spawn = "SPAWN_OP_BUNKER" }, table.unpack(CLUE_PROMPTS) },
+			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "teleport", spawn = "SPAWN_OP_BUNKER" }, MARA_COURTYARD, table.unpack(CLUE_PROMPTS) },
 			objective = "OBJ_M01_INVESTIGATE",
 			waypoint = {
 				{ interact = "INT_CLUE_A", unlessFlag = "CH1_CLUE_A" }, { interact = "INT_CLUE_B", unlessFlag = "CH1_CLUE_B" },
@@ -116,8 +123,11 @@ return {
 		{
 			id = "S27_TRAIL",
 			-- The Strider waits in the basin, crouched with its back to the trail (docs/05 S28).
-			onEnter = { STRIDER_DORMANT },
-			onRestore = { { "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_NORTHGATE" }, STRIDER_DORMANT },
+			onEnter = { STRIDER_DORMANT, { "ally", mode = "Follow" } }, -- docs/05 S26: Mara joins in follow mode
+			onRestore = {
+				{ "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_NORTHGATE" },
+				{ "ally", mode = "Follow", place = "follow" }, STRIDER_DORMANT,
+			},
 			objective = "OBJ_M01_TRAIL",
 			waypoint = { spawn = "FRAME_OP_FIGHT" },
 			parallel = {
@@ -132,10 +142,12 @@ return {
 			checkpoint = "M01_FIGHT", checkpointOnEnter = true,
 			onEnter = {
 				{ "titanCommand", id = "STRIDER", command = "Rise" },
+				{ "ally", mode = "Hold", face = "TITAN_STRIDER_DORMANT" },
 				{ "wait", seconds = 2.5 },
 				{ "dialogue", id = "DLG_M01_CONTACT", block = true },
 				{ "titanCommand", id = "STRIDER", command = "StartFight" },
 				{ "objective", id = "OBJ_M01_FIGHT" }, -- set when ST_03 finishes (docs/05 §13)
+				{ "ally", mode = "Combat" },
 				{ "tutorial", id = "TUT_LOCK", text = "LOCK ON — R / R3 / LOCK. Cycle targets with C / D-pad ← → / tap LOCK again." },
 			},
 			-- A retry: the Frame repaired at the fight spawn, the Strider already standing, no rise (docs/05 S28).
@@ -144,6 +156,7 @@ return {
 				{ "frame", command = "forceBoard", spawn = "FRAME_OP_FIGHT" },
 				{ "frame", command = "repair" },
 				{ "spawnTitan", type = "Strider", id = "STRIDER", spawn = "TITAN_STRIDER_DORMANT" },
+				{ "ally", mode = "Combat", place = "follow" },
 				{ "fade", to = 0, duration = 0.35 },
 				{ "titanCommand", id = "STRIDER", command = "StartFight" },
 				{ "objective", id = "OBJ_M01_FIGHT" },
@@ -154,6 +167,7 @@ return {
 			},
 			complete = { "event", name = "TitanDefeated" },
 			onComplete = {
+				{ "ally", mode = "Hold", at = "MARK_MARA_REGROUP" }, -- docs/05 S30: Unit 01 walks to the regroup mark and waits
 				{ "wait", seconds = 3 },
 				{ "dialogue", id = "DLG_M01_VICTORY", block = true },
 				{ "checkpoint", id = "M01_TITAN_DOWN" },
@@ -164,6 +178,7 @@ return {
 			-- On a load S31 starts 2 s after the player stands at the post-fight spot (docs/05 §11).
 			onRestore = {
 				{ "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_POSTFIGHT" },
+				MARA_REGROUP,
 				{ "wait", seconds = 2 },
 			},
 			objective = "OBJ_M01_REGROUP",
@@ -172,6 +187,7 @@ return {
 			complete = { "any", { "proximity", spawn = "MARK_MARA_REGROUP", radius = 40 }, { "timer", seconds = 25 } },
 			onComplete = {
 				{ "spawnTitan", type = "Watcher", id = "WATCHER", spawn = "TITAN_WATCHER_W0" },
+				{ "ally", mode = "Hold", face = "TITAN_WATCHER_W0" }, -- Mara turns to the ridge
 				{ "dialogue", id = "DLG_M01_WATCHER_1", block = true },
 				-- Beat 4: down the ridge to the rover in 12 s while Vale and Mara talk; beat 5: the roof, the canister.
 				{ "dialogue", id = "DLG_M01_WATCHER_2" },
@@ -225,6 +241,7 @@ return {
 				{ "checkpoint", id = "M01_COMPLETE" },
 				{ "lighting", preset = "EVENING", instant = true },
 				{ "frame", command = "park", spawn = "SPAWN_HANGAR_FLOOR" },
+				{ "ally", mode = "Parked" },
 				{ "fade", to = 0, duration = 1.0 },
 				{ "toast", text = "MISSION COMPLETE — THE SILENT OUTPOST" },
 			},

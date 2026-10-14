@@ -15,6 +15,7 @@
 --                                         also works. hit = { attacker, frame, targetId, model, zone, damage,
 --                                         poise, move, position, coreStrike? }
 --   hitFrame(frame, hit) -> "Hit" | "Pending" | the reason it was ignored      a Titan's attack touched a Frame
+--   allyHit(hit)                          a hit by Mara's Unit 01 (no attacker; AllyFrameService caps it)
 --   repair(frame)                         full Integrity and out of Disabled (debug, later the retry flow)
 --   getAction(frame) -> { name, elapsed, queued }?
 --   HitLanded: Signal(hit)     FrameHit: Signal(frame, hit, { integrity, heavy, stun, disabled })
@@ -284,9 +285,11 @@ local function deliver(hit)
 		model:SetAttribute("LastHitPoise", hit.poise)
 		model:SetAttribute("LastHitMove", hit.move)
 	end
-	feedback(hit.attacker, {
-		kind = "HitLanded", targetId = hit.targetId, zone = hit.zone, amount = hit.damage, poise = hit.poise, pos = hit.position, move = hit.move,
-	})
+	if hit.attacker then
+		feedback(hit.attacker, {
+			kind = "HitLanded", targetId = hit.targetId, zone = hit.zone, amount = hit.damage, poise = hit.poise, pos = hit.position, move = hit.move,
+		})
+	end
 	CombatService.HitLanded:Fire(hit)
 end
 
@@ -561,6 +564,11 @@ local function checkSpeed(frame, player)
 		entry.position = entry.valid.Position
 		table.clear(entry.violations)
 	end
+end
+
+-- A hit by the ally Frame (AllyFrameService decides it): straight to the target; there is no pilot to tell.
+function CombatService.allyHit(hit)
+	deliver(hit)
 end
 
 function CombatService.registerTarget(targetId, handler)

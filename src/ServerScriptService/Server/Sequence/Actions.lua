@@ -13,7 +13,7 @@
 -- setFlag, clearFlag, objective, prompt, dialogue (radio lines, stepped by SequenceService until DialogueService
 -- exists), tutorial (a toast for now), toast, zoneState, checkpoint, frame (forceBoard, park, repair),
 -- spawnTitan, despawnTitan, titanCommand (with the Watcher's stand-in: WatcherPath, PeelRover, TakeCanister,
--- WatcherFace), unlock (a case's lock light, S32).
+-- WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01).
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,6 +23,7 @@ local Log = require(Shared.Modules.Log)
 local Net = require(Shared.Modules.Net)
 
 local Services = script.Parent.Parent.Services
+local AllyFrameService = require(Services.AllyFrameService)
 local CharacterService = require(Services.CharacterService)
 local CombatService = require(Services.CombatService)
 local FlagService = require(Services.FlagService)
@@ -151,6 +152,12 @@ function actions.frame(runner, a)
 	else
 		Log.warn(TAG, "frame command %s isn't built yet", tostring(a.command))
 	end
+end
+
+-- Mara's Unit 01 (docs/09 §7): { "ally", mode = "Follow" | "Hold" | "Combat" | "Scripted" | "Parked", place?, at?,
+-- face?, to?, stride? } (AllyFrameService.setMode).
+function actions.ally(runner, a)
+	AllyFrameService.setMode(runner.player, a.mode, a)
 end
 
 -- Titans of the mission are known to the steps by an id of their own (docs/13 §1.2).
