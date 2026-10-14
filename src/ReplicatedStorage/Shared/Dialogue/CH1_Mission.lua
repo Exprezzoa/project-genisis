@@ -3,7 +3,8 @@
 --
 -- The radio lines of the Outpost 07 mission up to the basin. Line ids and text are exactly the script's; the
 -- dialogue ids (DLG_M01_...) are ours. All are "radio" mode: the server steps through them by itself.
--- The fight's lines (S28, S30) are here; the Watcher and the rover (S31-S33) are added with those steps.
+-- S31's choice C3 and the lines that hang on it (WA_09a-WA_10b, WA_09c) need the dialogue UI and come with
+-- DialogueService (Phase 5); so do the VOICE lines of S33.
 
 local function radio(lines: { { string } })
 	local nodes = {}
@@ -86,5 +87,42 @@ return {
 		{ "VI_02", "E", "It's ashing." },
 		{ "VI_03", "M", "Good. Good. Ember-1 to Overwatch. Target down." },
 		{ "VI_04", "O", "Overwatch copies. Nice work, both of you. Secure the area." },
+	}),
+	DLG_M01_WATCHER_1 = radio({
+		{ "WA_01", "M", "Eli. Ridge. Two o'clock." },
+		{ "WA_02", "E", "That's... bigger." },
+		{ "WA_03", "M", "Why isn't it moving?" },
+		{ "WA_04", "O", "Ember Squad, I have a second contact. It's—it's not on any registry." },
+	}),
+	DLG_M01_WATCHER_2 = radio({
+		{ "WA_05", "V", "Ember Squad, Vale. Status." },
+		{ "WA_06", "M", "Second Titan. Class-Three, maybe Four. It's not attacking, sir." },
+	}),
+	DLG_M01_WATCHER_3 = radio({
+		{ "WA_07", "V", "Ember Squad, pursue and maintain contact." },
+		{ "WA_08", "M", "Sir, we're banged up. Two damaged Frames against a Class-Three-plus—" },
+		{ "WA_11", "V", "Negative on pursuit, then. Hold position. Observe and record. Do not engage." },
+	}),
+	DLG_M01_WATCHER_4 = radio({
+		{ "WA_12", "O", "Contact's off my scope. It just... went." },
+		{ "WA_13", "M", "Titans don't take things, Eli. They don't take things." },
+		{ "WA_14", "V", "Ember Squad. Investigate that vehicle. I want to know what it was carrying." },
+	}),
+	DLG_M01_ROVER_MARKING = radio({
+		{ "RV_01", "E", "Science Division markings. Three rings. Never seen that symbol before." },
+	}),
+	DLG_M01_ROVER_CRADLE = radio({
+		{ "RV_02", "E", "Cryo cradle. Empty. Label says... \"Subject T-V. ECHO-9.\"" },
+		{ "RV_03", "M", "Subject? Subject of what?" },
+		{ "RV_04", "E", "Doesn't say." },
+	}),
+	DLG_M01_ROVER_CASE = radio({
+		{ "RV_05", "E", "Huh. Lock just... let go." },
+		{ "RV_06", "M", "What is it?" },
+		{ "RV_07", "E", "Data spindle. Classified seals all over it." },
+		{ "RV_08", "V", "Pilot, bring it to your Frame. Standard protocol: upload a copy to Overwatch." },
+	}),
+	DLG_M01_DARK = radio({
+		{ "AN_01", "M", "Eli! Eli, answer me! Overwatch, his Frame's gone dark—" },
 	}),
 }

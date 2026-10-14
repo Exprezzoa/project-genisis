@@ -11,6 +11,7 @@
 --
 --   spawnFrame(unitId, spawnId?) -> Model      getFrame(unitId) -> Model?      getPiloted(player) -> Model?
 --   board(player, frame) -> ok, reason         dismount(player, padId) -> ok, reason
+--   park(player, exitCFrame) -> ok             back to the bay, the pilot on foot (the end of a sortie)
 --   playAnim(frame, clip, speed?)              setState(frame, state)
 --   spendEnergy(frame, amount) -> boolean      setEnergy(frame, value)
 --   Boarded(player, frame)   Dismounted(player, frame)
@@ -52,6 +53,7 @@ local frames = {} -- [unitId] = Model
 local piloted = {} -- [Player] = Model
 local energy = {} -- [Model] = { value, lastSpend, published }
 local busy = {} -- [Player] = true while a board or dismount transition runs
+local registered = {} -- [unitId] = true once the unit's board prompts have a handler
 
 local function now()
 	return workspace:GetServerTimeNow()
@@ -245,10 +247,17 @@ function FrameService.spawnFrame(unitId, spawnId)
 	boardPoint.Parent = frame
 	addPrompt(boardPoint, "INT_BOARD_HAND" .. unitId, "Board Frame", label, { hold = 0.8, dist = 12, enabled = false })
 
-	if unit.playable then
+	-- Registered once per unit: a unit spawned again (parked after a sortie) keeps its prompt ids, and the
+	-- handler boards whichever copy of the unit exists when the prompt is used.
+	if unit.playable and not registered[unitId] then
+		registered[unitId] = true
 		for _, id in ipairs({ "INT_BOARD_BAY" .. (bay or unitId), "INT_BOARD_HAND" .. unitId }) do
 			InteractionService.register(id, function(player)
-				local ok, reason = FrameService.board(player, frame)
+				local current = frames[unitId]
+				if not (current and current.Parent) then
+					return
+				end
+				local ok, reason = FrameService.board(player, current)
 				if not ok then
 					Log.debug(TAG, "%s can't board Unit %s: %s", player.Name, unitId, tostring(reason))
 				end
@@ -382,6 +391,18 @@ local function release(player, frame, exitCFrame)
 		setPrompt(frame, "Hand", true)
 	end
 	FrameService.Dismounted:Fire(player, frame)
+end
+
+-- The sortie is over: the pilot is put on foot at exitCFrame and the unit stands parked in its bay again.
+function FrameService.park(player, exitCFrame)
+	local frame = piloted[player]
+	if not frame then
+		return false
+	end
+	local unitId = frame:GetAttribute("Unit")
+	release(player, frame, exitCFrame)
+	FrameService.spawnFrame(unitId)
+	return true
 end
 
 -- docs/08 §5.4 "Dismount (at a DismountPad)". Yields for the kneel and the fade.

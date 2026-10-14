@@ -2,8 +2,9 @@
 -- Shared/Sequences/CH1.lua  (docs/13_missions_dialogue_relationships.md §1; docs/05_chapter1_script.md)
 --
 -- Chapter 1 as data for the Sequence Runner. So far: the Outpost 07 mission from the arrival to the basin's edge
--- and the fight (S20-S30). The hub scenes (S01-S10) come with Phase 5; the Watcher, the rover and the upload
--- (S31-S33) next. The cinematics of S28 are Phase 5's: for now the Strider just rises while the lines play.
+-- to the return (S20-S33). The hub scenes (S01-S10, S40-S43) come with Phase 5, and so do the cinematics: for
+-- now the Strider just rises while its lines play, the Watcher is a stand-in the player watches from the
+-- cockpit (no choice C3 yet), and S33's anomaly is a fade to black.
 -- Step ids follow the script's scene numbers. A step with `checkpoint` saves when it completes, or when it
 -- begins with checkpointOnEnter (docs/13 §1.1). `checkpoints` says which step a saved checkpoint loads into
 -- (docs/05 §11); that step's onRestore puts the player where the table says.
@@ -34,6 +35,8 @@ return {
 		M01_COMMS = "S25_INVESTIGATE",
 		M01_TRAIL = "S27_TRAIL",
 		M01_FIGHT = "S28_STRIDER",
+		M01_TITAN_DOWN = "S31_WATCHER",
+		M01_COMPLETE = "S40_RETURN",
 	},
 	steps = {
 		{
@@ -155,6 +158,82 @@ return {
 				{ "dialogue", id = "DLG_M01_VICTORY", block = true },
 				{ "checkpoint", id = "M01_TITAN_DOWN" },
 			},
+		},
+		{
+			id = "S31_WATCHER",
+			-- On a load S31 starts 2 s after the player stands at the post-fight spot (docs/05 §11).
+			onRestore = {
+				{ "lighting", preset = "OVERCAST", instant = true }, POWER_ON, { "frame", command = "forceBoard", spawn = "FRAME_OP_POSTFIGHT" },
+				{ "wait", seconds = 2 },
+			},
+			objective = "OBJ_M01_REGROUP",
+			waypoint = { spawn = "MARK_MARA_REGROUP" },
+			-- Within 40 studs of where Unit 01 waits, or 25 s after the victory lines (docs/05 S31).
+			complete = { "any", { "proximity", spawn = "MARK_MARA_REGROUP", radius = 40 }, { "timer", seconds = 25 } },
+			onComplete = {
+				{ "spawnTitan", type = "Watcher", id = "WATCHER", spawn = "TITAN_WATCHER_W0" },
+				{ "dialogue", id = "DLG_M01_WATCHER_1", block = true },
+				-- Beat 4: down the ridge to the rover in 12 s while Vale and Mara talk; beat 5: the roof, the canister.
+				{ "dialogue", id = "DLG_M01_WATCHER_2" },
+				{ "titanCommand", id = "WATCHER", command = "WatcherPath", nodes = { "W1", "W2", "W3" }, seconds = 12, block = true },
+				{ "titanCommand", id = "WATCHER", command = "PeelRover" },
+				{ "titanCommand", id = "WATCHER", command = "TakeCanister" },
+				-- Beat 6: it looks straight at Unit 02 for 1.5 s.
+				{ "titanCommand", id = "WATCHER", command = "WatcherFace", target = "Frame:Player", seconds = 0.6 },
+				{ "wait", seconds = 1.5 },
+				{ "dialogue", id = "DLG_M01_WATCHER_3", block = true },
+				{ "titanCommand", id = "WATCHER", command = "WatcherPath", nodes = { "W2", "W1", "W4", "W5" }, seconds = 8, block = true },
+				{ "despawnTitan", id = "WATCHER" },
+				{ "dialogue", id = "DLG_M01_WATCHER_4", block = true },
+			},
+		},
+		{
+			id = "S32_ROVER",
+			onEnter = {
+				{ "prompt", id = "INT_ROVER_MARKING", enabled = true },
+				{ "prompt", id = "INT_ROVER_CRADLE", enabled = true },
+				{ "prompt", id = "INT_ROVER_CASE", enabled = true },
+			},
+			objective = "OBJ_M01_ROVER",
+			waypoint = { spawn = "WP_OP_PADB" },
+			parallel = {
+				{ when = { "interact", id = "INT_ROVER_MARKING" }, actions = { { "setFlag", flag = "CH1_SAW_ECHO" }, { "dialogue", id = "DLG_M01_ROVER_MARKING" } } },
+				{ when = { "interact", id = "INT_ROVER_CRADLE" }, actions = { { "setFlag", flag = "CH1_SAW_CRADLE" }, { "dialogue", id = "DLG_M01_ROVER_CRADLE" } } },
+			},
+			complete = { "interact", id = "INT_ROVER_CASE" }, -- the sealed case is the one that must be opened
+			onComplete = {
+				{ "prompt", id = "INT_ROVER_MARKING", enabled = false },
+				{ "prompt", id = "INT_ROVER_CRADLE", enabled = false },
+				{ "prompt", id = "INT_ROVER_CASE", enabled = false },
+				{ "setFlag", flag = "CH1_HAS_SPINDLE" },
+				{ "unlock", id = "INT_ROVER_CASE" }, -- the lock light: cyan for 0.6 s, then off (clue 10)
+				{ "dialogue", id = "DLG_M01_ROVER_CASE", block = true }, -- the upload objective follows RV_08
+			},
+		},
+		{
+			id = "S33_UPLOAD",
+			objective = "OBJ_M01_UPLOAD",
+			waypoint = { entity = "Frame:Player" },
+			complete = { "event", name = "FrameBoarded" },
+			-- The anomaly itself (HUD glitch, the Frame's head turning, the memory) is a Phase 5 cinematic.
+			onComplete = {
+				{ "toast", text = "UPLOADING SPINDLE // 61%" },
+				{ "wait", seconds = 2.4 },
+				{ "fade", to = 1, duration = 1.0 },
+				{ "dialogue", id = "DLG_M01_DARK", block = true },
+				{ "wait", seconds = 2 },
+				{ "checkpoint", id = "M01_COMPLETE" },
+				{ "lighting", preset = "EVENING", instant = true },
+				{ "frame", command = "park", spawn = "SPAWN_HANGAR_FLOOR" },
+				{ "fade", to = 0, duration = 1.0 },
+				{ "toast", text = "MISSION COMPLETE — THE SILENT OUTPOST" },
+			},
+		},
+		{
+			-- The return to the hangar. Only where M01_COMPLETE puts the player for now (docs/05 §11); Vale, Rhein and
+			-- the rest of S40 come with Phase 5.
+			id = "S40_RETURN",
+			onRestore = { { "lighting", preset = "EVENING", instant = true }, { "teleport", spawn = "SPAWN_HANGAR_FLOOR" } },
 		},
 	},
 }

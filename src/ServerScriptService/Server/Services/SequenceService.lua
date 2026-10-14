@@ -6,18 +6,16 @@
 -- runs onComplete, saves its checkpoint and moves on. Steps name things by id only; this service turns the
 -- signals of the other services into the conditions' events.
 --
---   start(player, sequenceId, stepId?, restoring?)     stop(player)
+--   start(player, sequenceId, stepId?, restoring?)     stop(player)     (a rejoining player resumes by itself)
 --   jump(player, stepId) -> ok, message                 the step as a checkpoint load would enter it (/step)
 --   loadCheckpoint(player, checkpoint) -> ok, message   the step that checkpoint loads into (docs/05 §11)
 --   notify(player, kind, key, who?)                     feed an event by hand: "trigger" | "interact" | "event"
 --   getState(player) -> { sequenceId, stepId, objective, args, armed }?
 --   StepEntered / StepCompleted: Signal(player, stepId)       ZoneState: Signal(zone, key, value)
 --
--- Built so far (the rest of docs/13 §1.2-1.3 comes with the steps that need it): actions fade, lighting,
--- teleport, wait, setFlag, clearFlag, objective, prompt, dialogue (radio lines, stepped here until
--- DialogueService exists), tutorial (a toast for now), zoneState, checkpoint, frame (forceBoard, repair),
--- spawnTitan, despawnTitan, titanCommand; conditions trigger, interact, counter, event, timer, proximity, any,
--- all. A step's onFail runs when the player's Frame is disabled during it, then its checkpoint is loaded.
+-- The actions are in Server/Sequence/Actions, the completion conditions in Server/Sequence/Conditions (docs/16
+-- §2). Radio lines are stepped here until DialogueService exists. A step's onFail runs when the player's Frame
+-- is disabled during it, then its checkpoint is loaded.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -28,6 +26,8 @@ local Log = require(Shared.Modules.Log)
 local Net = require(Shared.Modules.Net)
 local Signal = require(Shared.Modules.Signal)
 
+local Actions = require(script.Parent.Parent.Sequence.Actions)
+local Conditions = require(script.Parent.Parent.Sequence.Conditions)
 local CharacterService = require(script.Parent.CharacterService)
 local CombatService = require(script.Parent.CombatService)
 local FlagService = require(script.Parent.FlagService)
@@ -43,6 +43,7 @@ local LINE_GAP = 0.25 -- seconds of silence between two radio lines
 local PLAYER_UNIT = "02"
 local POLL = 0.25 -- seconds between looks at the conditions nothing announces (proximity)
 local FAIL_CARD = 2.5 -- the FRAME DISABLED card (docs/14) before a failed step's onFail runs
+local RESTORE_FADE = 0.6 -- seconds of the fade in after a checkpoint load
 
 local SequenceService = {}
 
@@ -144,262 +145,6 @@ local function save(runner, checkpoint)
 end
 
 ----------------------------------------------------------------------------------------------------------------
--- Actions (docs/13 §1.2). Each takes the runner and the action's table; a yielding action is one that blocks.
-----------------------------------------------------------------------------------------------------------------
-local actions = {}
-
-function actions.fade(runner, a)
-	Net.fireClient(runner.player, "Fade", { to = a.to, duration = a.duration or 0 })
-	if a.block ~= false and (a.duration or 0) > 0 then
-		task.wait(a.duration)
-	end
-end
-
-function actions.lighting(runner, a)
-	Net.fireClient(runner.player, "Lighting_Set", { preset = a.preset, instant = a.instant == true })
-end
-
-function actions.teleport(runner, a)
-	if a.frame then
-		local frame = FrameService.getPiloted(runner.player)
-		local cframe = CharacterService.getSpawnCFrame(a.spawn)
-		if frame and cframe then
-			FrameService.moveTo(frame, cframe)
-		else
-			Log.warn(TAG, "teleport: %s isn't piloting, or no spawn %s", runner.player.Name, tostring(a.spawn))
-		end
-	else
-		CharacterService.teleport(runner.player, a.spawn)
-	end
-end
-
-function actions.wait(_, a)
-	task.wait(a.seconds or 0)
-end
-
-function actions.setFlag(runner, a)
-	FlagService.set(runner.player, a.flag)
-end
-
-function actions.clearFlag(runner, a)
-	FlagService.clear(runner.player, a.flag)
-end
-
-function actions.objective(runner, a)
-	runner.objective, runner.args = a.id, a.args or {}
-	publish(runner)
-end
-
--- unlessFlag: leave the prompt alone for a player who has the flag (a clue found before a reload).
-function actions.prompt(runner, a)
-	if a.unlessFlag and FlagService.has(runner.player, a.unlessFlag) then
-		return
-	end
-	InteractionService.setEnabled(a.id, a.enabled == true, runner.player)
-end
-
-function actions.dialogue(runner, a)
-	speak(runner, a.id, a.block == true)
-end
-
--- Until TutorialController exists a tutorial is a toast, shown once per profile (flag TUT_<id>).
-function actions.tutorial(runner, a)
-	local flag = "TUT_" .. string.gsub(a.id, "^TUT_", "")
-	if not FlagService.has(runner.player, flag) then
-		FlagService.set(runner.player, flag)
-		Net.fireClient(runner.player, "UI_Toast", { text = a.text or a.id })
-	end
-end
-
-function actions.zoneState(_, a)
-	local map = workspace:FindFirstChild("Map")
-	local zone = map and map:FindFirstChild(a.zone)
-	if zone then
-		zone:SetAttribute(a.key, a.value)
-	end
-	SequenceService.ZoneState:Fire(a.zone, a.key, a.value)
-end
-
-function actions.checkpoint(runner, a)
-	save(runner, a.id)
-end
-
-function actions.frame(runner, a)
-	local player = runner.player
-	if a.command == "forceBoard" then
-		local frame = FrameService.getPiloted(player) or FrameService.getFrame(PLAYER_UNIT)
-		local cframe = a.spawn and CharacterService.getSpawnCFrame(a.spawn)
-		if frame and cframe then
-			FrameService.moveTo(frame, cframe)
-		end
-		if frame and not FrameService.getPiloted(player) then
-			FrameService.board(player, frame, true) -- yields for the fade and the boot
-		end
-	elseif a.command == "repair" then
-		local frame = FrameService.getPiloted(player)
-		if frame then
-			CombatService.repair(frame)
-		end
-	else
-		Log.warn(TAG, "frame command %s isn't built yet", tostring(a.command))
-	end
-end
-
--- Titans of the mission are known to the steps by an id of their own (docs/13 §1.2).
-function actions.despawnTitan(runner, a)
-	local model = runner.titans[a.id]
-	runner.titans[a.id] = nil
-	if model and model.Parent then
-		TitanService.despawn(model)
-	end
-end
-
-function actions.spawnTitan(runner, a)
-	actions.despawnTitan(runner, a)
-	local cframe = CharacterService.getSpawnCFrame(a.spawn)
-	if not cframe then
-		Log.warn(TAG, "spawnTitan: no spawn %s", tostring(a.spawn))
-		return
-	end
-	runner.titans[a.id] = TitanService.spawn(a.type, cframe, { dormant = a.state == "Dormant", firstSweepWindup = a.firstSweepWindup })
-end
-
-function actions.titanCommand(runner, a)
-	local model = runner.titans[a.id]
-	if model and model.Parent then
-		TitanService.command(model, a.command)
-	end
-end
-
-local function runActions(runner, token, list, restoring)
-	for _, action in ipairs(list or {}) do
-		if runner.token ~= token or not runner.player.Parent then
-			return
-		end
-		local handler = actions[action[1]]
-		if not handler then
-			Log.warn(TAG, "action %s isn't built yet (step %s)", tostring(action[1]), runner.step and runner.step.id or "?")
-		elseif not (restoring and action.skipOnRestore) then
-			local ok, problem = pcall(handler, runner, action)
-			if not ok then
-				Log.error(TAG, "action %s failed in %s: %s", tostring(action[1]), runner.step and runner.step.id or "?", tostring(problem))
-			end
-		end
-	end
-end
-
-----------------------------------------------------------------------------------------------------------------
--- Conditions (docs/13 §1.3): { ready() -> boolean, on(kind, key, who) -> boolean }
-----------------------------------------------------------------------------------------------------------------
-local function compile(runner, token, cond)
-	local kind = cond[1]
-	local player = runner.player
-	if kind == "trigger" then
-		local who = if cond.who == "any" then nil else cond.who
-		return {
-			ready = function()
-				return TriggerService.isInside(player, cond.id, who)
-			end,
-			on = function(k, key, eventWho)
-				return k == "trigger" and key == cond.id and (who == nil or who == eventWho)
-			end,
-		}
-	elseif kind == "interact" or kind == "event" then
-		local wanted = if kind == "interact" then cond.id else cond.name
-		return {
-			ready = function()
-				return false
-			end,
-			on = function(k, key)
-				return k == kind and key == wanted
-			end,
-		}
-	elseif kind == "counter" then
-		-- n distinct interactions; with `flags` each one is remembered as a story flag and counted again after a reload.
-		local found, count = {}, 0
-		for _, id in ipairs(cond.ids) do
-			local flag = cond.flags and cond.flags[id]
-			if flag and FlagService.has(player, flag) then
-				found[id] = true
-				count += 1
-			end
-		end
-		runner.args = { n = count }
-		return {
-			ready = function()
-				return count >= cond.n
-			end,
-			on = function(k, key)
-				if k == "interact" and table.find(cond.ids, key) and not found[key] then
-					found[key] = true
-					count += 1
-					if cond.flags and cond.flags[key] then
-						FlagService.set(player, cond.flags[key])
-					end
-					runner.args = { n = count }
-					publish(runner)
-				end
-				return count >= cond.n
-			end,
-		}
-	elseif kind == "timer" then
-		local elapsed = false
-		task.delay(cond.seconds, function()
-			elapsed = true
-			if runner.token == token then
-				SequenceService.notify(player, "timer", "")
-			end
-		end)
-		return {
-			ready = function()
-				return elapsed
-			end,
-			on = function()
-				return elapsed
-			end,
-		}
-	elseif kind == "proximity" then
-		-- The player's Frame (or the character on foot) within `radius` of a spawn marker, along the ground.
-		local function near()
-			local frame = FrameService.getPiloted(player)
-			local character = player.Character
-			local body = if frame then frame.PrimaryPart else (character and character:FindFirstChild("HumanoidRootPart"))
-			local cframe = CharacterService.getSpawnCFrame(cond.spawn)
-			return body ~= nil and cframe ~= nil and ((body.Position - cframe.Position) * Vector3.new(1, 0, 1)).Magnitude <= cond.radius
-		end
-		return { ready = near, on = near }
-	elseif kind == "any" or kind == "all" then
-		local children, met = {}, {}
-		for index, child in ipairs(cond) do
-			if index > 1 then
-				table.insert(children, compile(runner, token, child))
-			end
-		end
-		local function tally(test)
-			local count = 0
-			for index, child in ipairs(children) do
-				met[index] = met[index] or test(child)
-				count += if met[index] then 1 else 0
-			end
-			return if kind == "any" then count > 0 else count == #children
-		end
-		return {
-			ready = function()
-				return tally(function(child)
-					return child.ready()
-				end)
-			end,
-			on = function(k, key, who)
-				return tally(function(child)
-					return child.on(k, key, who)
-				end)
-			end,
-		}
-	end
-	error("SequenceService: condition " .. tostring(kind) .. " isn't built yet")
-end
-
-----------------------------------------------------------------------------------------------------------------
 -- The runner
 ----------------------------------------------------------------------------------------------------------------
 local function complete(runner, token)
@@ -409,7 +154,7 @@ local function complete(runner, token)
 	runner.armed = false
 	local step = runner.step
 	task.spawn(function()
-		runActions(runner, token, step.onComplete)
+		Actions.run(runner, token, step.onComplete)
 		if runner.token ~= token then
 			return
 		end
@@ -441,15 +186,22 @@ function enter(runner, index, restoring)
 	publish(runner)
 	SequenceService.StepEntered:Fire(runner.player, step.id)
 	task.spawn(function()
-		-- A load runs the step's onRestore if it has one, else its onEnter without what is marked skipOnRestore.
-		runActions(runner, token, if restoring and step.onRestore then step.onRestore else step.onEnter, restoring)
+		-- A load runs the step's onRestore if it has one, else its onEnter without what is marked skipOnRestore,
+		-- behind a black screen that lifts once the player stands where the step wants them.
+		if restoring then
+			Net.fireClient(runner.player, "Fade", { to = 1, duration = 0 })
+		end
+		Actions.run(runner, token, if restoring and step.onRestore then step.onRestore else step.onEnter, restoring)
 		if runner.token ~= token then
 			return
 		end
-		for _, listener in ipairs(step.parallel or {}) do
-			table.insert(runner.side, { watch = compile(runner, token, listener.when), actions = listener.actions, once = listener.once ~= false })
+		if restoring then
+			Net.fireClient(runner.player, "Fade", { to = 0, duration = RESTORE_FADE })
 		end
-		runner.watch = if step.complete then compile(runner, token, step.complete) else nil
+		for _, listener in ipairs(step.parallel or {}) do
+			table.insert(runner.side, { watch = Conditions.compile(runner, token, listener.when), actions = listener.actions, once = listener.once ~= false })
+		end
+		runner.watch = if step.complete then Conditions.compile(runner, token, step.complete) else nil
 		runner.armed = true
 		publish(runner)
 		if runner.watch and runner.watch.ready() then
@@ -467,7 +219,7 @@ function SequenceService.notify(player, kind, key, who)
 	for _, listener in ipairs(runner.side) do
 		if not listener.spent and listener.watch.on(kind, key, who) then
 			listener.spent = listener.once
-			task.spawn(runActions, runner, token, listener.actions)
+			task.spawn(Actions.run, runner, token, listener.actions)
 		end
 	end
 	if runner.watch and runner.watch.on(kind, key, who) then
@@ -483,7 +235,7 @@ local function fail(runner)
 	runner.armed = false
 	task.spawn(function()
 		task.wait(FAIL_CARD)
-		runActions(runner, token, step.onFail)
+		Actions.run(runner, token, step.onFail)
 		if runner.token ~= token or not runner.player.Parent then
 			return
 		end
@@ -547,10 +299,8 @@ function SequenceService.stop(player)
 		runner.token += 1
 		runner.armed = false
 		runners[player] = nil
-		for _, model in pairs(runner.titans) do
-			if model.Parent then
-				TitanService.despawn(model)
-			end
+		for id in pairs(runner.titans) do
+			Actions.handlers.despawnTitan(runner, { id = id })
 		end
 	end
 end
@@ -567,6 +317,8 @@ function SequenceService.getState(player)
 end
 
 function SequenceService.Init()
+	Actions.bind({ speak = speak, publish = publish, save = save, zoneState = SequenceService.ZoneState })
+	Conditions.bind({ publish = publish, notify = SequenceService.notify })
 	for _, module in ipairs(Shared:WaitForChild("Sequences"):GetChildren()) do
 		if module:IsA("ModuleScript") then
 			local sequence = require(module)
@@ -663,7 +415,27 @@ function SequenceService.Start()
 			end
 		end
 	end)
-	Players.PlayerRemoving:Connect(SequenceService.stop)
+	-- A returning player goes back to the saved checkpoint as soon as their first character exists (docs/13 §1.4,
+	-- docs/05 §11). A checkpoint no step loads into (the hub's, until Phase 5) leaves them where they spawned.
+	local resumed = {}
+	CharacterService.Spawned:Connect(function(player)
+		if resumed[player] then
+			return
+		end
+		resumed[player] = true
+		local profile = PlayerDataService.getProfile(player)
+		local checkpoint = profile and profile.story.checkpoint
+		if checkpoint then
+			task.defer(function()
+				local _, message = SequenceService.loadCheckpoint(player, checkpoint)
+				Log.info(TAG, "%s resumes at %s: %s", player.Name, checkpoint, tostring(message))
+			end)
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		resumed[player] = nil
+		SequenceService.stop(player)
+	end)
 end
 
 return SequenceService

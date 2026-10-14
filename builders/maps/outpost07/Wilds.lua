@@ -4,7 +4,8 @@
 -- Ridge with the Watcher's route, and the rover crash site with Pad B.
 --
 -- BLOCKOUT pass, like Compound: right sizes and places, collisions, markers, cameras, triggers, barriers,
--- prompts on stand-ins. No props.
+-- prompts on stand-ins. No props, except the rover: the player walks into it in S32, so its hull, bay and the
+-- things in it are built in every pass (see rover below).
 --
 --   Builder.Build({ BK = BK, Common = Common, Layout = Layout, pass = "blockout", areas = { "Basin" } })
 
@@ -114,6 +115,136 @@ function areas.Basin(ctx, T)
 	T.trigger("TRG_OOB_BASIN_E", 167, -724, 182, -424, FLOOR_Y, 40)
 end
 
+-- Rover SR-12 (docs/07 §6, map_03 §14): 10 wide, 9 tall, 24 long, lying on its right side at (150, -12, -600)
+-- with its front to the north and its roof to the east (toward W3). On its side the truck's height runs along X
+-- (floor X 145.5, roof 154.5) and its width along Y (-12..-2). The hull, the cargo bay, the hinged roof and
+-- everything S31-S32 use are built in every pass, because the player walks into the bay; wheels, skid marks and
+-- debris come with the structure pass. The bay is 17 long inside (Z -606..-589) instead of the doc's 14, so that
+-- the cradle (Z -604) and the case (Z -596) both sit where map_03 puts them (D-070).
+local ROVER_GREY = "#7E848A" -- docs/07 §6
+local ECHO_WHITE = "#D9DDE2" -- docs/07 §6, the ECHO rings
+
+local function rover(ctx, T)
+	local S, BK, P, G = ctx.Structure, ctx.BK, ctx.P, ctx.Gameplay
+	local hull = { Color = ROVER_GREY, Material = "Metal" }
+	local W = T.W
+	local model = BK.model(S, "RoverSR12")
+	-- The cab (solid), and the cargo bay's four closed sides: the floor (west), the right side (on the ground, the
+	-- bay's walking surface at Y -11), the left side (facing up) and the rear doors (south).
+	T.box(model, "Cab", 145.5, FLOOR_Y, -612, 154.5, -2, -606, hull)
+	T.box(model, "BayFloor", 145.5, FLOOR_Y, -606, 146.5, -2, -588, hull)
+	T.box(model, "BayRightSide", 146.5, FLOOR_Y, -606, 154.5, -11, -589, { Color = P.STEEL_MID, Material = "DiamondPlate" })
+	T.box(model, "BayLeftSide", 146.5, -3, -606, 154.5, -2, -589, hull)
+	T.box(model, "RearDoorA", 146.5, -11, -589, 154.5, -7.05, -588, hull)
+	T.box(model, "RearDoorB", 146.5, -6.95, -589, 154.5, -3, -588, hull)
+	T.box(model, "DoorSeam", 146.6, -7.05, -588.9, 154.4, -6.95, -588.1, { Color = P.STEEL_DARK })
+	BK.part(model, { Name = "Windshield", Size = Vector3.new(4, 6, 0.2), CFrame = CFrame.new(W(152, -7, -612.05)), Color = P.GLASS, Material = "Glass", Transparency = 0.55 })
+
+	-- The roof over the bay: a hinged panel the Watcher peels back (110 degrees about its lower outer edge, S31).
+	local panel = BK.model(G, "RoofPanel")
+	panel.PrimaryPart = T.box(panel, "Panel", 153.5, -11, -606, 154.5, -3, -589, { Color = ROVER_GREY, Material = "CorrodedMetal" })
+	-- A ramp of debris to the opening for on-foot entry.
+	BK.wedge(G, {
+		Name = "DebrisRamp", Size = Vector3.new(6, 1, 3.5), CFrame = CFrame.lookAt(W(156.25, -11.5, -600), W(157.25, -11.5, -600)),
+		Color = P.RUST_DARK, Material = "CorrodedMetal",
+	})
+
+	-- The ECHO mark on the rear doors: three thin rings (Neon off) and the "SR-12" stencil; the prompt sits on it.
+	for index, ring in ipairs({ { 3.0, ECHO_WHITE }, { 2.6, ROVER_GREY }, { 2.0, ECHO_WHITE }, { 1.6, ROVER_GREY }, { 1.0, ECHO_WHITE }, { 0.6, ROVER_GREY } }) do
+		BK.cyl(model, {
+			Name = "EchoRing", Axis = "Z", Size = Vector3.new(ring[1], ring[1], 0.04), CFrame = CFrame.new(W(150, -8, -588 + 0.02 * index)),
+			Color = ring[2], CanCollide = false, CanQuery = false, CastShadow = false,
+		})
+	end
+	BK.sign(model, "Stencil", CFrame.lookAt(W(152.6, -8, -587.92), W(152.6, -8, -586)) * CFrame.Angles(0, 0, math.rad(90)), Vector2.new(3.6, 1.1), "SR-12", {
+		bgTransparency = 1, textColor = ECHO_WHITE,
+	})
+	local marking = BK.part(G, { Name = "RearMarking", Size = Vector3.new(3.2, 3.2, 0.4), CFrame = CFrame.new(W(150, -8, -587.8)), Transparency = 1, CanCollide = false })
+	T.prompt(marking, "INT_ROVER_MARKING", "Inspect", { onFootOnly = true, enabled = false })
+
+	-- The cryo cradle (docs/07 §6: a 2 x 3 cylinder slot, frost-white glow) on a housing bolted to the floor, with
+	-- its label, and the T-V canister in it until the Watcher takes it (docs/10).
+	T.box(model, "CradleHousing", 146.5, -11, -606, 148.5, -7.5, -602, { Color = P.STEEL_MID, Material = "Metal" })
+	for _, x in ipairs({ 149, 151 }) do
+		BK.cyl(model, { Name = "CradleBand", Axis = "X", Size = Vector3.new(0.25, 2.5, 2.5), CFrame = CFrame.new(W(x, -10, -604)), Color = P.STEEL_DARK, CanCollide = false })
+	end
+	BK.sign(model, "CradleLabel", CFrame.lookAt(W(148.53, -8.1, -604), W(150, -8.1, -604)), Vector2.new(3.2, 0.7), "SUBJECT T-V / ECHO-9", {
+		bgColor = P.STEEL_DARK, textColor = P.SIGN_WHITE, font = Enum.Font.RobotoMono,
+	})
+	local cradle = BK.cyl(G, {
+		Name = "CryoCradle", Axis = "X", Size = Vector3.new(3, 2, 2), CFrame = CFrame.new(W(150, -10, -604)),
+		Color = P.MEDICAL_WHITE, Material = "Neon", Transparency = 0.85, CanCollide = false,
+	})
+	T.prompt(cradle, "INT_ROVER_CRADLE", "Inspect", { onFootOnly = true, enabled = false, lineOfSight = false })
+	local canister = BK.cyl(G, {
+		Name = "TV_Canister", Axis = "X", Size = Vector3.new(2.4, 1.2, 1.2), CFrame = CFrame.new(W(150, -10, -604)),
+		Color = P.MEDICAL_WHITE, Material = "SmoothPlastic", CanCollide = false, CanQuery = false,
+	})
+	local frost = BK.emitter(canister, "Smoke")
+	frost.Name = "Frost"
+	frost.Color = ColorSequence.new(P.MEDICAL_WHITE)
+	frost.Size = NumberSequence.new(0.3, 1.2)
+	frost.Transparency = NumberSequence.new(0.55, 1)
+	frost.Lifetime = NumberRange.new(1, 2)
+	frost.Speed = NumberRange.new(0.3, 1)
+	frost.Rate = 5
+
+	-- The sealed case (docs/07 §6 MetalCase, 4 x 2 x 2.5) on the bay's floor, with its red lock light facing the
+	-- opening (S32 turns it cyan for 0.6 s, then off).
+	local case = BK.model(G, "MetalCase")
+	local body = T.box(case, "SealedCase", 148.75, -11, -598, 151.25, -9, -594, { Color = P.STEEL_MID, Material = "Metal" })
+	case.PrimaryPart = body
+	T.prompt(body, "INT_ROVER_CASE", "Open", { hold = 2.0, onFootOnly = true, enabled = false, lineOfSight = false })
+	T.box(case, "LidSeam", 148.7, -9.65, -598.05, 151.3, -9.55, -593.95, { Color = P.STEEL_DARK, CanCollide = false })
+	for _, z in ipairs({ -597, -595 }) do
+		T.box(case, "Clasp", 151.25, -9.8, z - 0.2, 151.4, -9.4, z + 0.2, { Color = P.AMBER, Material = "Neon", CanCollide = false })
+	end
+	T.box(case, "Handle", 149.7, -9, -596.8, 150.3, -8.7, -595.2, { Color = P.STEEL_LIGHT, Material = "Metal", CanCollide = false })
+	T.box(case, "LockLight", 151.25, -10.35, -596.2, 151.45, -9.95, -595.8, { Color = P.DANGER_RED, Material = "Neon", CanCollide = false })
+
+	-- Loose papers and a broken screen in the bay.
+	for index, paper in ipairs({ { 151, -600, 20 }, { 152.5, -592, -35 }, { 149, -591, 70 } }) do
+		BK.part(model, {
+			Name = "Paper" .. index, Size = Vector3.new(0.9, 0.04, 1.2), CFrame = CFrame.new(W(paper[1], -10.97, paper[2])) * CFrame.Angles(0, math.rad(paper[3]), 0),
+			Color = P.MEDICAL_WHITE, CanCollide = false, CanQuery = false, CastShadow = false,
+		})
+	end
+	T.box(model, "BrokenScreen", 146.5, -7, -594, 146.8, -5, -591, { Color = P.STEEL_DARK, Material = "Glass", Reflectance = 0.1 })
+
+	if ctx.level < 2 then
+		return
+	end
+	-- Five wheels still on (the front one of the upper side was torn off and lies nearby); 4 skid marks curving in
+	-- from (60, -12, -560); 3 spilled crates and a bent antenna.
+	local tire = { Color = P.HAZARD_BLACK, Material = "SmoothPlastic" }
+	for _, wheel in ipairs({ { -608, -11.25 }, { -597, -11.25 }, { -592, -11.25 }, { -597, -2.75 }, { -592, -2.75 } }) do
+		local wheelProps = table.clone(tire)
+		wheelProps.Name, wheelProps.Axis, wheelProps.Size, wheelProps.CFrame = "Wheel", "Y", Vector3.new(4, 1.5, 4), CFrame.new(W(144.5, wheel[2], wheel[1]))
+		BK.cyl(model, wheelProps)
+	end
+	local torn = table.clone(tire)
+	torn.Name, torn.Axis, torn.Size, torn.CFrame = "TornWheel", "Y", Vector3.new(4, 1.5, 4), CFrame.new(W(166, FLOOR_Y + 0.75, -614))
+	BK.cyl(S, torn)
+	for index, track in ipairs({
+		{ { 60, -560 }, { 104, -571 }, { 140, -590 } }, { { 58, -567 }, { 102, -578 }, { 138, -597 } },
+	}) do
+		for leg = 1, 2 do
+			local a, b = track[leg], track[leg + 1]
+			BK.beam(S, ("SkidMark%d_%d"):format(index, leg), W(a[1], FLOOR_Y + 0.04, a[2]), W(b[1], FLOOR_Y + 0.04, b[2]), 1.6, 0.05, {
+				Color = P.MUD_CRACK, CanCollide = false, CanQuery = false, CastShadow = false,
+			})
+		end
+	end
+	for index, crate in ipairs({ { 164, -585, 15 }, { 137, -584, -20 }, { 171, -594, 40 } }) do
+		BK.part(S, {
+			Name = "Crate" .. index, Size = Vector3.new(3, 3, 3), CFrame = CFrame.new(W(crate[1], FLOOR_Y + 1.5, crate[2])) * CFrame.Angles(0, math.rad(crate[3]), 0),
+			Color = P.WOOD_OLD, Material = "WoodPlanks",
+		})
+	end
+	BK.beam(model, "Antenna", W(154.5, -4, -609), W(158, -3.5, -609), 0.2, 0.2, { Color = P.STEEL_LIGHT, Material = "Metal", CanCollide = false })
+	BK.beam(model, "AntennaBent", W(158, -3.5, -609), W(159.5, -6, -607.5), 0.2, 0.2, { Color = P.STEEL_LIGHT, Material = "Metal", CanCollide = false })
+end
+
 function areas.Ridge(ctx, T)
 	local S, BK, P = ctx.Structure, ctx.BK, ctx.P
 	-- The slope up from the basin (X 182 -> 260, Y -12 -> 30), the plateau, and the ground rising away to the east.
@@ -129,20 +260,7 @@ function areas.Ridge(ctx, T)
 	T.cam("CAM_WA_3", 60, 25, -640, 290, 50, -560)
 	T.cam("CAM_WA_4", 110, 0, -570, 150, 5, -600)
 
-	-- Rover SR-12 on its right side at (150, -12, -600), long axis along Z, roof to the east (toward W3).
-	T.standIn("RoverBody", 146, FLOOR_Y, -612, 154, -5, -588, T.RUST)
-	local panel = BK.model(ctx.Gameplay, "RoofPanel")
-	local leaf = BK.part(panel, {
-		Name = "Panel", Size = Vector3.new(0.4, 7, 20), CFrame = CFrame.new(T.W(154.2, -8.5, -600)), Color = P.RUST_DARK, Material = "CorrodedMetal",
-	})
-	panel.PrimaryPart = leaf
-	local marking = T.standIn("RearMarking", 148.5, -9.5, -587.9, 151.5, -6.5, -587.5, { Color = P.STEEL_LIGHT, CanCollide = false })
-	T.prompt(marking, "INT_ROVER_MARKING", "Examine Marking", { onFootOnly = true, enabled = false })
-	-- The cradle and the sealed case lie inside the hull; their prompts need no line of sight in the blockout.
-	local cradle = T.standIn("CryoCradle", 149, -11, -605, 151, -9, -603, { Color = P.STEEL_MID, CanCollide = false })
-	T.prompt(cradle, "INT_ROVER_CRADLE", "Examine Cradle", { onFootOnly = true, enabled = false, lineOfSight = false })
-	local case = T.standIn("SealedCase", 149.3, -12, -596.6, 150.7, -10.5, -595.4, { Color = P.STEEL_DARK, CanCollide = false })
-	T.prompt(case, "INT_ROVER_CASE", "Examine Case", { onFootOnly = true, enabled = false, lineOfSight = false })
+	rover(ctx, T)
 	-- On foot the player stays at the rover: X 90..200, Z -660..-540.
 	for _, wall in ipairs({ { "N", 90, -661, 200, -660 }, { "S", 90, -540, 200, -539 }, { "W", 89, -660, 90, -540 }, { "E", 200, -660, 201, -540 } }) do
 		T.barrier("PlayerBarrier_Rover_" .. wall[1], wall[2], wall[3], wall[4], wall[5], "PlayerBarrier", FLOOR_Y, 20)

@@ -50,7 +50,7 @@ return {
 		repair = { side = "server", phase = 3, usage = "/repair" },
 		timescale = { side = "server", phase = 3, usage = "/timescale <0.25-2>" },
 		step = { side = "server", phase = 4, usage = "/step <stepId>" },
-		checkpoint = { side = "server", phase = 4, usage = "/checkpoint <id>" },
+		checkpoint = { side = "server", phase = 4, usage = "/checkpoint <id> [save]" },
 		rel = { side = "server", phase = 5, usage = "/rel <var> <value>" },
 		give = { side = "server", phase = 6, usage = "/give xp|credits <n>" },
 	},

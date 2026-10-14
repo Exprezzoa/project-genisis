@@ -281,13 +281,25 @@ function handlers.step(player, args)
 	return if ok then "step " .. tostring(message) else tostring(message)
 end
 
--- /checkpoint <id>: load a checkpoint as if rejoining.
+-- /checkpoint <id> [save]: load a checkpoint as if rejoining; "save" also stores it in the profile and saves, so
+-- leaving and joining again resumes there (the rejoin tests of roadmap Phase 4).
 function handlers.checkpoint(player, args)
 	if not args[1] then
 		return "usage: " .. Debug.Commands.checkpoint.usage
 	end
 	local ok, message = SequenceService.loadCheckpoint(player, args[1])
-	return if ok then ("checkpoint %s -> step %s"):format(args[1], tostring(message)) else tostring(message)
+	if not ok then
+		return tostring(message)
+	end
+	local saved = ""
+	if string.lower(args[2] or "") == "save" then
+		PlayerDataService.update(player, function(profile)
+			profile.story.sequenceId = "CH1"
+			profile.story.checkpoint = args[1]
+		end)
+		saved = if PlayerDataService.saveNow(player, "debug") then ", saved" else ", NOT saved"
+	end
+	return ("checkpoint %s -> step %s%s"):format(args[1], tostring(message), saved)
 end
 
 function handlers.timescale()

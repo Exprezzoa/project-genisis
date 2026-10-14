@@ -16,7 +16,7 @@ Opened with **F2** (a debug panel with a command box) or typed as chat-like comm
 | `/tp <spawnId>` | Teleport the character (or piloted Frame) to a spawn, e.g. `/tp SPAWN_HANGAR_FLOOR` |
 | `/zone <name>` | Teleport to a zone's default spawn (`hub`, `hangar`, `training`, `outpost`, `basin`, `memory`) |
 | `/step <stepId>` | Jump the sequence to a step (runs its restore actions) |
-| `/checkpoint <id>` | Load a checkpoint as if rejoining |
+| `/checkpoint <id> [save]` | Load a checkpoint as if rejoining; with `save`, also store it in the profile (for real rejoin tests) |
 | `/frame` | Spawn/board Unit 02 at the nearest pad (or the player's position) |
 | `/titan <type> [state]` | Spawn a Titan ~120 studs in front (`Strider`, `Watcher`; state `Dormant`/`Engage`) |
 | `/titan kill` / `/titan down` / `/titan hp <n>` / `/titan freeze` | Titan control. As built (D-057): `down` breaks every Titan's poise; `freeze` stops and restarts what they do (hits still count); `/titan Strider dormant` spawns one that only stands and takes hits (the `Dormant` state proper comes with the cinematic) |
