@@ -36,6 +36,7 @@ local ORDER = {
 	"DialogueService",
 	"CinematicService",
 	"SequenceService",
+	"BoundsService",
 	"DebugService",
 }
 

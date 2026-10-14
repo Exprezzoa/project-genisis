@@ -5,7 +5,8 @@
 -- weapons banner and the system panel. It reads the Frame's attributes every frame; nothing here decides
 -- anything. The Titan bar, the lock-on marker and the Core Strike prompt arrive with the Titans (Phase 3).
 --
---   getState() -> { visible, integrity, energy, banner, slots = { [name] = { cooldown, available, active } } }
+--   getState() -> { visible, integrity, energy, banner, slots = { [name] = { cooldown, available, active } }, outOfBounds }
+--   (outOfBounds: seconds until the server sends the Frame back, nil while inside the mission area)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -15,6 +16,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CombatConfig = require(Shared.Config.CombatConfig)
 local UIStyle = require(Shared.Config.UIStyle)
 
+local BoundsWarning = require(script.Parent.Parent.UI.BoundsWarning)
 local Components = require(script.Parent.Parent.UI.Components)
 local CombatController = require(script.Parent.CombatController)
 local FrameController = require(script.Parent.FrameController)
@@ -45,8 +47,9 @@ local slots = {}
 local banner, bannerText, bannerLine
 local systemLines = {}
 local reticle
+local boundsWarning
 local entering = {} -- { element, shown position, offset it slides in from }
-local state = { visible = false, integrity = 1, energy = 1, banner = "", slots = {} }
+local state = { visible = false, integrity = 1, energy = 1, banner = "", slots = {}, outOfBounds = nil }
 local bannerToken = 0
 local lastLocked = nil
 local animated = RunService:IsRunning()
@@ -396,6 +399,10 @@ local function update()
 	systemLines.Aim.Text = "AIM LOCK " .. (if aim then "ON" else "OFF") .. "  [" .. InputController.glyph("ShiftLock") .. "]"
 	systemLines.Aim.TextColor3 = if aim then UIStyle.Accent else UIStyle.TextSecondary
 	reticle.Visible = not locked
+	-- Out of bounds (docs/12 §9): the server stamps when it will send the Frame back.
+	local recallAt = model:GetAttribute("OutOfBoundsAt")
+	state.outOfBounds = if recallAt then math.max(0, recallAt - t) else nil
+	boundsWarning.set(state.outOfBounds, CombatConfig.Bounds.grace)
 end
 
 local function show(model)
@@ -434,6 +441,12 @@ function FrameHUDController.build(layer)
 	buildSlots()
 	buildBanner()
 	buildReticle()
+	boundsWarning = BoundsWarning.new(root, {
+		animated = animated,
+		reduceFlashing = function()
+			return SettingsController.get("reduceFlashing") == true
+		end,
+	})
 	return root
 end
 

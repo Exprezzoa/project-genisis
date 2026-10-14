@@ -158,6 +158,10 @@ CombatConfig.LockOn = { range = 220 * S, zones = { "Body", "AnkleL", "AnkleR", "
 -- Action validation tolerances (docs/12 §10).
 CombatConfig.Tolerance = { coreStrikeRange = 4 * S, facing = 10 }
 
+-- Out of bounds (docs/12 §9): seconds in a bounds warning before the Frame is sent back; OOB_01 is said at most
+-- once per lineCooldown seconds.
+CombatConfig.Bounds = { grace = 6, lineCooldown = 15 }
+
 -- The dodge clip for a direction in the Frame's own space (front = -Z).
 function CombatConfig.dodgeClip(localDirection: Vector3): string
 	if math.abs(localDirection.X) > math.abs(localDirection.Z) then

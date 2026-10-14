@@ -10,6 +10,7 @@
 --   jump(player, stepId) -> ok, message                 the step as a checkpoint load would enter it (/step)
 --   loadCheckpoint(player, checkpoint) -> ok, message   the step that checkpoint loads into (docs/05 §11)
 --   notify(player, kind, key, who?)                     feed an event by hand: "trigger" | "interact" | "event"
+--   say(player, dialogueId, urgent?)                    a radio dialogue outside the steps
 --   getState(player) -> { sequenceId, stepId, objective, args, armed }?
 --   StepEntered / StepCompleted: Signal(player, stepId)       ZoneState: Signal(zone, key, value)
 --
@@ -80,6 +81,10 @@ local function speak(runner, id, block)
 					local node = spoken.nodes[nodeId]
 					if node.pause then
 						task.wait(node.pause)
+					end
+					-- An urgent line (say) has the radio until it is over.
+					while runner.holdUntil and os.clock() < runner.holdUntil and runner.player.Parent do
+						task.wait(0.1)
 					end
 					Net.fireClient(runner.player, "Dialogue_Node", { dialogueId = current.id, nodeId = nodeId, mode = spoken.mode })
 					task.wait((node.duration or math.max(2.2, 0.06 * #node.text)) + LINE_GAP) -- docs/13 §2
@@ -303,6 +308,39 @@ function SequenceService.stop(player)
 			Actions.handlers.despawnTitan(runner, { id = id })
 		end
 	end
+end
+
+-- A radio dialogue from outside the steps, queued behind what the player hears; urgent = true plays it at once
+-- over whatever line is showing (Overwatch's bounds warning), and the queued lines wait until it is over.
+function SequenceService.say(player, dialogueId, urgent)
+	if not urgent then
+		speak(runners[player] or { player = player, lines = {}, speaking = false }, dialogueId, false)
+		return
+	end
+	local dialogue = dialogues[dialogueId]
+	if not dialogue then
+		Log.warn(TAG, "unknown dialogue %s", tostring(dialogueId))
+		return
+	end
+	local total, nodeId = 0, dialogue.start
+	while nodeId do
+		local node = dialogue.nodes[nodeId]
+		total += (node.duration or math.max(2.2, 0.06 * #node.text)) + LINE_GAP
+		nodeId = node.next
+	end
+	local runner = runners[player]
+	if runner then
+		runner.holdUntil = math.max(runner.holdUntil or 0, os.clock() + total)
+	end
+	task.spawn(function()
+		local nodeId = dialogue.start
+		while nodeId and player.Parent do
+			local node = dialogue.nodes[nodeId]
+			Net.fireClient(player, "Dialogue_Node", { dialogueId = dialogueId, nodeId = nodeId, mode = dialogue.mode })
+			task.wait((node.duration or math.max(2.2, 0.06 * #node.text)) + LINE_GAP)
+			nodeId = node.next
+		end
+	end)
 end
 
 function SequenceService.getState(player)

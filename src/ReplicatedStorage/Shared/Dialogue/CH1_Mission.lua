@@ -125,4 +125,8 @@ return {
 	DLG_M01_DARK = radio({
 		{ "AN_01", "M", "Eli! Eli, answer me! Overwatch, his Frame's gone dark—" },
 	}),
+	-- Said by BoundsService when the Frame drives into a bounds warning (docs/12 §9).
+	DLG_OOB = radio({
+		{ "OOB_01", "O", "Ember-2, you're leaving the operations area." },
+	}),
 }
