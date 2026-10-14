@@ -277,7 +277,12 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 	end
 	runner.sequence = sequence
 	if restoring then
-		gate(player) -- a load starts with every step-gated prompt off; the step's own actions switch on what it needs
+		-- A load starts as clean as a rejoin: every step-gated prompt off (the step's own actions switch on what it
+		-- needs) and no Titan left from the step it jumps away from.
+		gate(player)
+		for id in pairs(runner.titans) do
+			Actions.handlers.despawnTitan(runner, { id = id })
+		end
 	end
 	enter(runner, index, restoring == true)
 	return true, sequence.steps[index].id

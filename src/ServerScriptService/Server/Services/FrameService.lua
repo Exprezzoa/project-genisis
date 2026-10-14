@@ -363,8 +363,9 @@ function FrameService.board(player, frame, force)
 	return true
 end
 
--- Puts the pilot back on foot at a CFrame and leaves the Frame kneeling and anchored where it stands.
-local function release(player, frame, exitCFrame)
+-- Puts the pilot back on foot at a CFrame and leaves the Frame kneeling and anchored where it stands, turned to
+-- `facing` if given (a pad's direction).
+local function release(player, frame, exitCFrame, facing)
 	piloted[player] = nil
 	local frameRoot = frame.PrimaryPart
 	local character, humanoid, root = characterParts(player)
@@ -388,6 +389,12 @@ local function release(player, frame, exitCFrame)
 		frameRoot.AssemblyLinearVelocity = Vector3.zero
 		frameRoot.AssemblyAngularVelocity = Vector3.zero
 		frameRoot.Anchored = true
+		if facing then
+			local ahead = facing * Vector3.new(1, 0, 1)
+			if ahead.Magnitude > 0.01 then
+				frame:PivotTo(CFrame.lookAt(frameRoot.Position, frameRoot.Position + ahead.Unit))
+			end
+		end
 		frame:SetAttribute("Pilot", 0)
 		frame:SetAttribute("WeaponsLocked", true)
 		FrameService.setState(frame, "Kneeling")
@@ -469,7 +476,9 @@ function FrameService.dismount(player, padId)
 	Net.fireClient(player, "Fade", { to = 1, duration = FrameConfig.Fade })
 	task.wait(math.max(FrameConfig.Fade, FrameConfig.Dismount.kneelTime - FrameConfig.Dismount.fadeAt))
 	if piloted[player] == frame then
-		release(player, frame, pad.ExitPoint.CFrame)
+		-- It kneels facing the way the pad's exit point faces, so the pilot steps out at its right hand (docs/05 S23)
+		-- and its board prompt is on the same side whichever way it drove in.
+		release(player, frame, pad.ExitPoint.CFrame, pad.ExitPoint.CFrame.LookVector)
 	end
 	Net.fireClient(player, "Fade", { to = 0, duration = FrameConfig.Fade })
 	busy[player] = nil
