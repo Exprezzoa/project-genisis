@@ -40,4 +40,20 @@ Locomotion.Strider = {
 	bladeArm = "Right",
 }
 
+-- docs/08 §4.5 "Watcher careful walk" (D-091): its lengths x 80/68 for the 80-stud body (D-047); speed 10 is the
+-- careful walk of docs/10 §3. Feet lift high: swingLift bends hip, knee and ankle of the swinging leg like a
+-- crouch (a degrees lifts the foot about 31 x (1 - cos a) studs: 32 gives the doc's 4 studs x 80/68). Above
+-- walking speed (S31 beat 8, the way out over the ridge) the steps lengthen.
+Locomotion.Watcher = {
+	walk = {
+		speed = 10, stepLength = 21, hipSwing = 18, kneeBend = -30, ankle = -0.5, rootBob = 1.2, rootRoll = 2,
+		waistYaw = 4, armSwing = { other = 12, blade = 12 }, lean = -6, headStabilized = true, swingLift = 32,
+	},
+	stride = {
+		speed = 24, stepLength = 30, hipSwing = 24, kneeBend = -40, ankle = -0.5, rootBob = 1.6, rootRoll = 3,
+		waistYaw = 6, armSwing = { other = 16, blade = 16 }, lean = -8, headStabilized = true, swingLift = 20,
+	},
+	bladeArm = "Right",
+}
+
 return Locomotion

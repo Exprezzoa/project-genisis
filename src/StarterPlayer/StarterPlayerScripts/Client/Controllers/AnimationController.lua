@@ -6,7 +6,8 @@
 -- it, plus the additive layer (breathing, head look, the cockpit hatch).
 --
 -- What a rig does comes from the server as attributes on its Model: Anim (clip name or ""), AnimT0
--- (workspace:GetServerTimeNow() at the start), AnimSpeed, LookTarget (Vector3), HatchOpen. The pilot's client may start
+-- (workspace:GetServerTimeNow() at the start), AnimSpeed, LookTarget (Vector3), HatchOpen, GaitSpeed (studs/s, for a
+-- rig the server slides on an anchored root instead of its velocity). The pilot's client may start
 -- a clip ahead of the server (playLocal); when the server's attributes arrive, the clip adopts the server's
 -- start time if it is within ADOPT seconds, otherwise it restarts with a short blend.
 --
@@ -72,6 +73,7 @@ local function start(state, clipName, t0, speed, source, blend)
 	end
 	state.from = if state.weight > 0 and state.action then table.clone(state.action) else nil
 	state.fromWeight = state.weight
+	state.crossfaded = state.from ~= nil
 	state.crossfade = blend or clip.blendIn
 	state.clip, state.t0, state.rate, state.source = clip, t0, speed or 1, source
 	state.lastT = 0
@@ -218,9 +220,10 @@ local function step(state, dt)
 	local loco = state.loco
 	state.clock += dt
 
-	-- Locomotion: the gait follows the distance travelled.
+	-- Locomotion: the gait follows the distance travelled. A rig the server slides on an anchored root (the
+	-- Watcher) has no velocity, so it says its speed (attribute GaitSpeed).
 	local velocity = root.AssemblyLinearVelocity
-	local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+	local speed = state.model:GetAttribute("GaitSpeed") or Vector3.new(velocity.X, 0, velocity.Z).Magnitude
 	state.speed = speed
 	local params, target = PoseAnimator.gaitParams(loco, speed, Locomotion.IDLE_BELOW, state.gaitParams)
 	state.gaitParams = params
@@ -262,20 +265,25 @@ local function step(state, dt)
 		end)
 		state.lastT = t
 		action = PoseAnimator.sample(clip, t, {})
-		weight = PoseAnimator.weight(clip, t)
+		-- A clip that took over from another skips its own fade-in: the cross-fade below is its way in.
+		weight = PoseAnimator.weight(clip, if state.crossfaded then math.max(t, clip.blendIn) else t)
 		if state.from then
-			-- Cross-fade from what the layer showed when this clip started.
+			-- Cross-fade from what the layer showed when this clip started: the old pose at its weight gives way to
+			-- the new one at its own (beta = the new pose's share of the mixed layer), so a held kneel going into
+			-- another kneeling clip stays down.
 			local alpha = math.clamp(t / math.max(state.crossfade, 1e-3), 0, 1)
 			if alpha >= 1 then
 				state.from = nil
 			else
+				local mix = state.fromWeight * (1 - alpha) + weight * alpha
+				local beta = if mix > 1e-4 then weight * alpha / mix else 1
 				for joint, entry in pairs(state.from) do
 					local to = action[joint]
 					action[joint] = if to
-						then { rot = entry.rot:Lerp(to.rot, alpha), pos = entry.pos:Lerp(to.pos, alpha) }
-						else { rot = entry.rot * (1 - alpha), pos = entry.pos * (1 - alpha) }
+						then { rot = entry.rot:Lerp(to.rot, beta), pos = entry.pos:Lerp(to.pos, beta) }
+						else { rot = entry.rot * (1 - beta), pos = entry.pos * (1 - beta) }
 				end
-				weight = math.max(weight, state.fromWeight * (1 - alpha))
+				weight = mix
 			end
 		end
 		if state.cancelAt then

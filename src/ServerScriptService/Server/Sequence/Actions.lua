@@ -12,8 +12,9 @@
 -- Built so far (the rest of docs/13 §1.2 comes with the steps that need it): fade, lighting, teleport, wait,
 -- setFlag, clearFlag, objective, prompt, dialogue (any mode, through DialogueService), tutorial (a toast for
 -- now), toast, zoneState, checkpoint, frame (forceBoard, park, repair,
--- autoWalk, stopWalk), door, card, spawnTitan, despawnTitan, titanCommand (with the Watcher's stand-in:
--- WatcherPath, PeelRover, TakeCanister, WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01),
+-- autoWalk, stopWalk), door, card, spawnTitan, despawnTitan, titanCommand (with the Watcher's: WatcherPath,
+-- WatcherAnim, WatcherLook, WatcherFace, WatcherTurn, PeelRover, TakeCanister), unlock (a case's lock light, S32),
+-- ally (Mara's Unit 01),
 -- cinematic, npcs, npc, sit (the player on a seat mark), paLoop (the Central Command PA), controls, barks.
 
 local CollectionService = game:GetService("CollectionService")
@@ -38,7 +39,7 @@ local TitanService = require(Services.TitanService)
 local Doors = require(script.Parent.Doors)
 local SceneActions = require(script.Parent.SceneActions)
 local ZoneEffects = require(script.Parent.ZoneEffects)
-local WatcherStandIn = require(script.Parent.Parent.Titans.WatcherStandIn)
+local Watcher = require(script.Parent.Parent.Titans.Watcher)
 
 local TAG = "SequenceService"
 local PLAYER_UNIT = "02"
@@ -280,8 +281,8 @@ function actions.despawnTitan(runner, a)
 	local model = runner.titans[a.id]
 	runner.titans[a.id] = nil
 	if model and model.Parent then
-		if model:GetAttribute("StandIn") then
-			WatcherStandIn.despawn(model)
+		if model:GetAttribute("Scripted") then
+			Watcher.despawn(model)
 		else
 			TitanService.despawn(model)
 		end
@@ -296,9 +297,9 @@ function actions.spawnTitan(runner, a)
 		return
 	end
 	if a.type == "Watcher" then
-		-- Until its rig exists the Watcher is a stand-in the server slides about (roadmap Phase 4).
-		local model = WatcherStandIn.spawn(cframe)
-		model:SetAttribute("StandIn", true)
+		-- The Watcher never fights: the server walks it along its scripted route (Server/Titans/Watcher).
+		local model = Watcher.spawn(cframe)
+		model:SetAttribute("Scripted", true)
 		runner.titans[a.id] = model
 		return
 	end
@@ -340,7 +341,7 @@ function actions.titanCommand(runner, a)
 		return
 	end
 	if a.command == "WatcherPath" then
-		-- Along nav nodes in `seconds`; block = true waits until it has arrived.
+		-- Along nav nodes in `seconds`; block = true waits until it has arrived; despawnAfter = true removes it there.
 		local points = {}
 		for _, id in ipairs(a.nodes) do
 			local point = navPoint(id)
@@ -348,23 +349,45 @@ function actions.titanCommand(runner, a)
 				table.insert(points, point)
 			end
 		end
+		local function go()
+			Watcher.walk(model, points, a.seconds)
+			if a.despawnAfter and runner.titans[a.id] == model then
+				actions.despawnTitan(runner, { id = a.id })
+			end
+		end
 		if a.block then
-			WatcherStandIn.walk(model, points, a.seconds)
+			go()
 		else
-			task.spawn(WatcherStandIn.walk, model, points, a.seconds)
+			task.spawn(go)
+		end
+	elseif a.command == "WatcherAnim" then
+		-- A clip of Shared/Poses/Watcher (HeadTiltStudy, KneelReach, LiftCanister, RiseAndTurn); wait = seconds to hold.
+		Watcher.play(model, a.clip)
+		if a.wait then
+			task.wait(a.wait)
 		end
 	elseif a.command == "PeelRover" then
 		local panel = mapPart("RoofPanel")
 		if panel then
-			WatcherStandIn.peel(panel, 110, 1.5)
+			Watcher.peel(panel, 110, 1.5)
 		end
 	elseif a.command == "TakeCanister" then
-		WatcherStandIn.take(model, mapPart("TV_Canister"))
-	elseif a.command == "WatcherFace" then
-		-- Turns to look at the player's Frame (a.target = "Frame:Player") over a.seconds.
+		Watcher.take(model, mapPart("TV_Canister"))
+	elseif a.command == "WatcherFace" or a.command == "WatcherLook" then
+		-- Toward the player's Frame (a.target = "Frame:Player"): Face turns the body over a.seconds, Look turns the
+		-- head (a.off = true lets it go).
 		local frame = FrameService.getPiloted(runner.player) or FrameService.getFrame(PLAYER_UNIT)
-		if frame and frame.PrimaryPart then
-			WatcherStandIn.face(model, frame.PrimaryPart.Position, a.seconds or 0.6)
+		local point = frame and frame.PrimaryPart and frame.PrimaryPart.Position
+		if a.command == "WatcherLook" then
+			Watcher.look(model, if a.off or not point then nil else point + Vector3.new(0, 30, 0))
+		elseif point then
+			Watcher.face(model, point, a.seconds or 0.6)
+		end
+	elseif a.command == "WatcherTurn" then
+		-- Turns on the spot toward a nav node (beat 8: round toward the ridge) over a.seconds.
+		local point = navPoint(a.node)
+		if point then
+			Watcher.face(model, point, a.seconds or 1)
 		end
 	else
 		TitanService.command(model, a.command)

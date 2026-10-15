@@ -130,14 +130,15 @@ end
 
 -- docs/08 §4.5 "Speed blend": below IDLE_BELOW idle; up to the walk speed the walk gait grows in; above it the
 -- parameters blend from walk to stride. Returns the blended parameters and the gait amplitude (0..1).
-local NUMBERS = { "stepLength", "hipSwing", "kneeBend", "ankle", "rootBob", "rootRoll", "waistYaw", "lean" }
+local NUMBERS = { "stepLength", "hipSwing", "kneeBend", "ankle", "rootBob", "rootRoll", "waistYaw", "lean", "swingLift" }
 
 function PoseAnimator.gaitParams(locomotion, speed, idleBelow, out)
 	out = out or { armSwing = {} }
 	local walk, stride = locomotion.walk, locomotion.stride
 	local blend = math.clamp((speed - walk.speed) / (stride.speed - walk.speed), 0, 1)
 	for _, key in ipairs(NUMBERS) do
-		out[key] = walk[key] + (stride[key] - walk[key]) * blend
+		local from = walk[key] or 0 -- swingLift is optional
+		out[key] = from + ((stride[key] or 0) - from) * blend
 	end
 	out.armSwing.other = walk.armSwing.other + (stride.armSwing.other - walk.armSwing.other) * blend
 	out.armSwing.blade = walk.armSwing.blade + (stride.armSwing.blade - walk.armSwing.blade) * blend
@@ -165,6 +166,17 @@ function PoseAnimator.gait(params, amplitude, phase, bladeArm, out)
 	out.RightKnee = Vector3.new(rightKnee, 0, 0)
 	out.LeftAnkle = Vector3.new(params.ankle * leftKnee, 0, 0)
 	out.RightAnkle = Vector3.new(params.ankle * rightKnee, 0, 0)
+	-- A high step (the Watcher's careful walk): the swinging leg folds like a crouch, lifting the foot.
+	local lift = params.swingLift or 0
+	if lift ~= 0 then
+		local leftLift, rightLift = lift * math.max(0, -sin) * amplitude, lift * math.max(0, sin) * amplitude
+		out.LeftHip += Vector3.new(leftLift, 0, 0)
+		out.RightHip += Vector3.new(rightLift, 0, 0)
+		out.LeftKnee += Vector3.new(-2 * leftLift, 0, 0)
+		out.RightKnee += Vector3.new(-2 * rightLift, 0, 0)
+		out.LeftAnkle += Vector3.new(leftLift, 0, 0)
+		out.RightAnkle += Vector3.new(rightLift, 0, 0)
+	end
 	out.LeftShoulder = Vector3.new(-leftArm * cos * amplitude, 0, 0)
 	out.RightShoulder = Vector3.new(rightArm * cos * amplitude, 0, 0)
 	out.Waist = Vector3.new(lean, -yaw, 0)

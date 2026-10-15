@@ -177,6 +177,8 @@ Rules: never the same attack 3 times in a row; **Stomp is only chosen if the tar
 `W0 (290, 30, −560)` → `W1 (250, 25, −575)` → `W2 (205, 1, −590)` → `W3 (172, −12, −598)` [kneel facing the rover at (150, −12, −600)] → after `RiseAndTurn`: `W2` → `W1` → `W4 (300, 30, −560)` → `W5 (460, 37, −560)` → despawn.
 Movement: `Humanoid:MoveTo` at 10 studs/s with `WalkCareful` locomotion. Facing via AlignOrientation at 40°/s.
 
+> **As built (D-091).** The Watcher is the user's model (D-047) rigged by `builders/rigs/Watcher.lua` into `ServerStorage.Templates.Titans.Watcher` (the reference itself is never changed): turned to face −Z, stood on the ground, its hit parts and old root left out, its joints rebuilt as the named Motor6Ds the Pose Animator drives; 45 parts, 80 studs, hips 31 up, no Humanoid, only the root anchored. Nothing is added to it (no veins, filaments or cyan eyes: the model is used as it is, Q-015). The server places the anchored root along the route (`Server/Titans/Watcher`, the cued cinematic needs exact timing) instead of `MoveTo`; clients walk it from the attribute `GaitSpeed`. Its clips (`Shared/Poses/Watcher`) are refitted to this body (§5.3 of `08` was written for a 68-stud part rig).
+
 ## 4. Future species (documented, not built)
 
 | Species | Class | Body plan / silhouette | Weak point (core node) | Signature behavior |

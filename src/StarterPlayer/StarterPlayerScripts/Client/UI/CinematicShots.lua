@@ -50,6 +50,11 @@ function Shots.headOf(titan): Vector3?
 	if not root then
 		return nil
 	end
+	-- Where its head is as this client animates it (the Watcher kneels in S31); else from its height.
+	local head = titan:FindFirstChild("Head")
+	if head and head:IsA("BasePart") then
+		return head.Position
+	end
 	return root.Position + Vector3.new(0, titan:GetExtentsSize().Y * 0.35, 0)
 end
 

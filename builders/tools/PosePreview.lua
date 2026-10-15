@@ -7,6 +7,7 @@
 --   Preview.show("Vanguard_02", "Light3", 0.32)                  -- a clip at a time (seconds)
 --   Preview.show("Vanguard_02", "Idle", 0, { gait = { speed = 30, phase = 0 } })   -- with the walk cycle
 --   Preview.show("Vanguard_02", "Light1", 0.18, { at = CFrame.new(40, 0, 0), keep = true })   -- side by side
+--   Preview.show("Watcher", "KneelReach", 3.0)                   -- Titan templates (Templates.Titans) too
 --   Preview.clear()
 --
 -- The copy stands in Workspace.DevPreview, fully anchored. Joints aren't simulated in edit mode, so the tool
@@ -29,7 +30,9 @@ function Preview.show(templateName, clipName, t, opts)
 	local Shared = game:GetService("ReplicatedStorage").Shared:Clone()
 	local PoseAnimator = require(Shared.Modules.PoseAnimator)
 	local Locomotion = require(Shared.Config.Locomotion)
-	local template = game:GetService("ServerStorage").Templates.Frames:FindFirstChild(templateName)
+	local templates = game:GetService("ServerStorage").Templates
+	local template = templates.Frames:FindFirstChild(templateName)
+		or (templates:FindFirstChild("Titans") and templates.Titans:FindFirstChild(templateName))
 		or error("PosePreview: no template " .. tostring(templateName))
 	local class = template:GetAttribute("Class")
 	local set = PoseAnimator.compile(require(Shared.Poses[class]))

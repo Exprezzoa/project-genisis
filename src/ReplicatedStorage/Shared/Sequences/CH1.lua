@@ -369,27 +369,36 @@ return {
 				{ "dialogue", id = "DLG_M01_WATCHER_1", block = true },
 				{ "cinematic", id = "CIN_WATCHER", cue = "telephoto" },
 				{ "dialogue", id = "DLG_M01_WATCHER_2", block = true },
+				-- Beat 3: it tilts its head, studying them (2 s), while Orin calls it in.
+				{ "titanCommand", id = "WATCHER", command = "WatcherAnim", clip = "HeadTiltStudy" },
 				{ "dialogue", id = "DLG_M01_WATCHER_3", block = true },
-				-- Beat 4: down the ridge to the rover in 12 s while Vale and Mara talk.
+				-- Beat 4: down the ridge to the rover in 12 s, in long careful steps, while Vale and Mara talk.
 				{ "cinematic", id = "CIN_WATCHER", cue = "wide" },
 				{ "dialogue", id = "DLG_M01_WATCHER_4" },
 				{ "titanCommand", id = "WATCHER", command = "WatcherPath", nodes = { "W1", "W2", "W3" }, seconds = 12, block = true },
-				-- Beat 5: the roof, the canister.
+				-- Beat 5: it kneels (3 s); the roof peels back as its hand comes down (1.5 s); it lifts the canister out (1.5 s).
 				{ "cinematic", id = "CIN_WATCHER", cue = "rover" },
+				{ "titanCommand", id = "WATCHER", command = "WatcherAnim", clip = "KneelReach", wait = 1.5 },
 				{ "titanCommand", id = "WATCHER", command = "PeelRover" },
 				{ "titanCommand", id = "WATCHER", command = "TakeCanister" },
-				{ "wait", seconds = 1.0 },
+				{ "titanCommand", id = "WATCHER", command = "WatcherAnim", clip = "LiftCanister", wait = 1.5 },
 				-- Beat 6: it looks straight at Unit 02 for 1.5 s (static on the player's screen).
 				{ "cinematic", id = "CIN_WATCHER", cue = "reverse" },
-				{ "titanCommand", id = "WATCHER", command = "WatcherFace", target = "Frame:Player", seconds = 0.6 },
+				{ "titanCommand", id = "WATCHER", command = "WatcherLook", target = "Frame:Player" },
 				{ "wait", seconds = 1.5 },
-				-- Beat 7: over Unit 02; choice C3. Beat 8: up the ridge into the fog.
+				-- Beat 7: over Unit 02; choice C3.
 				{ "cinematic", id = "CIN_WATCHER", cue = "unit02" },
 				{ "dialogue", id = "DLG_M01_WATCHER_5", block = true },
+				-- Beat 8 (8 s): it rises and turns round (2 s) and walks east up the ridge into the fog (6 s to the top);
+				-- out of sight it goes on and is removed past local X 450 (W5).
 				{ "cinematic", id = "CIN_WATCHER", cue = "leave" },
-				{ "titanCommand", id = "WATCHER", command = "WatcherPath", nodes = { "W2", "W1", "W4", "W5" }, seconds = 8, block = true },
-				{ "despawnTitan", id = "WATCHER" },
+				{ "titanCommand", id = "WATCHER", command = "WatcherLook", off = true },
+				{ "titanCommand", id = "WATCHER", command = "WatcherAnim", clip = "RiseAndTurn", wait = 0.9 },
+				{ "titanCommand", id = "WATCHER", command = "WatcherTurn", node = "W2", seconds = 1.1 },
+				{ "titanCommand", id = "WATCHER", command = "WatcherPath", nodes = { "W2", "W1", "W4", "W5" }, seconds = 13, despawnAfter = true },
+				{ "wait", seconds = 6 },
 				{ "dialogue", id = "DLG_M01_WATCHER_6", block = true },
+				{ "despawnTitan", id = "WATCHER" },
 				{ "cinematic", id = "CIN_WATCHER", stop = true },
 			},
 		},
