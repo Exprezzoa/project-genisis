@@ -52,11 +52,11 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [x] Phase 4 acceptance tests all PASS — 1–6 PASS (journal Session 7; test 1 by a client autopilot with no debug commands, in two legs joined by a rejoin)
 
 ## Phase 5 — Story introduction
-- [ ] All NPCs, Watcher rig, MemorySet — 24 NPC templates built, lineup-checked (D-081); the morning set placed and play-tested (seated, routes, talk, follow). Evening set (S40), Watcher rig and MemorySet to do
-- [ ] Dialogue, relationships, evidence, barks, tutorials, NPC behaviors, cinematics, PA — dialogue, relationships, evidence (D-080), NPCService + NPCAnimator + barks (D-081, D-082), CinematicService/Controller (D-083) and the PA loop built and play-tested; TutorialController to do (tutorials are still toasts)
-- [ ] All scenes S01–S43 wired exactly per script — S01–S07 wired and played through to S08 with both C1 and C2(2) branches (D-083; journal Session 8); S09/S10 shots, S28/S31/S33 cinematics, C3 and S40–S43 to do
-- [ ] Cards, terminal, boot, anomaly effects — Title card and letterbox done (D-083); Chapter End, terminal message, cockpit boot, anomaly glitch, resonance ping, Watcher glow to do
-- [ ] Phase 5 acceptance tests all PASS
+- [x] All NPCs, Watcher rig, MemorySet — 24 NPC templates (D-081), morning and evening sets placed and play-tested; the Watcher rig (D-091) and MemorySet (D-089) built and play-tested in S31/S33 (journal Session 8, continued). T3/T6's placements wait for their props in Phase 7's dressed pass (D-081)
+- [x] Dialogue, relationships, evidence, barks, tutorials, NPC behaviors, cinematics, PA — D-080 – D-085, D-087, D-093; all play-tested, fight barks FB_M6/FB_E2 included
+- [x] All scenes S01–S43 wired exactly per script — S01–S43 and S50 (D-083 – D-090); every branch verified (C1 ×2, C2 ×3, C3 ×3, C4 ×2) and all six deck variants (journal Session 8, continued)
+- [x] Cards, terminal, boot, anomaly effects — Title, Transit, Frame Disabled, Mission Complete (display only until Phase 6), Chapter End; terminal message, cockpit boot, anomaly glitch and ping (D-083, D-086, D-089, D-090); the Watcher's glow is the user's own eye colors (Q-015)
+- [ ] Phase 5 acceptance tests all PASS — 1 (piecewise), 2, 3 (reset and Esc), 4, 6 PASS; left: test 5 on a phone layout (device emulator, user), alt-tab during a cinematic, one continuous S01→S43 run
 
 ## Phase 6 — Progression and saving
 - [ ] ProgressionService, Mission Complete card, upgrades terminal
