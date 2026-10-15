@@ -3,7 +3,8 @@
 --
 -- How a damaged Frame looks, on every client, from the attributes the server publishes (DamageState,
 -- PlatesDetached, State): plates break off and fall, sparks and smoke start, the visor and the core vents
--- flicker, and a disabled Frame goes dark (the core vents alone while CoreOffline is set). A repair puts everything
+-- flicker, and a disabled Frame goes dark (the core vents alone while CoreOffline is set; the vents dark and the
+-- visor dim while Standby, parked with nobody aboard). A repair puts everything
 -- back. For the pilot, the FRAME DISABLED card.
 -- The server only sets the attributes; every client makes its own debris (docs/09 §5).
 --
@@ -161,6 +162,26 @@ local function setVentsDark(record, dark)
 	end
 end
 
+-- Standing by (parked with nobody aboard, D-092): the visor dim (and the core vents dark, below). When someone
+-- boards, the visor brightens and the vents blink on (docs/05 S07, S08).
+local STANDBY_VISOR = 0.75 -- the visor's transparency while standing by
+local function setStandby(record, standby)
+	if record.standby == standby then
+		return
+	end
+	local was = record.standby
+	record.standby = standby
+	for _, part in ipairs(record.visor) do
+		local goal = if standby then STANDBY_VISOR else record.lit[part].transparency
+		if was == nil then
+			part.Transparency = goal
+		else
+			TweenService:Create(part, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Transparency = goal }):Play()
+		end
+	end
+	return was == true and not standby -- just powered up
+end
+
 -- A blink of lit parts: off and on twice.
 local function flicker(record, parts)
 	for _ = 1, 2 do
@@ -193,10 +214,15 @@ local function syncState(frame, record)
 		particles.Enabled = particles.Rate > 0
 	end
 	setDark(record, level == 4)
+	local standby = frame:GetAttribute("Standby") == true
+	local poweredUp = setStandby(record, standby)
 	if level == 4 then
 		record.ventsDark = nil -- setDark covers them; look again once it is repaired
 	else
-		setVentsDark(record, frame:GetAttribute("CoreOffline") == true)
+		setVentsDark(record, frame:GetAttribute("CoreOffline") == true or standby)
+		if poweredUp and not record.ventsDark then
+			task.delay(0.1, flicker, record, record.vents)
+		end
 	end
 end
 
@@ -244,7 +270,7 @@ local function watch(frame)
 			end
 			local isVisor, isCore = CollectionService:HasTag(part, "Visor"), CollectionService:HasTag(part, "CoreLight")
 			if isVisor or isCore then
-				record.lit[part] = { color = part.Color, material = part.Material }
+				record.lit[part] = { color = part.Color, material = part.Material, transparency = part.Transparency }
 				table.insert(if isVisor then record.visor else record.vents, part)
 			end
 		end
@@ -252,7 +278,7 @@ local function watch(frame)
 	record.sparksLeft = emitter(shoulderL, "DamageSparks", Vector3.new(-shoulderL.Size.X / 2, shoulderL.Size.Y / 2, 0), sparkSetup(scale))
 	record.sparksRight = emitter(shoulderR, "DamageSparks", Vector3.new(shoulderR.Size.X / 2, shoulderR.Size.Y / 2, 0), sparkSetup(scale))
 	record.smoke = emitter(torso, "DamageSmoke", Vector3.new(0, torso.Size.Y / 4, torso.Size.Z / 2), smokeSetup(scale))
-	for _, attribute in ipairs({ "PlatesDetached", "DamageState", "State", "CoreOffline" }) do
+	for _, attribute in ipairs({ "PlatesDetached", "DamageState", "State", "CoreOffline", "Standby" }) do
 		table.insert(record.connections, frame:GetAttributeChangedSignal(attribute):Connect(function()
 			syncPlates(frame, record)
 			syncState(frame, record)

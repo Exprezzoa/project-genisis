@@ -212,6 +212,7 @@ function FrameService.spawnFrame(unitId, spawnId)
 
 	frame:SetAttribute("Pilot", 0)
 	frame:SetAttribute("State", "Parked")
+	frame:SetAttribute("Standby", true) -- parked with nobody aboard: core vents dark, visor dim (D-092)
 	frame:SetAttribute("WeaponsLocked", true)
 	frame:SetAttribute("IntegrityMax", config.integrity)
 	frame:SetAttribute("Integrity", config.integrity)
@@ -356,6 +357,7 @@ function FrameService.board(player, frame, force)
 
 	local clip = if kneeling then "RiseFromKneel" elseif frame:GetAttribute("Booted") then nil else "Boot"
 	frame:SetAttribute("Booted", true)
+	frame:SetAttribute("Standby", false) -- the pilot is aboard: its lights come on
 	FrameService.setState(frame, "Starting")
 	if clip then
 		FrameService.playAnim(frame, clip)

@@ -143,6 +143,7 @@ local function activate(player)
 	root.Facing.Enabled = true
 	frame:SetAttribute("God", true) -- docs/09 §7: Mara is invulnerable
 	frame:SetAttribute("AllyActive", true)
+	frame:SetAttribute("Standby", false) -- Mara is aboard
 	frame:SetAttribute("Pilot", 0)
 	FrameService.setState(frame, "Idle")
 	FrameService.playAnim(frame, "")

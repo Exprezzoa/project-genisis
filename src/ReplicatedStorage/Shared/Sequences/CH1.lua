@@ -149,14 +149,16 @@ return {
 			complete = { "timer", seconds = 0 },
 		},
 		{
-			-- After the briefing Mara walks to Bay 1 and boards: she fades out at the Bay 1 hatch (docs/05 S07). CH1_BRIEFED
-			-- loads here: the briefing room door in the morning, Mara already aboard (docs/05 §11).
+			-- After the briefing Mara walks to Bay 1 and boards: she fades out at the Bay 1 hatch and Unit 01's chest lights
+			-- come on (docs/05 S07). CH1_BRIEFED loads here: the briefing room door in the morning, Mara already aboard
+			-- (docs/05 §11).
 			id = "S08_BOARD",
 			onEnter = {
-				{ "npc", id = "Mara", walk = "NAV_BAY1_HATCH", despawnAfter = true },
+				{ "npc", id = "Mara", walk = "NAV_BAY1_HATCH", despawnAfter = true, andThen = { { "frame", command = "standby", unit = "01", on = false } } },
 			},
 			onRestore = {
 				{ "lighting", preset = "MORNING", instant = true }, { "frame", command = "park", spawn = "SPAWN_BRF_DOOR" }, { "ally", mode = "Parked" },
+				{ "frame", command = "standby", unit = "01", on = false },
 				{ "npcs", set = "HUB_BRIEFED" },
 			},
 			objective = "OBJ_CH1_BOARD",

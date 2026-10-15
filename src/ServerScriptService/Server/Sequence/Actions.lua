@@ -181,6 +181,13 @@ function actions.frame(runner, a)
 		if frame then
 			frame:SetAttribute("CoreOffline", a.on ~= false)
 		end
+	elseif a.command == "standby" then
+		-- A parked unit stands by dark until someone boards it (D-092); on = false lights it with nobody seen boarding
+		-- (docs/05 S07: Unit 01's chest lights come on as Mara reaches its hatch).
+		local frame = FrameService.getFrame(a.unit or PLAYER_UNIT)
+		if frame then
+			frame:SetAttribute("Standby", a.on ~= false)
+		end
 	elseif a.command == "kneel" then
 		-- The player's unit kneels at a pad's marker, the player on foot at `exit` (a load after a dismount).
 		local at, exit = CharacterService.getSpawnCFrame(a.spawn), CharacterService.getSpawnCFrame(a.exit)
@@ -453,10 +460,16 @@ function actions.npc(runner, a)
 	end
 	if a.walk then
 		local opts = { follow = if a.follow then runner.player else nil }
+		local token = runner.token
 		local function go()
-			-- despawnAfter: gone (fading) once there, as Mara at the Bay 1 bridge in S07
-			if NPCService.walkTo(a.id, a.walk, opts) and a.despawnAfter then
+			-- despawnAfter: gone (fading) once there, as Mara at the Bay 1 bridge in S07; andThen: actions run once
+			-- there (unless the step has moved on)
+			local reached = NPCService.walkTo(a.id, a.walk, opts)
+			if reached and a.despawnAfter then
 				NPCService.despawn(a.id, true)
+			end
+			if reached and a.andThen then
+				Actions.run(runner, token, a.andThen)
 			end
 		end
 		if a.block then
