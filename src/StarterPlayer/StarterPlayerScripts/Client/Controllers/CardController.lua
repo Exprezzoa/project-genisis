@@ -206,18 +206,33 @@ end
 
 -- Cards that wait for Continue (Mission Complete in S40, Chapter End in S43); the server waits for UI_CardDone.
 local WAITING = { MissionComplete = MissionCompleteCard, ChapterEnd = ChapterEndCard }
+local closeWaiting = nil -- closes the waiting card that is up
+local dismissing = false -- a load is taking it down: nobody pressed Continue
 
 local function waitingCard(kind, data)
 	state.kind, state.visible, state.text = kind, true, data and (data.mission or data.title) or ""
 	InputController.hold("Cinematic") -- no walking off while it is up
-	WAITING[kind].show(UIController.getLayer("Cards"), data or {}, function()
+	closeWaiting = WAITING[kind].show(UIController.getLayer("Cards"), data or {}, function()
+		closeWaiting = nil
 		state.visible = false
 		InputController.hold(nil)
 		if InputController.getContext() == "Cinematic" then
 			InputController.restoreGameplay()
 		end
-		Net.fireServer("UI_CardDone", { kind = kind })
+		if not dismissing then
+			Net.fireServer("UI_CardDone", { kind = kind })
+		end
 	end)
+end
+
+-- A load replaced the step (SequenceService): whatever card is up goes, Continue or not.
+local function dismiss()
+	if closeWaiting then
+		dismissing = true
+		closeWaiting()
+		dismissing = false
+	end
+	CardController.hide()
 end
 
 function CardController.getState()
@@ -237,6 +252,8 @@ function CardController.Start()
 			waitingCard(payload.kind, payload.data)
 		elseif payload.show then
 			CardController.show(payload.kind, payload.lines, payload.seconds, payload.times)
+		elseif payload.dismiss then
+			dismiss()
 		else
 			CardController.hide()
 		end

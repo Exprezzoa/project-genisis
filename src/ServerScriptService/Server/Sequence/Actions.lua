@@ -248,6 +248,7 @@ function actions.card(runner, a)
 		-- Until the player presses Continue (UI_CardDone, docs/14 §9: no auto-dismiss). Mission Complete sits over the
 		-- game; Chapter End brings its own black (the fade lifts under it) and `behind` runs while it is up.
 		runner.cardDone = nil
+		local token = runner.token
 		local data = if a.kind == "MissionComplete" then SceneActions.missionCompleteData(runner.player) else SceneActions.chapterEndData(runner.player)
 		Net.fireClient(runner.player, "UI_Card", { kind = a.kind, data = data, show = true })
 		if a.kind == "ChapterEnd" then
@@ -255,9 +256,10 @@ function actions.card(runner, a)
 			Net.fireClient(runner.player, "Fade", { to = 0, duration = 0 })
 		end
 		if a.behind then
-			Actions.run(runner, runner.token, a.behind)
+			Actions.run(runner, token, a.behind)
 		end
-		while runner.cardDone ~= a.kind and runner.player.Parent do
+		-- A load replacing the step ends the wait (SequenceService dismisses the card on the client).
+		while runner.cardDone ~= a.kind and runner.player.Parent and runner.token == token do
 			task.wait(0.1)
 		end
 		return

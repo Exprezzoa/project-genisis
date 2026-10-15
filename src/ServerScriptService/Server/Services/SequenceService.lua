@@ -239,7 +239,7 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 	runner.sequence = sequence
 	if restoring then
 		-- A load starts as clean as a rejoin: every step-gated prompt off (the step's own actions switch on what it
-		-- needs), no Titan left from the step it jumps away from, and no cinematic or conversation still running
+		-- needs), no Titan left from the step it jumps away from, and no cinematic, conversation or card still up
 		-- from it (a non-blocking one outlives its step's actions).
 		gate(player)
 		for id in pairs(runner.titans) do
@@ -250,6 +250,7 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 			CinematicService.stop(player, cinematic)
 		end
 		DialogueService.stop(player)
+		Net.fireClient(player, "UI_Card", { show = false, dismiss = true }) -- a card still up (one waiting for Continue too)
 	end
 	enter(runner, index, restoring == true)
 	return true, sequence.steps[index].id
