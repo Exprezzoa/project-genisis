@@ -14,7 +14,7 @@
 -- now), toast, zoneState, checkpoint, frame (forceBoard, park, repair,
 -- autoWalk, stopWalk), door, card, spawnTitan, despawnTitan, titanCommand (with the Watcher's stand-in:
 -- WatcherPath, PeelRover, TakeCanister, WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01),
--- cinematic, npcs, npc, sit (the player on a seat mark), paLoop (the Central Command PA).
+-- cinematic, npcs, npc, sit (the player on a seat mark), paLoop (the Central Command PA), controls, barks.
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -331,12 +331,17 @@ function actions.titanCommand(runner, a)
 	end
 end
 
+-- Fight barks on the client (BarkController): { "barks", fight = "M01", on = true | false }.
+function actions.barks(runner, a)
+	Net.fireClient(runner.player, "Bark_Play", { fight = a.fight, on = a.on ~= false })
+end
+
 -- { "controls", locked = true | false }: the player's movement (S01 keeps it still while the screen is black).
 function actions.controls(runner, a)
 	CharacterService.setControlLocked(runner.player, a.locked == true)
 end
 
--- Cinematics (CinematicService): { "cinematic", id, block = true, once = "FLAG" } plays it (skipped when the flag is
+-- Cinematics (CinematicService): { "cinematic", id, block = true, once = "FLAG", titan = id? } plays it (skipped when the flag is
 -- set, which is set after: docs/13 §1.2); { "cinematic", id, stop = true } ends a dialogue-driven one.
 function actions.cinematic(runner, a)
 	if a.stop then
@@ -346,7 +351,9 @@ function actions.cinematic(runner, a)
 	if a.once and FlagService.has(runner.player, a.once) then
 		return
 	end
-	CinematicService.play(runner.player, a.id, { block = a.block ~= false })
+	-- The subjects a dynamic shot frames: the player's Frame, and the Titan named by `titan` (S28).
+	local params = { frame = FrameService.getPiloted(runner.player), titan = a.titan and runner.titans[a.titan] or nil }
+	CinematicService.play(runner.player, a.id, { block = a.block ~= false, params = params })
 	if a.once then
 		FlagService.set(runner.player, a.once)
 	end

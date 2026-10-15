@@ -313,7 +313,7 @@ function FrameService.board(player, frame, force)
 	end
 	local kneeling = frame:GetAttribute("State") == "Kneeling"
 	-- The first boarding of this Frame (docs/05 S08): a 2.2 s close-up, two taps, the hatch opens at 1.2 s, fade.
-	local first = not kneeling and not frame:GetAttribute("Booted")
+	local first = not kneeling and not force and not frame:GetAttribute("Booted") -- not on a load or /frame
 	local promptPart = if kneeling then frame.BoardPoint else frame.Hatch
 	if not force and (root.Position - promptPart.Position).Magnitude > config.boardDistance + promptPart.Prompt.MaxActivationDistance then
 		return false, "too far"

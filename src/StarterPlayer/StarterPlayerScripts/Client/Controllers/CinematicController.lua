@@ -30,6 +30,7 @@ local CameraController = require(script.Parent.CameraController)
 local Components = require(script.Parent.Parent.UI.Components)
 local DialogueController = require(script.Parent.DialogueController)
 local InputController = require(script.Parent.InputController)
+local SettingsController = require(script.Parent.SettingsController)
 local UIController = require(script.Parent.UIController)
 
 local CinematicController = {}
@@ -200,12 +201,51 @@ local function fovs(value, fallback): (number, number)
 end
 
 -- Plays one shot; yields for its length. Returns false if the cinematic ended meanwhile.
+-- Over Unit 02's right shoulder toward a Titan (S28 Shot 3): from the cinematic's params { frame, titan }.
+local function overShoulder(params): (Vector3?, Vector3?)
+	local frame, titan = params.frame, params.titan
+	local frameRoot = typeof(frame) == "Instance" and frame:IsA("Model") and frame.PrimaryPart
+	local titanRoot = typeof(titan) == "Instance" and titan:IsA("Model") and titan.PrimaryPart
+	if not frameRoot or not titanRoot then
+		return nil, nil
+	end
+	local toward = (titanRoot.Position - frameRoot.Position) * Vector3.new(1, 0, 1)
+	if toward.Magnitude < 1 then
+		return nil, nil
+	end
+	toward = toward.Unit
+	local right = toward:Cross(Vector3.yAxis)
+	local look = titanRoot.Position + Vector3.new(0, titan:GetExtentsSize().Y * 0.3, 0)
+	return frameRoot.Position - toward * 34 + right * 14 + Vector3.new(0, 24, 0), look
+end
+
+-- The cinematic's own camera shake (the Frame camera's is suspended): a fading noise rotation.
+local function jolt(): CFrame
+	local entry = current and current.shake
+	if not entry then
+		return CFrame.identity
+	end
+	local age = (os.clock() - entry.start) / entry.duration
+	if age < 0 then
+		return CFrame.identity
+	elseif age >= 1 then
+		current.shake = nil
+		return CFrame.identity
+	end
+	local swing = math.rad(3) * entry.magnitude * (1 - age) * (SettingsController.get("cameraShake") or 1)
+	local n = os.clock() * 18
+	return CFrame.Angles(math.noise(n, 1.5) * swing, math.noise(n, 7.5) * swing, math.noise(n, 13.5) * swing * 0.5)
+end
+
+-- Plays one shot; yields for its length. Returns false if the cinematic ended meanwhile.
 local function playShot(shot, mine): boolean
 	local camera = workspace.CurrentCamera
 	local fromPos, fromLook
 	if shot.hold then
 		task.wait(shot.seconds or 0)
 		return current ~= nil and current.token == mine
+	elseif shot.dynamic == "overShoulder" then
+		fromPos, fromLook = overShoulder(current.params)
 	elseif shot.cam then
 		fromPos, fromLook = camPoint(shot.cam)
 	elseif shot.from then
@@ -224,7 +264,13 @@ local function playShot(shot, mine): boolean
 		local t = math.clamp((os.clock() - started) / seconds, 0, 1)
 		local e = Easing.apply(shot.easing or "SineInOut", t)
 		local pos, look = fromPos:Lerp(toPos, e), fromLook:Lerp(toLook, e)
-		camera.CFrame = CFrame.lookAt(pos, look)
+		if shot.dynamic == "overShoulder" then
+			-- It keeps the Titan's head in frame as it turns, pushing in a little.
+			local _, liveLook = overShoulder(current.params)
+			look = liveLook or look
+			pos = fromPos:Lerp(look, 0.08 * e)
+		end
+		camera.CFrame = CFrame.lookAt(pos, look) * jolt()
 		camera.FieldOfView = fov0 + (fov1 - fov0) * e
 		focus(pos, look)
 		if t >= 1 then
@@ -333,7 +379,7 @@ function CinematicController.play(id: string, params)
 	end
 	tokens += 1
 	local mine = tokens
-	current = { id = id, data = data, token = mine, saved = save(), connections = {}, skippable = params.skippable == true }
+	current = { id = id, data = data, token = mine, saved = save(), connections = {}, skippable = params.skippable == true, params = params }
 
 	local camera = workspace.CurrentCamera
 	CameraController.suspend(true)
@@ -359,6 +405,21 @@ function CinematicController.play(id: string, params)
 	end
 	if data.gesture == "TapHatch" then
 		tapHatch(mine)
+	end
+	-- Effects on this client at their time: the S28 roar (the Titan's glow and blast, and this camera's shake).
+	for _, event in ipairs(data.clientEvents or {}) do
+		task.delay(event.at, function()
+			if not current or current.token ~= mine then
+				return
+			end
+			if event.fx == "TitanRoar" then
+				local ok, TitanVFX = pcall(require, script.Parent.TitanVFXController)
+				if ok and typeof(params.titan) == "Instance" then
+					TitanVFX.introRoar(params.titan)
+				end
+				current.shake = { magnitude = event.shake or 0.6, duration = event.duration or 1.2, start = os.clock() + 0.45 }
+			end
+		end)
 	end
 
 	-- Interruptions: the character dying or being replaced ends it (and tells the server).

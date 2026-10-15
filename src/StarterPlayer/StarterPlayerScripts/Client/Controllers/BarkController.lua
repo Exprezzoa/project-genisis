@@ -6,6 +6,7 @@
 -- a tilted name tag in the speaker's color over a dark slab). One at a time, NPCs.Bark.COOLDOWN seconds
 -- apart, and never while a conversation or cinematic is open. The text is the bark's dialogue
 -- ("DLG_<barkId>", node <barkId>) in Shared/Dialogue.
+-- Fight barks (S28): radio subtitles from the fight's events while the server has them on (see below).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,11 +15,13 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NPCs = require(Shared.Config.NPCs)
+local Net = require(Shared.Modules.Net)
 local Speakers = require(Shared.Dialogue.Speakers)
 local UIStyle = require(Shared.Config.UIStyle)
 
 local Components = require(script.Parent.Parent.UI.Components)
 local DialogueController = require(script.Parent.DialogueController)
+local HUDController = require(script.Parent.HUDController)
 
 local BarkController = {}
 
@@ -173,15 +176,160 @@ local function check()
 	end
 end
 
+----------------------------------------------------------------------------------------------------------------
+-- Fight barks (docs/05 S28): radio subtitles while a fight runs, switched on and off by the server
+-- (Bark_Play { fight = "M01", on }). A 12 s cooldown between them, each line at most twice per fight, never over
+-- a dialogue line; FB_M7 answers FB_O1 straight after. What sets each one off (D-087): FB_M1 Unit 01 starts an
+-- attack, FB_M2 three of the player's hits in a row miss the ankles, FB_M3 a Stomp telegraph, FB_M4 Integrity
+-- under 34%, FB_M5 the Titan goes down, FB_M6 it regains 100 HP, FB_E1 the player is hurt, FB_E2 a Core Strike
+-- lands, FB_O1 a Roar at half health or less (it skips the cooldown: the fight's turn, said once or twice).
+----------------------------------------------------------------------------------------------------------------
+local FIGHT = { cooldown = 12, max = 2, stale = 3, legs = { AnkleL = true, AnkleR = true } }
+local PRIORITY = { "FB_O1", "FB_M5", "FB_E2", "FB_M4", "FB_M6", "FB_M3", "FB_M1", "FB_M2", "FB_E1" }
+local fight = nil
+
+local function fightTitan()
+	local folder = workspace:FindFirstChild("Titans")
+	for _, model in ipairs(folder and folder:GetChildren() or {}) do
+		if model:IsA("Model") and model:GetAttribute("TitanType") then
+			return model
+		end
+	end
+	return nil
+end
+
+local function frameOf(unit)
+	local folder = workspace:FindFirstChild("Frames")
+	return folder and folder:FindFirstChild("Frame_" .. unit)
+end
+
+local function want(id)
+	if fight then
+		fight.wanted[id] = os.clock()
+	end
+end
+
+local function sayFight(id, force)
+	local line = lines[id]
+	if not fight or not line or (fight.counts[id] or 0) >= FIGHT.max then
+		return false
+	end
+	if not force and (os.clock() - fight.lastAt < FIGHT.cooldown or DialogueController.getState().open or HUDController.getState().subtitle) then
+		return false
+	end
+	fight.counts[id] = (fight.counts[id] or 0) + 1
+	fight.lastAt = os.clock()
+	HUDController.showSubtitle({ text = line.text, speaker = line.speaker })
+	if id == "FB_O1" then
+		local mine = fight
+		task.delay(2.6, function()
+			if fight == mine then
+				sayFight("FB_M7", true)
+			end
+		end)
+	end
+	return true
+end
+
+local function watchFight()
+	local titan = fightTitan()
+	if titan then
+		local state, attack = titan:GetAttribute("State"), titan:GetAttribute("Attack")
+		if state ~= fight.state or attack ~= fight.attack then
+			if state == "Telegraph" and attack == "Stomp" then
+				want("FB_M3")
+			elseif state == "Telegraph" and attack == "Roar" then
+				local hp, max = titan:GetAttribute("HP") or 0, titan:GetAttribute("MaxHP") or 1
+				if hp / max <= 0.5 then
+					want("FB_O1")
+				end
+			elseif state == "Downed" then
+				want("FB_M5")
+			end
+			fight.state, fight.attack = state, attack
+		end
+		local hp = titan:GetAttribute("HP")
+		if hp then
+			if not fight.low or hp < fight.low then
+				fight.low = hp
+			elseif hp - fight.low >= 100 then
+				fight.low = hp
+				want("FB_M6")
+			end
+		end
+	end
+	local mine = frameOf("02")
+	if mine and mine:GetAttribute("Pilot") == localPlayer.UserId then
+		local integrity, max = mine:GetAttribute("Integrity"), mine:GetAttribute("IntegrityMax")
+		if integrity and max and max > 0 then
+			if fight.integrity and integrity < fight.integrity then
+				want(if integrity / max < 0.34 then "FB_M4" else "FB_E1")
+			end
+			fight.integrity = integrity
+		end
+	end
+	local ally = frameOf("01")
+	local action = ally and ally:GetAttribute("Action") or ""
+	if action ~= "" and fight.allyAction == "" then
+		want("FB_M1")
+	end
+	fight.allyAction = action
+	-- The most pressing wanted line that can be said now; old wishes lapse.
+	for _, id in ipairs(PRIORITY) do
+		local at = fight.wanted[id]
+		if at and os.clock() - at > FIGHT.stale then
+			fight.wanted[id] = nil
+		elseif at and sayFight(id, id == "FB_O1") then -- the Roar at half health is the fight's turn: no cooldown
+			fight.wanted[id] = nil
+			break
+		end
+	end
+end
+
+local function onFeedback(payload)
+	if not fight or type(payload) ~= "table" or payload.kind ~= "HitLanded" then
+		return
+	end
+	if payload.move == "CoreStrike" then
+		want("FB_E2")
+	end
+	if FIGHT.legs[payload.zone] then
+		fight.offLegs = 0
+	else
+		fight.offLegs += 1
+		if fight.offLegs >= 3 then
+			fight.offLegs = 0
+			want("FB_M2")
+		end
+	end
+end
+
+function BarkController.setFight(name, on)
+	fight = if on then { name = name, counts = {}, wanted = {}, lastAt = -math.huge, offLegs = 0, allyAction = "" } else nil
+end
+
+function BarkController.getFight()
+	return fight and { name = fight.name, counts = table.clone(fight.counts) } or nil
+end
+
 function BarkController.Init()
 	loadLines()
 end
 
 function BarkController.Start()
+	Net.on("Bark_Play", function(payload)
+		if type(payload) == "table" and type(payload.fight) == "string" then
+			BarkController.setFight(payload.fight, payload.on == true)
+		end
+	end)
+	Net.on("Combat_Feedback", onFeedback)
 	task.spawn(function()
 		while true do
 			task.wait(0.25)
 			check()
+			if fight then
+				watchFight()
+			end
 		end
 	end)
 end

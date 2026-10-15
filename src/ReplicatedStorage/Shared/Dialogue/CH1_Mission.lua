@@ -94,6 +94,17 @@ return {
 		{ "ST_02", "O", "Ember Squad, readings put it at Class-Three. You're authorized to withdraw—" },
 		{ "ST_03", "M", "It's sitting on the trail. We take it here. Eli, ankles first—bring it down!" },
 	}),
+	-- S28 fight barks (BarkController plays them as radio subtitles while the fight runs; when each one fires: D-087).
+	DLG_FB_M1 = { mode = "bark", nodes = { FB_M1 = { speaker = "M", text = "I'm drawing its attention!" } } },
+	DLG_FB_M2 = { mode = "bark", nodes = { FB_M2 = { speaker = "M", text = "Hit the legs!" } } },
+	DLG_FB_M3 = { mode = "bark", nodes = { FB_M3 = { speaker = "M", text = "Watch the stomp!" } } },
+	DLG_FB_M4 = { mode = "bark", nodes = { FB_M4 = { speaker = "M", text = "Eli, your armor's smoking!" } } },
+	DLG_FB_M5 = { mode = "bark", nodes = { FB_M5 = { speaker = "M", text = "Core's open! Now!" } } },
+	DLG_FB_M6 = { mode = "bark", nodes = { FB_M6 = { speaker = "M", text = "It's healing! Don't let up!" } } },
+	DLG_FB_E1 = { mode = "bark", nodes = { FB_E1 = { speaker = "E", text = "Come on, come on..." } } },
+	DLG_FB_E2 = { mode = "bark", nodes = { FB_E2 = { speaker = "E", text = "Got it!" } } },
+	DLG_FB_O1 = { mode = "bark", nodes = { FB_O1 = { speaker = "O", text = "Its readings are spiking!" } } },
+	DLG_FB_M7 = { mode = "bark", nodes = { FB_M7 = { speaker = "M", text = "Then we finish it fast." } } },
 	DLG_M01_FAIL = radio({
 		{ "FAIL_M1", "M", "Eli! Come on—get up, get up!" },
 	}),

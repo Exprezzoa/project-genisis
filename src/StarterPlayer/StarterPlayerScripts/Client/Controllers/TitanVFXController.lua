@@ -225,8 +225,9 @@ local function shockwave(model, entry)
 	shake(event, ground, event.within + diameter / 2, event.within + diameter)
 end
 
--- The Roar goes out: a shell of hot air to the edge of its reach, dust at the feet, a long shake.
-local function roar(model)
+-- The Roar goes out: a shell of hot air to the edge of its reach, dust at the feet, a long shake (none when a
+-- cinematic shakes its own camera).
+local function roar(model, noShake)
 	counts.roars += 1
 	local root = model.PrimaryPart
 	local spec = CombatConfig.TitanAttacks[model:GetAttribute("TitanType")]
@@ -239,7 +240,9 @@ local function roar(model)
 	Debris:AddItem(shell, 0.7)
 	local ground = groundAt(root.Position, feetOf(model, root))
 	dust(ground, 50, 6, 46)
-	shake(CameraFeel.Events.Roar, ground, radius * 2, radius * 5)
+	if not noShake then
+		shake(CameraFeel.Events.Roar, ground, radius * 2, radius * 5)
+	end
 end
 
 local function setCore(entry, open)
@@ -536,6 +539,22 @@ local function onHit(payload)
 			Debris:AddItem(flash, FLASH_TIME)
 		end
 	end
+end
+
+-- S28's intro (docs/05 Shot 3): the eyes flare as it turns to Unit 02 (a 0.4 s bloom pulse, clue 6), then it roars:
+-- every glow, the hot shell and a ring of dust. Only effects: the cinematic shakes its camera, nothing is hit.
+function TitanVFXController.introRoar(model)
+	local entry = titans[model]
+	if not entry then
+		return
+	end
+	flare(entry.eyes, 0.4, true)
+	task.delay(0.45, function()
+		if model.Parent then
+			flare(entry.glows, 1.4, false)
+			roar(model, true)
+		end
+	end)
 end
 
 function TitanVFXController.getCounts()

@@ -297,14 +297,19 @@ return {
 		{
 			id = "S28_STRIDER", -- and S30: the fight and the victory
 			checkpoint = "M01_FIGHT", checkpointOnEnter = true,
+			-- The rise (docs/05 S28, 8.5 s): the cinematic runs on the client; the Rise starts with Shot 2 at 3.0 s; the
+			-- lines from 6.0 s (the roar); the fight once they are said.
 			onEnter = {
-				{ "titanCommand", id = "STRIDER", command = "Rise" },
 				{ "ally", mode = "Hold", face = "TITAN_STRIDER_DORMANT" },
-				{ "wait", seconds = 2.5 },
+				{ "cinematic", id = "CIN_STRIDER_RISE", block = false, titan = "STRIDER" },
+				{ "wait", seconds = 3.0 },
+				{ "titanCommand", id = "STRIDER", command = "Rise" },
+				{ "wait", seconds = 3.0 },
 				{ "dialogue", id = "DLG_M01_CONTACT", block = true },
 				{ "titanCommand", id = "STRIDER", command = "StartFight" },
 				{ "objective", id = "OBJ_M01_FIGHT" }, -- set when ST_03 finishes (docs/05 §13)
 				{ "ally", mode = "Combat" },
+				{ "barks", fight = "M01", on = true },
 				table.unpack(FIGHT_TUTORIALS),
 			},
 			-- A retry: the Frame repaired at the fight spawn, the Strider already standing, no rise (docs/05 S28).
@@ -317,9 +322,11 @@ return {
 				{ "fade", to = 0, duration = 0.35 },
 				{ "titanCommand", id = "STRIDER", command = "StartFight" },
 				{ "objective", id = "OBJ_M01_FIGHT" },
+				{ "barks", fight = "M01", on = true },
 				table.unpack(FIGHT_TUTORIALS),
 			},
 			onFail = {
+				{ "barks", fight = "M01", on = false },
 				{ "dialogue", id = "DLG_M01_FAIL", block = true },
 				{ "fade", to = 1, duration = 0.35 },
 			},
@@ -328,6 +335,7 @@ return {
 			},
 			complete = { "event", name = "TitanDefeated" },
 			onComplete = {
+				{ "barks", fight = "M01", on = false },
 				{ "ally", mode = "Hold", at = "MARK_MARA_REGROUP" }, -- docs/05 S30: Unit 01 walks to the regroup mark and waits
 				{ "wait", seconds = 3 },
 				{ "dialogue", id = "DLG_M01_VICTORY", block = true },

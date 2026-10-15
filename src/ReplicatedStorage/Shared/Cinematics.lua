@@ -55,6 +55,18 @@ return {
 			{ hold = true, seconds = 1.0 },
 		},
 	},
+	-- S28 (8.5 s): low behind the crouched Strider's back (dormant), up at its head as it rises (2.5 s, the server's
+	-- Rise), then over Unit 02's shoulder as it turns to face it: the eyes flare, the roar (camera shake 0.6 for
+	-- 1.2 s, a ring of dust). The server starts the Rise at 3.0 s; params { frame, titan }.
+	CIN_STRIDER_RISE = {
+		letterbox = true,
+		shots = {
+			{ cam = "CAM_STR_1", seconds = 3.0, fov = 60 },
+			{ cam = "CAM_STR_2", seconds = 2.5, fov = 55 },
+			{ dynamic = "overShoulder", seconds = 3.0, fov = 60 },
+		},
+		clientEvents = { { at = 6.0, fx = "TitanRoar", shake = 0.6, duration = 1.2 } },
+	},
 	-- S07: the briefing. Vale's lines name their shot (CAM_BRF_WIDE / VALE / PILOTS) and slide.
 	CIN_BRIEFING = {
 		letterbox = true,
