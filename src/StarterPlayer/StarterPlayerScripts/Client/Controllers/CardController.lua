@@ -7,7 +7,8 @@
 -- brackets that draw in round the text, an underline, and a thin track filling over the card's time.
 -- Title (S01): black, one line at a time centered, Michroma 28 then 18, letter-spaced with spaced characters;
 -- each rises in over 0.6 s, holds for its time (`times`), fades out; a hairline draws under the place.
--- (The Frame Disabled card lives in FrameDamageController; Mission Complete and Chapter End come later.)
+-- Mission Complete (S40): UI/MissionCompleteCard, waiting for Continue (UI_CardDone back to the server).
+-- Chapter End (S43): UI/ChapterEndCard, the same way. (The Frame Disabled card lives in FrameDamageController.)
 --
 --   show(kind, lines, seconds, times?)      hide()      getState() -> { kind, visible, text }
 
@@ -19,6 +20,9 @@ local Net = require(Shared.Modules.Net)
 local UIStyle = require(Shared.Config.UIStyle)
 
 local Components = require(script.Parent.Parent.UI.Components)
+local InputController = require(script.Parent.InputController)
+local ChapterEndCard = require(script.Parent.Parent.UI.ChapterEndCard)
+local MissionCompleteCard = require(script.Parent.Parent.UI.MissionCompleteCard)
 local UIController = require(script.Parent.UIController)
 
 local CardController = {}
@@ -200,6 +204,22 @@ function CardController.show(kind, lines, seconds, times)
 	end)
 end
 
+-- Cards that wait for Continue (Mission Complete in S40, Chapter End in S43); the server waits for UI_CardDone.
+local WAITING = { MissionComplete = MissionCompleteCard, ChapterEnd = ChapterEndCard }
+
+local function waitingCard(kind, data)
+	state.kind, state.visible, state.text = kind, true, data and (data.mission or data.title) or ""
+	InputController.hold("Cinematic") -- no walking off while it is up
+	WAITING[kind].show(UIController.getLayer("Cards"), data or {}, function()
+		state.visible = false
+		InputController.hold(nil)
+		if InputController.getContext() == "Cinematic" then
+			InputController.restoreGameplay()
+		end
+		Net.fireServer("UI_CardDone", { kind = kind })
+	end)
+end
+
 function CardController.getState()
 	return state
 end
@@ -213,7 +233,9 @@ function CardController.Start()
 		if type(payload) ~= "table" then
 			return
 		end
-		if payload.show then
+		if payload.show and WAITING[payload.kind] then
+			waitingCard(payload.kind, payload.data)
+		elseif payload.show then
 			CardController.show(payload.kind, payload.lines, payload.seconds, payload.times)
 		else
 			CardController.hide()

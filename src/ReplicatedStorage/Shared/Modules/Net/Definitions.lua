@@ -51,6 +51,7 @@ local Definitions: { [string]: Definition } = {
 	Cinematic_Done = c2s({ cinematicId = ID }, 2),
 	Cinematic_Skip = c2s({ cinematicId = ID }, 2),
 	Tutorial_Seen = c2s({ id = ID }, 2), -- the card is up: the server sets TUT_<id> if it sent it (D-085)
+	UI_CardDone = c2s({ kind = ID }, 2), -- a card that waits for Continue was closed (Mission Complete, Chapter End)
 	Settings_Update = c2s(settingsFields, 1, 1, { minKeys = 1 }),
 	Checkpoint_Restart = c2s({}, 1 / 5, 1), -- 1 per 5 s
 	Upgrade_Buy = c2s({ upgradeId = ID }, 2),

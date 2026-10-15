@@ -11,7 +11,7 @@
 --   get(id) -> Model?             place(id, at)          stop(id)
 --   walkTo(id, target, opts?) -> boolean    yields; opts.follow = player (follower mode, docs/05 S06)
 --   sit(id, at, height?)          on an invisible seat at a SpawnId or point
---   setGesture(id, gesture?)
+--   setGesture(id, gesture?)       handOver(fromId, toId)   (a held prop, NPCs.defs[id].holds)
 -- Talking NPCs turn to the player by tweening their anchored root (D-081); seated ones only turn their head.
 
 local CollectionService = game:GetService("CollectionService")
@@ -145,6 +145,49 @@ local function addTalkPrompt(npc)
 	CollectionService:AddTag(root, "Interactable")
 end
 
+-- Props an NPC can hold in its right hand (NPCs.defs[id].holds). The spindle case of S40: a dark case with a red
+-- lock light, the one Elias opened in the rover (docs/05 S32, S40).
+local PROPS = {
+	SpindleCase = function()
+		local case = Instance.new("Part")
+		case.Name = "SpindleCase"
+		case.Size = Vector3.new(0.5, 0.9, 1.3)
+		case.Color = Color3.fromHex("#2A2D31")
+		case.Material = Enum.Material.SmoothPlastic
+		local lock = Instance.new("Part")
+		lock.Name = "LockLight"
+		lock.Size = Vector3.new(0.52, 0.12, 0.12)
+		lock.Color = Color3.fromHex("#E5484D")
+		lock.Material = Enum.Material.Neon
+		lock.CFrame = CFrame.new(0, 0.3, -0.4)
+		lock.Parent = case
+		return case
+	end,
+}
+
+-- Puts a prop in the NPC's right hand (welded, below the palm).
+local function hold(npc, name)
+	local hand = npc.model:FindFirstChild("RightHand")
+	local make = PROPS[name]
+	if not hand or not make then
+		return
+	end
+	local prop = make()
+	local offset = hand.CFrame * CFrame.new(0, -hand.Size.Y / 2 - prop.Size.Y / 2 + 0.1, 0)
+	for _, part in ipairs({ prop, table.unpack(prop:GetChildren()) }) do
+		if part:IsA("BasePart") then
+			local at = if part == prop then offset else offset * part.CFrame
+			part.CFrame = at
+			part.Anchored, part.CanCollide, part.CanQuery, part.CanTouch, part.Massless = false, false, false, false, true
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0, weld.Part1 = hand, part
+			weld.Parent = part
+		end
+	end
+	prop.Parent = npc.model
+	npc.holding = prop
+end
+
 -- Starts a route loop: walk to each point in turn, pause 2-6 s, Inspect where the route says.
 local function runRoute(npc)
 	local route = npc.def.route
@@ -213,6 +256,9 @@ local function spawnOne(id: string)
 	end
 	if def.talk then
 		addTalkPrompt(npc)
+	end
+	if def.holds then
+		hold(npc, def.holds)
 	end
 	if def.route then
 		runRoute(npc)
@@ -320,6 +366,18 @@ function NPCService.stop(id: string)
 	end
 end
 
+-- One NPC hands what it holds to another (S40: the technician gives Rhein the spindle case).
+function NPCService.handOver(fromId: string, toId: string)
+	local from, to = active[fromId], active[toId]
+	if not (from and to and from.holding) then
+		return
+	end
+	local name = from.holding.Name
+	from.holding:Destroy()
+	from.holding = nil
+	hold(to, name)
+end
+
 function NPCService.setGesture(id: string, gesture: string?)
 	local npc = active[id]
 	if npc then
@@ -388,7 +446,8 @@ local function turn(npc, look: Vector3)
 end
 
 -- A conversation with NPC participants (docs/13 §2 `participants`): they look at the player and the standing ones
--- turn to face them; the player turns to the first one (TalkTarget, client side). Cinematics stage their own.
+-- turn to face them; the player turns to the first one (TalkTarget, client side). Cinematics stage their own,
+-- unless the dialogue says face = true (S40's conversation in the hangar).
 local engaged = {} -- [player] = { dialogueId, ids }
 
 local function release(player: Player)
@@ -414,7 +473,7 @@ local function engage(player: Player, dialogueId: string)
 		return
 	end
 	local dialogue = DialogueService.get(dialogueId)
-	if not dialogue or dialogue.mode ~= "conversation" or not dialogue.participants then
+	if not dialogue or not dialogue.participants or not (dialogue.mode == "conversation" or dialogue.face) then
 		return
 	end
 	release(player)
@@ -455,6 +514,8 @@ local function onAction(_player, dialogueId, nodeId, action)
 	end
 	if action.moveTo then
 		task.spawn(NPCService.walkTo, action.npc, action.moveTo)
+	elseif action.takeFrom then
+		NPCService.handOver(action.takeFrom, action.npc)
 	elseif action.gesture ~= nil then
 		NPCService.setGesture(action.npc, action.gesture or nil)
 	else

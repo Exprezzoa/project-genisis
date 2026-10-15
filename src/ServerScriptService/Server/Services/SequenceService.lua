@@ -30,6 +30,7 @@ local Signal = require(Shared.Modules.Signal)
 local Actions = require(script.Parent.Parent.Sequence.Actions)
 local Conditions = require(script.Parent.Parent.Sequence.Conditions)
 local CharacterService = require(script.Parent.CharacterService)
+local CinematicService = require(script.Parent.CinematicService)
 local CombatService = require(script.Parent.CombatService)
 local DialogueService = require(script.Parent.DialogueService)
 local FlagService = require(script.Parent.FlagService)
@@ -94,6 +95,7 @@ local function publish(runner)
 	local step = runner.step
 	Net.fireClient(runner.player, "Seq_State", {
 		sequenceId = runner.sequence.id, stepId = step and step.id, objectiveId = runner.objective, objectiveArgs = runner.args,
+		optionalIds = runner.optional or {},
 		waypoints = if step then waypointsOf(runner, step.waypoint) else {},
 	})
 end
@@ -137,6 +139,7 @@ function enter(runner, index, restoring)
 	runner.watch, runner.side = nil, {}
 	runner.args = {}
 	runner.objective = step and step.objective
+	runner.optional = if step and step.optional then table.clone(step.optional) else {}
 	if not step then
 		Log.info(TAG, "%s finished %s as far as it is written", runner.player.Name, runner.sequence.id)
 		publish(runner)
@@ -236,11 +239,17 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 	runner.sequence = sequence
 	if restoring then
 		-- A load starts as clean as a rejoin: every step-gated prompt off (the step's own actions switch on what it
-		-- needs) and no Titan left from the step it jumps away from.
+		-- needs), no Titan left from the step it jumps away from, and no cinematic or conversation still running
+		-- from it (a non-blocking one outlives its step's actions).
 		gate(player)
 		for id in pairs(runner.titans) do
 			Actions.handlers.despawnTitan(runner, { id = id })
 		end
+		local cinematic = CinematicService.isPlaying(player)
+		if cinematic then
+			CinematicService.stop(player, cinematic)
+		end
+		DialogueService.stop(player)
 	end
 	enter(runner, index, restoring == true)
 	return true, sequence.steps[index].id
@@ -345,6 +354,13 @@ function SequenceService.Start()
 	end)
 	DialogueService.NodeShown:Connect(function(player, _, nodeId)
 		SequenceService.notify(player, "line", nodeId)
+	end)
+	-- A card that waits for Continue was closed (Actions "card", Mission Complete).
+	Net.on("UI_CardDone", function(player, payload)
+		local runner = runners[player]
+		if runner then
+			runner.cardDone = payload.kind
+		end
 	end)
 	-- A tutorial card is up on the client: its flag, if this runner sent it (Actions "tutorial").
 	Net.on("Tutorial_Seen", function(player, payload)

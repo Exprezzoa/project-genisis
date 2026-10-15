@@ -289,8 +289,12 @@ function HUDController.Start()
 				text = string.gsub(text, "{" .. tostring(key) .. "}", tostring(value))
 			end
 		end
-		if text ~= state.objective then
-			HUDController.setObjective(text)
+		local optional = {}
+		for _, id in ipairs(type(payload.optionalIds) == "table" and payload.optionalIds or {}) do
+			table.insert(optional, (Objectives :: any)[id] or id)
+		end
+		if text ~= state.objective or table.concat(optional, "|") ~= table.concat(state.optional, "|") then
+			HUDController.setObjective(text, optional)
 		end
 	end)
 	SettingsController.Changed:Connect(function(key)

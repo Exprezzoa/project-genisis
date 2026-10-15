@@ -3,7 +3,8 @@
 --
 -- How a damaged Frame looks, on every client, from the attributes the server publishes (DamageState,
 -- PlatesDetached, State): plates break off and fall, sparks and smoke start, the visor and the core vents
--- flicker, and a disabled Frame goes dark. A repair puts everything back. For the pilot, the FRAME DISABLED card.
+-- flicker, and a disabled Frame goes dark (the core vents alone while CoreOffline is set). A repair puts everything
+-- back. For the pilot, the FRAME DISABLED card.
 -- The server only sets the attributes; every client makes its own debris (docs/09 §5).
 --
 --   getState(frame) -> { level, plates, dark }?      -- for tests
@@ -141,6 +142,25 @@ local function setDark(record, dark)
 	end
 end
 
+-- The core vents alone go dark while the Frame's core is offline (the attribute CoreOffline: after the anomaly,
+-- docs/05 S33-S40); the visor stays lit.
+local function setVentsDark(record, dark)
+	if record.dark or record.ventsDark == dark then
+		return
+	end
+	record.ventsDark = dark
+	for _, part in ipairs(record.vents) do
+		local rest = record.lit[part]
+		part.Color = if dark then DARK else rest.color
+		part.Material = if dark then Enum.Material.SmoothPlastic else rest.material
+		for _, light in ipairs(part:GetChildren()) do
+			if light:IsA("Light") then
+				light.Enabled = not dark
+			end
+		end
+	end
+end
+
 -- A blink of lit parts: off and on twice.
 local function flicker(record, parts)
 	for _ = 1, 2 do
@@ -173,6 +193,11 @@ local function syncState(frame, record)
 		particles.Enabled = particles.Rate > 0
 	end
 	setDark(record, level == 4)
+	if level == 4 then
+		record.ventsDark = nil -- setDark covers them; look again once it is repaired
+	else
+		setVentsDark(record, frame:GetAttribute("CoreOffline") == true)
+	end
 end
 
 local function showCard()
@@ -227,7 +252,7 @@ local function watch(frame)
 	record.sparksLeft = emitter(shoulderL, "DamageSparks", Vector3.new(-shoulderL.Size.X / 2, shoulderL.Size.Y / 2, 0), sparkSetup(scale))
 	record.sparksRight = emitter(shoulderR, "DamageSparks", Vector3.new(shoulderR.Size.X / 2, shoulderR.Size.Y / 2, 0), sparkSetup(scale))
 	record.smoke = emitter(torso, "DamageSmoke", Vector3.new(0, torso.Size.Y / 4, torso.Size.Z / 2), smokeSetup(scale))
-	for _, attribute in ipairs({ "PlatesDetached", "DamageState", "State" }) do
+	for _, attribute in ipairs({ "PlatesDetached", "DamageState", "State", "CoreOffline" }) do
 		table.insert(record.connections, frame:GetAttributeChangedSignal(attribute):Connect(function()
 			syncPlates(frame, record)
 			syncState(frame, record)

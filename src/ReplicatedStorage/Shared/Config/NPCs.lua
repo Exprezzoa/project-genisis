@@ -13,6 +13,7 @@
 --   barks     ambient bark ids, said when the player passes within Bark.RANGE (docs/05 S03)
 --   talk      the Talk prompt TALK_<ID>: the first dialogue, the one after (again), or once only
 --   speaker   the dialogue speaker code, so clients know whose line is showing (TalkFidget, LookAt)
+--   holds     a prop in the right hand ("SpindleCase", S40); NPCService.handOver passes it on
 --
 -- `sets` are who is out together; a sequence action places a set ({ "npcs", set = "HUB_MORNING" }).
 
@@ -24,6 +25,7 @@ export type Def = {
 	route: { points: { any }, pingPong: boolean?, inspect: { [number]: boolean }? }?,
 	barks: { string }?,
 	talk: { first: string, again: string?, once: boolean? }?,
+	holds: string?,
 	speaker: string?,
 }
 
@@ -74,6 +76,17 @@ local defs: { [string]: Def } = {
 	T2 = { template = "Technician2", at = { -70, 0, -176, "-Z" }, idle = "Inspect" },
 	T4 = { template = "Technician4", at = { -100, 45, -227, "+X" }, route = { points = { { -100, 45, -227 }, { 100, 45, -227 } }, pingPong = true } },
 	T5 = { template = "Technician5", at = { 60, 0, -176, "-Z" }, idle = "Inspect" },
+	-- The evening (map_02 §9 "Evening (S40)"): Vale and Rhein come in from the south entrance, a technician holds the
+	-- spindle case, three Science Division guards stand by Bay 2. T1, T5 and Pell stay.
+	ValeReturn = { template = "Vale", at = { -3, 0, -76, "-Z" }, idle = "CrossArms", speaker = "V" },
+	Rhein = { template = "Rhein", at = { 3, 0, -76, "-Z" }, speaker = "R" },
+	TechCase = { template = "Technician3", at = { 8, 0, -166, "+Z" }, holds = "SpindleCase" },
+	GuardS1 = { template = "Guard1", at = { -10, 0, -178, "+Z" }, idle = "HandsBehindBack" },
+	GuardS2 = { template = "Guard2", at = { 10, 0, -180, "+Z" }, idle = "HandsBehindBack" },
+	GuardS3 = { template = "Guard3", at = { 14, 0, -174, "+Z" }, idle = "HandsBehindBack" },
+	-- Medical (S41): Voss at the scanner console; Mara on the Observation Deck after it (S42).
+	Voss = { template = "Voss", at = "MARK_VOSS_MED", speaker = "VS" },
+	MaraDeck = { template = "Mara", at = "MARK_MARA_DECK", speaker = "M" },
 }
 
 return {
@@ -84,6 +97,9 @@ return {
 		HUB_MORNING = { "Tamsin", "Okafor", "OfficerC3", "OfficerC4", "OfficerC7", "OfficerC5", "OfficerC8", "OfficerRouteA", "Morrow", "Hollis", "Mara", "Pell", "T1", "T2", "T4", "T5" },
 		-- S08-S10 (and a load at CH1_BRIEFED): Mara has boarded Unit 01; Vale stays at the lectern.
 		HUB_BRIEFED = { "Tamsin", "Okafor", "OfficerC3", "OfficerC4", "OfficerC7", "OfficerC5", "OfficerC8", "OfficerRouteA", "Morrow", "Hollis", "Vale", "Pell", "T1", "T2", "T4", "T5" },
+		-- S40-S43 (and loads at M01_COMPLETE, CH1_RETURNED, CH1_MEDICAL): the evening hangar and Voss in Medical; the Ops
+		-- Hall's day shift has gone (their barks are the morning's). MaraDeck joins after S41.
+		HUB_EVENING = { "ValeReturn", "Rhein", "TechCase", "GuardS1", "GuardS2", "GuardS3", "T1", "T5", "Pell", "Voss" },
 	},
 	-- Talk prompts (docs/05 S02: HoldDuration 0, MaxActivationDistance 8).
 	Talk = { DISTANCE = 8, PREFIX = "TALK_" },

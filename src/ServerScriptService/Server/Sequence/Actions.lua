@@ -35,8 +35,8 @@ local FrameService = require(Services.FrameService)
 local InteractionService = require(Services.InteractionService)
 local NPCService = require(Services.NPCService)
 local TitanService = require(Services.TitanService)
-local ZoneService = require(Services.ZoneService)
 local Doors = require(script.Parent.Doors)
+local SceneActions = require(script.Parent.SceneActions)
 local ZoneEffects = require(script.Parent.ZoneEffects)
 local WatcherStandIn = require(script.Parent.Parent.Titans.WatcherStandIn)
 
@@ -84,8 +84,18 @@ function actions.wait(_, a)
 	task.wait(a.seconds or 0)
 end
 
+-- { "setFlag", flag, unlessMark = key? }: not when the runner holds that mark (Clean Kill: no failure in the fight).
 function actions.setFlag(runner, a)
+	if a.unlessMark and runner.marks and runner.marks[a.unlessMark] then
+		return
+	end
 	FlagService.set(runner.player, a.flag)
+end
+
+-- { "mark", key, value = true }: something the runner remembers across retries (not saved): S28's failures.
+function actions.mark(runner, a)
+	runner.marks = runner.marks or {}
+	runner.marks[a.key] = a.value ~= false
 end
 
 function actions.clearFlag(runner, a)
@@ -94,6 +104,12 @@ end
 
 function actions.objective(runner, a)
 	runner.objective, runner.args = a.id, a.args or {}
+	hooks.publish(runner)
+end
+
+-- { "optional", ids = { ... } }: the optional objectives under the main one (docs/05 S41: the deck); {} clears them.
+function actions.optional(runner, a)
+	runner.optional = a.ids or {}
 	hooks.publish(runner)
 end
 
@@ -158,6 +174,12 @@ function actions.frame(runner, a)
 			FrameService.park(player, cframe, PLAYER_UNIT)
 			CharacterService.teleport(player, a.spawn)
 		end
+	elseif a.command == "coreOffline" then
+		-- The core vents stay dark after the anomaly (docs/05 S33-S40; FrameDamageController draws it).
+		local frame = FrameService.getFrame(PLAYER_UNIT)
+		if frame then
+			frame:SetAttribute("CoreOffline", a.on ~= false)
+		end
 	elseif a.command == "kneel" then
 		-- The player's unit kneels at a pad's marker, the player on foot at `exit` (a load after a dismount).
 		local at, exit = CharacterService.getSpawnCFrame(a.spawn), CharacterService.getSpawnCFrame(a.exit)
@@ -214,6 +236,24 @@ end
 -- A full-screen card (docs/14 §9): { "card", kind, lines, seconds }. The card brings its own black, so the fade
 -- layer is lifted while it shows and put back to black before it goes; it blocks for `seconds`.
 function actions.card(runner, a)
+	if a.kind == "MissionComplete" or a.kind == "ChapterEnd" then
+		-- Until the player presses Continue (UI_CardDone, docs/14 §9: no auto-dismiss). Mission Complete sits over the
+		-- game; Chapter End brings its own black (the fade lifts under it) and `behind` runs while it is up.
+		runner.cardDone = nil
+		local data = if a.kind == "MissionComplete" then SceneActions.missionCompleteData(runner.player) else SceneActions.chapterEndData(runner.player)
+		Net.fireClient(runner.player, "UI_Card", { kind = a.kind, data = data, show = true })
+		if a.kind == "ChapterEnd" then
+			task.wait(0.1)
+			Net.fireClient(runner.player, "Fade", { to = 0, duration = 0 })
+		end
+		if a.behind then
+			Actions.run(runner, runner.token, a.behind)
+		end
+		while runner.cardDone ~= a.kind and runner.player.Parent do
+			task.wait(0.1)
+		end
+		return
+	end
 	local seconds = a.seconds
 	if not seconds and a.times then -- a Title card: each line's time, then its fade
 		seconds = 0
@@ -410,71 +450,7 @@ function actions.npc(runner, a)
 	end
 end
 
--- The player sits at a seat mark (S07): { "sit", at = "SEAT_BRF_ELIAS", height = "BENCH" }; { "sit", stand = true,
--- at = "SPAWN_BRF_DOOR" } gets up there. The seat is invisible and made for the occasion (as NPCService does).
-function actions.sit(runner, a)
-	local player = runner.player
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local runtime = workspace:FindFirstChild("Runtime")
-	local old = runtime and runtime:FindFirstChild("PlayerSeat_" .. player.UserId)
-	if old then
-		old:Destroy()
-	end
-	if not humanoid or not root then
-		return
-	end
-	if a.stand then
-		humanoid.Sit = false
-		if a.at then
-			task.wait() -- the seat weld goes with the seat; move a frame later
-			CharacterService.teleport(player, a.at)
-		end
-		return
-	end
-	local mark = CharacterService.getSpawnCFrame(a.at)
-	if not mark then
-		Log.warn(TAG, "sit: no seat mark %s", tostring(a.at))
-		return
-	end
-	local height = if type(a.height) == "string" then NPCConfig.Seat[a.height] else (a.height or NPCConfig.Seat.CHAIR)
-	local seat = Instance.new("Seat")
-	seat.Name = "PlayerSeat_" .. player.UserId
-	seat.Size = Vector3.new(2, 0.2, 2)
-	seat.Transparency = 1
-	seat.CanCollide, seat.CanTouch, seat.CanQuery = false, false, false
-	seat.Anchored = true
-	seat.CFrame = mark * CFrame.new(0, height - 0.1, 0)
-	seat.Parent = runtime
-	root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
-	seat:Sit(humanoid)
-end
-
--- The Central Command PA (docs/05 S03): a random line every `every` seconds while the player is in one of `zones`,
--- never the same twice running, until the runner reaches `untilStep` (or leaves the sequence).
-function actions.paLoop(runner, a)
-	runner.paToken = (runner.paToken or 0) + 1
-	local mine, last = runner.paToken, nil
-	task.spawn(function()
-		while runner.paToken == mine and runner.player.Parent do
-			task.wait(a.every or 45)
-			if runner.paToken ~= mine or not runner.step or runner.step.id == a.untilStep then
-				return
-			end
-			if table.find(a.zones, ZoneService.getZone(runner.player) or "") and not DialogueService.isActive(runner.player) then
-				local choices = {}
-				for _, id in ipairs(a.lines) do
-					if id ~= last then
-						table.insert(choices, id)
-					end
-				end
-				last = choices[math.random(#choices)]
-				DialogueService.start(runner.player, last)
-			end
-		end
-	end)
-end
+SceneActions.install(actions) -- the hub scenes' actions (sit, paLoop, scanBeam, terminalMessage)
 
 function Actions.run(runner, token, list, restoring)
 	for _, action in ipairs(list or {}) do
@@ -482,9 +458,12 @@ function Actions.run(runner, token, list, restoring)
 			return
 		end
 		local handler = actions[action[1]]
+		-- Any action can hang on a flag: ifFlag (only with it) or unlessFlag (only without it).
+		local gated = (action.ifFlag and not FlagService.has(runner.player, action.ifFlag))
+			or (action.unlessFlag and FlagService.has(runner.player, action.unlessFlag))
 		if not handler then
 			Log.warn(TAG, "action %s isn't built yet (step %s)", tostring(action[1]), runner.step and runner.step.id or "?")
-		elseif not (restoring and action.skipOnRestore) then
+		elseif not (restoring and action.skipOnRestore) and not gated then
 			local ok, problem = pcall(handler, runner, action)
 			if not ok then
 				Log.error(TAG, "action %s failed in %s: %s", tostring(action[1]), runner.step and runner.step.id or "?", tostring(problem))

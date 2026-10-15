@@ -8,6 +8,9 @@
 --   overShoulder(params)           over the player's Frame's right shoulder toward params.titan (S28, S31)
 --   reverse(params)                from behind params.titan's head toward the player's Frame (S31 beat 6)
 --   hatch(frame) -> from, to, look the first boarding's close-up; turns the character to the hatch (S08)
+--   speakers(code) -> speaker, listener   who a conversation's two-shot frames for a line (S40)
+--   twoShot(speaker, listener)     over the listener's shoulder toward the speaker's face (S40)
+--   closeUp(part)                  in front of a small part (Rhein's pin, S40)
 --   staticFlash(layer, seconds)    flickering grey bars over the screen (S31 beat 6)
 --   tapHatch(alive) -> connection? the TapHatch arm gesture on the player's character while alive() holds
 
@@ -80,6 +83,59 @@ function Shots.reverse(params): (Vector3?, Vector3?)
 	away = away.Unit
 	local right = away:Cross(Vector3.yAxis)
 	return head + away * 14 + right * 8 + Vector3.new(0, 6, 0), target
+end
+
+-- Who is in a conversation's shot: the speaking NPC (attribute Speaker = code) nearest the player, or the player
+-- for Elias's lines, and the one listening (the player, or for Elias the nearest NPC that speaks).
+function Shots.speakers(code): (Instance?, Instance?)
+	local character = localPlayer.Character
+	local playerRoot = character and character:FindFirstChild("HumanoidRootPart")
+	local folder = workspace:FindFirstChild("Runtime") and workspace.Runtime:FindFirstChild("NPCs")
+	if not playerRoot or not code then
+		return nil, nil
+	end
+	local best, bestDistance = nil, math.huge
+	for _, model in ipairs(folder and folder:GetChildren() or {}) do
+		local root = model:IsA("Model") and model:FindFirstChild("HumanoidRootPart")
+		local fits = if code == "E" then model:GetAttribute("Speaker") ~= nil else model:GetAttribute("Speaker") == code
+		if root and fits then
+			local distance = (root.Position - playerRoot.Position).Magnitude
+			if distance < bestDistance then
+				best, bestDistance = model, distance
+			end
+		end
+	end
+	if code == "E" then
+		return character, best
+	end
+	return best, character
+end
+
+-- A conversation's two-shot: over the listener's shoulder toward the speaker's face (S40's "auto-framed" shots).
+function Shots.twoShot(speaker, listener): (Vector3?, Vector3?)
+	local speakerHead = typeof(speaker) == "Instance" and speaker:FindFirstChild("Head")
+	local listenerHead = typeof(listener) == "Instance" and listener:FindFirstChild("Head")
+	if not speakerHead or not listenerHead then
+		return nil, nil
+	end
+	local toward = (speakerHead.Position - listenerHead.Position) * Vector3.new(1, 0, 1)
+	if toward.Magnitude < 0.5 then
+		return nil, nil
+	end
+	toward = toward.Unit
+	local right = toward:Cross(Vector3.yAxis)
+	return listenerHead.Position - toward * 3.2 + right * 1.6 + Vector3.new(0, 0.5, 0), speakerHead.Position
+end
+
+-- A close look at a small part on a character (Rhein's ECHO pin as he turns, S40): from in front of it.
+function Shots.closeUp(part): (Vector3?, Vector3?)
+	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then
+		return nil, nil
+	end
+	local front = part.CFrame.LookVector * Vector3.new(1, 0, 1)
+	front = if front.Magnitude > 0.1 then front.Unit else Vector3.new(0, 0, -1)
+	local right = front:Cross(Vector3.yAxis)
+	return part.Position + front * 2.2 + right * 0.9 + Vector3.new(0, 0.3, 0), part.Position
 end
 
 -- The first boarding's close-up: Elias turns to the hatch; from beside him at shoulder height, drifting in.

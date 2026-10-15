@@ -1,11 +1,11 @@
 --!nonstrict
 -- Shared/Sequences/CH1.lua  (docs/13_missions_dialogue_relationships.md §1; docs/05_chapter1_script.md)
 --
--- Chapter 1 as data for the Sequence Runner. So far: the morning in the hub (S01-S07: NPCService, the hangar
--- reveal and briefing cinematics), the deployment from boarding to the launch (S08-S10) and the Outpost 07
--- mission to the return (S20-S33). The evening (S40-S43) and the other cinematics are still to come: for now
--- the Strider just rises while its lines play, the Watcher is a stand-in the player watches from the cockpit (no
--- choice C3 yet), and S33's anomaly is a fade to black. Mara's Unit 01 is the "ally" action
+-- Chapter 1 as data for the Sequence Runner, S01 to S43 and the free roam after it: the morning in the hub (S01-S07),
+-- the deployment (S08-S10), the Outpost 07 mission (S20-S33) with its cinematics (the Strider's rise, the Watcher
+-- and choice C3, the anomaly), and the evening (S40-S43: Vale and Rhein, Voss and choice C4, Mara on the deck, the
+-- message). The Watcher is still the stand-in model slid along its path (its rig pass is to come). Mara's Unit 01
+-- is the "ally" action
 -- (AllyFrameService): she follows on the road and the trail, holds in the courtyard and at the regroup mark, and
 -- fights beside the player.
 -- Step ids follow the script's scene numbers. A step with `checkpoint` saves when it completes, or when it
@@ -14,6 +14,7 @@
 
 -- The Central Command PA (docs/05 S03) and where it can be heard: the building, not the hangar or the yard.
 local PA_LINES = { "DLG_CH1_PA_A1", "DLG_CH1_PA_A2", "DLG_CH1_PA_A3", "DLG_CH1_PA_A4" }
+local PA_EVENING = { "DLG_CH1_PA_E1", "DLG_CH1_PA_E2", "DLG_CH1_PA_E3" }
 local CENTRAL_COMMAND = { "Quarters", "Briefing", "Medical", "Equipment", "Research", "OpsHall", "Corridors", "Arrival", "ObservationDeck" }
 local CLUES = { "INT_CLUE_A", "INT_CLUE_B", "INT_CLUE_C" }
 local CLUE_FLAGS = { INT_CLUE_A = "CH1_CLUE_A", INT_CLUE_B = "CH1_CLUE_B", INT_CLUE_C = "CH1_CLUE_C" }
@@ -55,6 +56,9 @@ return {
 		M01_FIGHT = "S28_STRIDER",
 		M01_TITAN_DOWN = "S31_WATCHER",
 		M01_COMPLETE = "S40_RETURN",
+		CH1_RETURNED = "S40_RETURN",
+		CH1_MEDICAL = "S42_EVENING",
+		CH1_COMPLETE = "S50_FREE_ROAM",
 	},
 	steps = {
 		{
@@ -301,6 +305,7 @@ return {
 			-- lines from 6.0 s (the roar); the fight once they are said.
 			onEnter = {
 				{ "ally", mode = "Hold", face = "TITAN_STRIDER_DORMANT" },
+				{ "mark", key = "fightFailed", value = false },
 				{ "cinematic", id = "CIN_STRIDER_RISE", block = false, titan = "STRIDER" },
 				{ "wait", seconds = 3.0 },
 				{ "titanCommand", id = "STRIDER", command = "Rise" },
@@ -327,6 +332,7 @@ return {
 			},
 			onFail = {
 				{ "barks", fight = "M01", on = false },
+				{ "mark", key = "fightFailed" }, -- no Clean Kill after a failure (docs/05 §10)
 				{ "dialogue", id = "DLG_M01_FAIL", block = true },
 				{ "fade", to = 1, duration = 0.35 },
 			},
@@ -336,6 +342,7 @@ return {
 			complete = { "event", name = "TitanDefeated" },
 			onComplete = {
 				{ "barks", fight = "M01", on = false },
+				{ "setFlag", flag = "CH1_CLEAN_KILL", unlessMark = "fightFailed" },
 				{ "ally", mode = "Hold", at = "MARK_MARA_REGROUP" }, -- docs/05 S30: Unit 01 walks to the regroup mark and waits
 				{ "wait", seconds = 3 },
 				{ "dialogue", id = "DLG_M01_VICTORY", block = true },
@@ -421,20 +428,121 @@ return {
 				{ "fade", to = 1, duration = 0 },
 				{ "dialogue", id = "DLG_M01_DARK", block = true },
 				{ "wait", seconds = 2 },
-				{ "checkpoint", id = "M01_COMPLETE" },
-				{ "lighting", preset = "EVENING", instant = true },
-				{ "frame", command = "park", spawn = "SPAWN_HANGAR_FLOOR" },
-				{ "ally", mode = "Parked" },
-				{ "fade", to = 0, duration = 1.0 },
-				{ "toast", text = "MISSION COMPLETE — THE SILENT OUTPOST" },
+				{ "checkpoint", id = "M01_COMPLETE" }, -- the evening (S40) sets itself up behind the black
 			},
 		},
 		{
-			-- The return to the hangar. Only where M01_COMPLETE puts the player for now (docs/05 §11); Vale, Rhein and
-			-- the rest of S40 come with Phase 5.
+			-- S40: back in the hangar in the evening (docs/05 S40). Unit 02 in Bay 2 with its vents dark, Unit 01 in Bay 1;
+			-- Vale and Rhein walk in, the conversation (auto-framed), Rhein leaves with the case and the guards (the camera
+			-- holds on his pin), Vale sends Elias to Medical, the Mission Complete card. A load at M01_COMPLETE or
+			-- CH1_RETURNED replays it (docs/05 §11). Checkpoint CH1_RETURNED.
 			id = "S40_RETURN",
+			checkpoint = "CH1_RETURNED",
+			onEnter = {
+				{ "fade", to = 1, duration = 0 },
+				{ "lighting", preset = "EVENING", instant = true },
+				{ "frame", command = "park", spawn = "SPAWN_HANGAR_FLOOR" },
+				{ "frame", command = "coreOffline" },
+				{ "ally", mode = "Parked" },
+				{ "npcs", set = "HUB_EVENING" },
+				{ "fade", to = 0, duration = 1.0 },
+				{ "npc", id = "ValeReturn", walk = "MARK_VALE_RETURN" },
+				{ "npc", id = "Rhein", walk = "MARK_RHEIN_RETURN", block = true },
+				{ "cinematic", id = "CIN_RETURN", block = false },
+				{ "dialogue", id = "DLG_CH1_RETURN_1", block = true },
+				{ "npc", id = "Rhein", walk = "NAV_GATE_S", despawnAfter = true },
+				{ "cinematic", id = "CIN_RETURN", cue = "pin" },
+				{ "npc", id = "GuardS1", walk = "NAV_GATE_S", despawnAfter = true },
+				{ "npc", id = "GuardS2", walk = "NAV_GATE_S", despawnAfter = true },
+				{ "npc", id = "GuardS3", walk = "NAV_GATE_S", despawnAfter = true },
+				{ "wait", seconds = 1.0 },
+				{ "dialogue", id = "DLG_CH1_RETURN_2", block = true },
+				{ "cinematic", id = "CIN_RETURN", stop = true },
+				{ "card", kind = "MissionComplete" },
+				{ "objective", id = "OBJ_CH1_MEDICAL" },
+				{ "paLoop", lines = PA_EVENING, every = 45, zones = CENTRAL_COMMAND, untilStep = "S50_FREE_ROAM" },
+			},
+			waypoint = { spawn = "WP_MEDICAL_ARCH" },
+			complete = { "timer", seconds = 0 },
+		},
+		{
+			-- S41: Medical. Stepping into the scanner arch: the beam sweeps twice while Voss talks (choice C4); Mara goes up
+			-- to the Observation Deck. Checkpoint CH1_MEDICAL.
+			id = "S41_MEDICAL",
+			checkpoint = "CH1_MEDICAL",
+			objective = "OBJ_CH1_MEDICAL",
+			waypoint = { spawn = "WP_MEDICAL_ARCH" },
+			complete = { "trigger", id = "TRG_MED_ARCH", who = "foot" },
+			onComplete = {
+				{ "scanBeam", sweeps = 2, seconds = 2.0, block = false },
+				{ "dialogue", id = "DLG_CH1_MEDICAL", block = true },
+				{ "npcs", add = { "MaraDeck" } },
+			},
+		},
+		{
+			-- S42 (optional) and S43: Mara on the Observation Deck within 10 studs (her conversation, CH1_DECK_SCENE, then she
+			-- leaves by the stairwell); the Q-3 terminal blinks 1 NEW MESSAGE, and reading it is S43: the message, the
+			-- photo, black, the Chapter End card, behind which the hub turns to night. CH1_MEDICAL loads here (docs/05 §11:
+			-- the Medical Bay door).
+			id = "S42_EVENING",
+			onEnter = {
+				{ "terminalMessage" },
+				{ "prompt", id = "INT_Q3_TERMINAL", enabled = true },
+			},
 			onRestore = {
-				{ "lighting", preset = "EVENING", instant = true }, { "frame", command = "park", spawn = "SPAWN_HANGAR_FLOOR" }, { "ally", mode = "Parked" },
+				{ "lighting", preset = "EVENING", instant = true },
+				{ "frame", command = "park", spawn = "SPAWN_MED_DOOR" },
+				{ "frame", command = "coreOffline" },
+				{ "ally", mode = "Parked" },
+				{ "npcs", set = "HUB_EVENING" },
+				{ "npcs", remove = { "ValeReturn", "Rhein", "TechCase", "GuardS1", "GuardS2", "GuardS3" } },
+				{ "npcs", add = { "MaraDeck" }, unlessFlag = "CH1_DECK_SCENE" },
+				{ "optional", ids = {}, ifFlag = "CH1_DECK_SCENE" },
+				{ "terminalMessage" },
+				{ "prompt", id = "INT_Q3_TERMINAL", enabled = true },
+				{ "paLoop", lines = PA_EVENING, every = 45, zones = CENTRAL_COMMAND, untilStep = "S50_FREE_ROAM" },
+			},
+			objective = "OBJ_CH1_REST",
+			optional = { "OBJ_CH1_DECK_OPT" },
+			waypoint = { spawn = "WP_QUARTERS" },
+			parallel = {
+				{
+					when = { "proximity", spawn = "MARK_MARA_DECK", radius = 10 },
+					actions = {
+						{ "dialogue", id = "DLG_CH1_DECK", block = true, unlessFlag = "CH1_DECK_SCENE" },
+						{ "optional", ids = {} },
+						{ "npc", id = "MaraDeck", walk = "NAV_STAIR_T", despawnAfter = true },
+					},
+				},
+			},
+			complete = { "interact", id = "INT_Q3_TERMINAL" },
+			onComplete = {
+				{ "terminalMessage", on = false },
+				{ "prompt", id = "INT_Q3_TERMINAL", enabled = false },
+				{ "optional", ids = {} },
+				{ "cinematic", id = "CIN_MESSAGE" },
+				{
+					"card", kind = "ChapterEnd",
+					behind = {
+						{ "lighting", preset = "NIGHT", instant = true },
+						{ "teleport", spawn = "SPAWN_QH" },
+						{ "npcs", remove = "all" },
+					},
+				},
+			},
+		},
+		{
+			-- After the chapter (docs/05 S43): free roam in the hub at night (the Training Yard is open). CH1_COMPLETE.
+			id = "S50_FREE_ROAM",
+			checkpoint = "CH1_COMPLETE", checkpointOnEnter = true,
+			onRestore = {
+				{ "lighting", preset = "NIGHT", instant = true },
+				{ "frame", command = "park", spawn = "SPAWN_QH" },
+				{ "frame", command = "coreOffline" },
+				{ "ally", mode = "Parked" },
+				{ "npcs", remove = "all" },
+				{ "terminalMessage", on = false },
+				{ "prompt", id = "INT_Q3_TERMINAL", enabled = false },
 			},
 		},
 	},

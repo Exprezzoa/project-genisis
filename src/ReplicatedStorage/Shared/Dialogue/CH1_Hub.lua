@@ -184,4 +184,104 @@ return {
 	-- S07: the briefing (cinematic, choice C2) and Mara's line at the door afterwards.
 	DLG_CH1_BRIEFING = { mode = "cinematic", participants = { "Vale", "Mara" }, start = "BR_01", nodes = briefing },
 	DLG_CH1_BRIEF_END = single("radio", "BR_17", "M", "\"Be careful.\" That's practically a hug, for him."),
+	-- S40: the return (a conversational cinematic in the hangar). RT_04: Rhein takes the case from the technician.
+	DLG_CH1_RETURN_1 = {
+		mode = "cinematic",
+		face = true, -- Elias turns to Vale, and they to him (NPCService)
+		participants = { "ValeReturn", "Rhein" },
+		start = "RT_01",
+		nodes = chain({}, {
+			{ "RT_01", "V", "Pilot Veyne. You're on your feet. Good." },
+			{ "RT_02", "E", "Sir, the spindle—my Frame, it—" },
+			{ "RT_03", "V", "Is being handled." },
+			{ "RT_04", "R", "Pilot Veyne. That was good work today. Really.", { action = { npc = "Rhein", takeFrom = "TechCase" } } },
+			{ "RT_05", "R", "Get some rest. Let us worry about the rest." },
+			{ "RT_06", "E", "...Sir." },
+		}),
+	},
+	-- After Rhein turns away (the camera holds on his pin), Vale sends Elias to Medical.
+	DLG_CH1_RETURN_2 = {
+		mode = "cinematic",
+		face = true,
+		participants = { "ValeReturn" },
+		start = "RT_07",
+		nodes = chain({}, {
+			{ "RT_07", "V", "Medical. Now. That's an order, not a suggestion." },
+			{ "RT_08", "E", "Sir—the garrison. Lieutenant Ferris's people." },
+			{ "RT_09", "V", "Arrived at Outpost Five on foot this afternoon. All twelve. They've been transferred to Science Division for debrief." },
+			{ "RT_10", "E", "Science Division? Why not—" },
+			{ "RT_11", "V", "Medical, Pilot." },
+		}),
+	},
+	-- S41: Medical, Voss at the scanner (conversation; choice C4, no timer).
+	DLG_CH1_MEDICAL = {
+		mode = "conversation",
+		participants = { "Voss" },
+		start = "MD_01",
+		nodes = (function()
+			local nodes = chain({}, {
+				{ "MD_01", "VS", "Pilot Veyne. Stand there—inside the arch. Thank you." },
+				{ "MD_02", "VS", "Any nausea? Ringing in the ears? Metallic taste?" },
+				{ "MD_03", "E", "A little ringing." },
+				{ "MD_04", "VS", "Mm." },
+				{ "MD_05", "VS", "Your Frame's core logged a response at the moment it shut down. It's... outside its operating parameters." },
+				{ "MD_06", "E", "Outside by how much?" },
+				{ "MD_07", "VS", "Enough that I've been asked not to discuss it." },
+			}, "MD_08")
+			nodes.MD_08 = {
+				speaker = "VS", text = "Pilot. When the interface went down, did you notice anything unusual? Sounds. Sensations. Anything.",
+				choices = {
+					{
+						text = "I heard a voice. Someone I knew, I think.", next = "MD_09a",
+						effects = { { rel = "voss", add = 1, toast = "Dr. Voss will remember that." }, { flag = "CH1_TOLD_VOSS" } },
+					},
+					{ text = "Just a headache.", next = "MD_09b", effects = { { flag = "CH1_HID_VOICE" } } },
+				},
+			}
+			-- "(stops writing)" and "(studies him for a second)": a beat before the line.
+			chain(nodes, {
+				{ "MD_09a", "VS", "...Whose voice?", { pause = 0.8 } },
+				{ "MD_10a", "E", "I don't know. It told me to count the steps." },
+				{ "MD_11a", "VS", "I'm going to write \"mild auditory disturbance.\"" },
+				{ "MD_12a", "VS", "And I'm going to remember what you actually said." },
+			}, "MD_14")
+			chain(nodes, {
+				{ "MD_09b", "VS", "Of course.", { pause = 1.0 } },
+				{ "MD_10b", "VS", "If the headache ever starts talking, Pilot... come find me. Not the duty doctor. Me." },
+			}, "MD_14")
+			chain(nodes, { { "MD_14", "VS", "You're cleared. Get some sleep. Real sleep." } })
+			return nodes
+		end)(),
+	},
+	-- S42 (optional): Mara on the Observation Deck. Lines that hang on the day's choices carry their flag.
+	DLG_CH1_DECK = {
+		mode = "conversation",
+		participants = { "MaraDeck" },
+		start = "OD_01",
+		onEnd = { { flag = "CH1_DECK_SCENE" } },
+		nodes = chain({}, {
+			{ "OD_01", "M", "Hey." },
+			{ "OD_02", "E", "Hey." },
+			{ "OD_03", "M", "They wouldn't let me see you. Two hours. I counted." },
+			{ "OD_04a", "M", "You said you were nervous this morning. I thought you meant the fight.", { cond = { flag = "CH1_ADMITTED_NERVES" } } },
+			{ "OD_04b", "M", "So you got your real Titan. Forty-one to forty, by the way. I'm counting it.", { cond = { flag = "CH1_JOKED_SCORE" } } },
+			{ "OD_05", "M", "Your Frame went dark, Eli. Completely dark. I thought—" },
+			{ "OD_06", "M", "Never mind what I thought." },
+			{ "OD_07a", "M", "And... thanks. For backing me up. Vale's going to make you pay for that.", { cond = { flag = "CH1_SIDED_MARA" } } },
+			{ "OD_08a", "E", "Worth it.", { cond = { flag = "CH1_SIDED_MARA" } } },
+			{ "OD_07b", "M", "And next time I say we're in no shape to chase a Class-Four, maybe don't tell Vale we can handle it.", { cond = { flag = "CH1_SIDED_VALE" } } },
+			{ "OD_08b", "E", "I was trying to—", { cond = { flag = "CH1_SIDED_VALE" } } },
+			{ "OD_09b", "M", "I know what you were trying to do. That's the problem.", { cond = { flag = "CH1_SIDED_VALE" } } },
+			{ "OD_07c", "M", "You went quiet out there. When Vale asked. You never go quiet.", { cond = { flag = "CH1_SILENT_PURSUIT" } } },
+			{ "OD_10", "M", "That thing took something from the truck. Titans don't take things." },
+			{ "OD_11", "E", "I know." },
+			{ "OD_12", "M", "Get some sleep, Veyne. That's an order from your squad lead." },
+			{ "OD_13", "E", "You're not my—" },
+			{ "OD_14", "M", "Ember-ONE." },
+		}),
+	},
+	-- S40-S43: the evening PA loop.
+	DLG_CH1_PA_E1 = single("radio", "PA_E1", "PA", "Corridor Train Nine arriving, platform one."),
+	DLG_CH1_PA_E2 = single("radio", "PA_E2", "PA", "Evening ash advisory lifted for the eastern districts."),
+	DLG_CH1_PA_E3 = single("radio", "PA_E3", "PA", "Night shift, report to stations."),
 }

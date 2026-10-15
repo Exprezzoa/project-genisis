@@ -83,9 +83,21 @@ return {
 			leave = { cam = "CAM_WA_1", dynamic = "track", fov = 60 }, -- 8: up the ridge into the fog
 		},
 	},
+	-- S40: the return, a conversational cinematic: each line framed on its speaker over the listener's shoulder
+	-- (`autoFrame`); the cue "pin" holds on Rhein's ECHO pin for 1.0 s as he turns away (clue 9).
+	CIN_RETURN = {
+		letterbox = true,
+		dialogueDriven = true,
+		autoFrame = true,
+		fov = 50,
+		cues = { pin = { dynamic = "closeUp", npc = "Rhein", part = "EchoPin1", fov = 40 } },
+	},
 	-- S33 (about 20.6 s): the upload and the anomaly, a scripted cinematic (Client/Cinematics/Anomaly). The HUD stays and
 	-- the gameplay camera runs until the shot outside; it ends behind black and the server says AN_01. params { frame }.
 	CIN_ANOMALY = { script = "Anomaly", keepHud = true, keepCamera = true, seconds = 20.6 },
+	-- S43: the message on the Q-3 terminal, a scripted cinematic (Client/Cinematics/Message): the terminal types it, then
+	-- the push to the father's photo and black. About 15 s; it ends behind black.
+	CIN_MESSAGE = { script = "Message", keepHud = false, seconds = 16 },
 	-- S07: the briefing. Vale's lines name their shot (CAM_BRF_WIDE / VALE / PILOTS) and slide.
 	CIN_BRIEFING = {
 		letterbox = true,

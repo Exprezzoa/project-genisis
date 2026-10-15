@@ -4,7 +4,8 @@
 -- Plays what CinematicService sends (Cinematic_Play): a Scriptable camera through the shots, the shared letterbox,
 -- the HUD, prompts and waypoints hidden, depth of field on (docs/06: far 0.25, focus on the shot's target, radius
 -- 30). A dialogue-driven cinematic cuts to each line's `action.cam` and pushes in slowly until the server stops it;
--- `action.slide` goes to the briefing screen. A `dynamic` shot is placed at run time (the first boarding's close-up
+-- `action.slide` goes to the briefing screen; with `autoFrame` each line is a two-shot on its speaker (S40). A
+-- cued cinematic cuts to the beats the server names (S31). A `dynamic` shot is placed at run time (the first boarding's close-up
 -- beside Elias at the hatch, with his TapHatch arm gesture). A skippable one shows "HOLD [SPACE] TO SKIP" (Space / A / the SKIP
 -- button, 1.0 s).
 -- Guaranteed restore: the camera type, subject, FOV and CFrame, the mouse, the HUD and the input context are put
@@ -251,12 +252,12 @@ local function cut(camId: string, mine)
 	if not pos then
 		return
 	end
-	current.cut = (current.cut or 0) + 1
-	local cutToken = current.cut
+	current.shot = (current.shot or 0) + 1 -- one shot at a time: a cut, a cue or a two-shot
+	local cutToken = current.shot
 	local camera = workspace.CurrentCamera
 	local started = os.clock()
 	task.spawn(function()
-		while current and current.token == mine and current.cut == cutToken do
+		while current and current.token == mine and current.shot == cutToken do
 			local t = math.clamp((os.clock() - started) / PUSH_TIME, 0, 1)
 			local p = pos:Lerp(look, PUSH_IN * Easing.apply("SineOut", t))
 			camera.CFrame = CFrame.lookAt(p, look)
@@ -268,6 +269,32 @@ end
 
 -- The first boarding's close-up (CIN_HATCH_TAP): Elias turns to the hatch; the camera beside him, at his
 -- shoulder's height, drifts in toward his hand and the hatch.
+-- Auto-framing (S40, `autoFrame`): a two-shot of whoever speaks. Elias's lines over the nearest NPC speaker's
+-- shoulder, an NPC's lines over Elias's; it follows them if they move.
+local function frameSpeaker(code, mine)
+	local speaker, listener = Shots.speakers(code)
+	local pos, look = Shots.twoShot(speaker, listener)
+	if not pos then
+		return
+	end
+	current.shot = (current.shot or 0) + 1
+	local shotToken = current.shot
+	local camera = workspace.CurrentCamera
+	camera.FieldOfView = 50
+	local started = os.clock()
+	task.spawn(function()
+		while current and current.token == mine and current.shot == shotToken do
+			local livePos, liveLook = Shots.twoShot(speaker, listener)
+			pos, look = livePos or pos, liveLook or look
+			local t = math.clamp((os.clock() - started) / PUSH_TIME, 0, 1)
+			local p = pos:Lerp(look, 0.04 * Easing.apply("SineOut", t))
+			camera.CFrame = CFrame.lookAt(p, look)
+			focus(p, look)
+			RunService.RenderStepped:Wait()
+		end
+	end)
+end
+
 local function hatchShot(mine, frame)
 	local from, to, look = Shots.hatch(frame)
 	if not from then
@@ -298,8 +325,8 @@ local function runCue(name: string, mine)
 		Log.warn(TAG, "%s: no cue %s", tostring(current and current.id), tostring(name))
 		return
 	end
-	current.cue = (current.cue or 0) + 1
-	local cueToken = current.cue
+	current.shot = (current.shot or 0) + 1
+	local cueToken = current.shot
 	local params = current.params
 	local camera = workspace.CurrentCamera
 	local fromPos, fromLook
@@ -312,13 +339,13 @@ local function runCue(name: string, mine)
 	local started = os.clock()
 	if shot.fx == "Static" then
 		task.delay(shot.fxAt or 0, function()
-			if current and current.cue == cueToken then
+			if current and current.shot == cueToken then
 				Shots.staticFlash(UIController.getLayer("Letterbox"), 0.2)
 			end
 		end)
 	end
 	task.spawn(function()
-		while current and current.token == mine and current.cue == cueToken do
+		while current and current.token == mine and current.shot == cueToken do
 			local t = if shot.seconds then math.clamp((os.clock() - started) / shot.seconds, 0, 1) else 1
 			local e = Easing.apply(shot.easing or "SineInOut", t)
 			local pos, look
@@ -326,6 +353,15 @@ local function runCue(name: string, mine)
 				pos, look = fromPos, Shots.headOf(params.titan) or fromLook
 			elseif shot.dynamic == "reverse" then
 				pos, look = Shots.reverse(params)
+			elseif shot.dynamic == "closeUp" then
+				-- On a part of an NPC (shot.npc, shot.part): the camera stays where it started, the look follows.
+				local npcs = workspace:FindFirstChild("Runtime") and workspace.Runtime:FindFirstChild("NPCs")
+				local model = npcs and npcs:FindFirstChild(shot.npc)
+				local part = model and model:FindFirstChild(shot.part, true)
+				if part then
+					fromPos = fromPos or Shots.closeUp(part)
+					pos, look = fromPos, part.Position
+				end
 			elseif shot.dynamic == "overShoulder" then
 				pos, look = Shots.overShoulder(params)
 			elseif fromPos then
@@ -467,7 +503,7 @@ function CinematicController.play(id: string, params)
 		end)
 		return
 	end
-	if data.cues then
+	if data.cues and not data.dialogueDriven then
 		camera.FieldOfView = data.fov or 60
 		runCue(data.start, mine)
 		return
@@ -479,11 +515,17 @@ function CinematicController.play(id: string, params)
 		end
 		table.insert(current.connections, DialogueController.Node:Connect(function(_, _, node)
 			local action = node.action
-			if type(action) ~= "table" or not current or current.token ~= mine then
+			if not current or current.token ~= mine then
 				return
+			end
+			if type(action) ~= "table" then
+				action = {}
 			end
 			if action.cam then
 				cut(action.cam, mine)
+			end
+			if action.cam == nil and data.autoFrame then
+				frameSpeaker(node.speaker, mine)
 			end
 			if action.slide and data.screen then
 				BriefingScreen.show(action.slide)
