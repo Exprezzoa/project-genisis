@@ -346,6 +346,14 @@ function SequenceService.Start()
 	DialogueService.NodeShown:Connect(function(player, _, nodeId)
 		SequenceService.notify(player, "line", nodeId)
 	end)
+	-- A tutorial card is up on the client: its flag, if this runner sent it (Actions "tutorial").
+	Net.on("Tutorial_Seen", function(player, payload)
+		local runner = runners[player]
+		if runner and runner.tutorials and runner.tutorials[payload.id] then
+			runner.tutorials[payload.id] = nil
+			FlagService.set(player, payload.id)
+		end
+	end)
 	FrameService.Boarded:Connect(function(player)
 		SequenceService.notify(player, "event", "FrameBoarded")
 	end)

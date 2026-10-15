@@ -22,7 +22,15 @@ local STRIDER_DORMANT = { "spawnTitan", type = "Strider", id = "STRIDER", spawn 
 -- Mara's Unit 01 (docs/09 §7): where she is and what she does in each step.
 local MARA_COURTYARD = { "ally", mode = "Hold", place = "MARK_MARA_COURTYARD", at = "MARK_MARA_COURTYARD" }
 local MARA_REGROUP = { "ally", mode = "Hold", place = "MARK_MARA_REGROUP", at = "MARK_MARA_REGROUP" }
-local TUT_DISMOUNT = { "tutorial", id = "TUT_DISMOUNT", text = "DISMOUNT — Stand on a landing pad and use the prompt. You can only leave your Frame on pads." }
+local TUT_DISMOUNT = { "tutorial", id = "TUT_DISMOUNT" }
+-- The fight's tutorials (docs/05 S28 table): LOCK at the start, the rest when their conditions hold on the client.
+local FIGHT_TUTORIALS = {
+	{ "tutorial", id = "TUT_LOCK" },
+	{ "tutorial", id = "TUT_DODGE", arm = true },
+	{ "tutorial", id = "TUT_SPECIAL", arm = true },
+	{ "tutorial", id = "TUT_CORE", arm = true },
+	{ "tutorial", id = "TUT_REGEN", arm = true },
+}
 -- A clue's prompt stays off for a player who found it before a reload.
 local CLUE_PROMPTS = {
 	{ "prompt", id = "INT_CLUE_A", enabled = true, unlessFlag = "CH1_CLUE_A" },
@@ -152,7 +160,7 @@ return {
 			complete = { "event", name = "FrameBoarded" },
 			onComplete = {
 				{ "dialogue", id = "DLG_CH1_BOARD" },
-				{ "tutorial", id = "TUT_MOVE", text = "MOVE — WASD / Left Stick / Thumbstick. Your Frame is heavy: it takes time to speed up and turn. Hold SHIFT / L3 for Stride." },
+				{ "tutorial", id = "TUT_MOVE" },
 			},
 		},
 		{
@@ -297,7 +305,7 @@ return {
 				{ "titanCommand", id = "STRIDER", command = "StartFight" },
 				{ "objective", id = "OBJ_M01_FIGHT" }, -- set when ST_03 finishes (docs/05 §13)
 				{ "ally", mode = "Combat" },
-				{ "tutorial", id = "TUT_LOCK", text = "LOCK ON — R / R3 / LOCK. Cycle targets with C / D-pad ← → / tap LOCK again." },
+				table.unpack(FIGHT_TUTORIALS),
 			},
 			-- A retry: the Frame repaired at the fight spawn, the Strider already standing, no rise (docs/05 S28).
 			onRestore = {
@@ -309,10 +317,14 @@ return {
 				{ "fade", to = 0, duration = 0.35 },
 				{ "titanCommand", id = "STRIDER", command = "StartFight" },
 				{ "objective", id = "OBJ_M01_FIGHT" },
+				table.unpack(FIGHT_TUTORIALS),
 			},
 			onFail = {
 				{ "dialogue", id = "DLG_M01_FAIL", block = true },
 				{ "fade", to = 1, duration = 0.35 },
+			},
+			parallel = {
+				{ when = { "timer", seconds = 5 }, actions = { { "tutorial", id = "TUT_ATTACK" } } }, -- 5 s after the start
 			},
 			complete = { "event", name = "TitanDefeated" },
 			onComplete = {

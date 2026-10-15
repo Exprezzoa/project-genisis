@@ -110,12 +110,16 @@ function actions.dialogue(runner, a)
 end
 
 -- Until TutorialController exists a tutorial is a toast, shown once per profile (flag TUT_<id>).
+-- Tutorials (TutorialController, Shared/Tutorials): { "tutorial", id, arm = true? }, once per profile. The flag TUT_<id>
+-- is set when the client reports the card shown (Tutorial_Seen); arm = the client shows it when its condition holds.
 function actions.tutorial(runner, a)
-	local flag = "TUT_" .. string.gsub(a.id, "^TUT_", "")
-	if not FlagService.has(runner.player, flag) then
-		FlagService.set(runner.player, flag)
-		Net.fireClient(runner.player, "UI_Toast", { text = a.text or a.id })
+	local id = "TUT_" .. string.gsub(a.id, "^TUT_", "")
+	if FlagService.has(runner.player, id) then
+		return
 	end
+	runner.tutorials = runner.tutorials or {}
+	runner.tutorials[id] = true
+	Net.fireClient(runner.player, "Tutorial_Show", { id = id, arm = a.arm == true })
 end
 
 function actions.toast(runner, a)

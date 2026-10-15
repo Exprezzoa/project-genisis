@@ -50,6 +50,7 @@ local Definitions: { [string]: Definition } = {
 	Dialogue_Choose = c2s({ dialogueId = ID, nodeId = ID, index = V.number({ min = 1, max = 4, integer = true }) }, 4),
 	Cinematic_Done = c2s({ cinematicId = ID }, 2),
 	Cinematic_Skip = c2s({ cinematicId = ID }, 2),
+	Tutorial_Seen = c2s({ id = ID }, 2), -- the card is up: the server sets TUT_<id> if it sent it (D-085)
 	Settings_Update = c2s(settingsFields, 1, 1, { minKeys = 1 }),
 	Checkpoint_Restart = c2s({}, 1 / 5, 1), -- 1 per 5 s
 	Upgrade_Buy = c2s({ upgradeId = ID }, 2),
