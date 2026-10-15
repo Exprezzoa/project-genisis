@@ -33,6 +33,7 @@ local ORDER = {
 	"MissionLogController",
 	"DialogueController",
 	"CinematicController",
+	"ConversationCameraController",
 	"TutorialController",
 	"BarkController",
 	"AnimationController",
