@@ -5,7 +5,8 @@
 --
 -- BLOCKOUT pass, like Compound: right sizes and places, collisions, markers, cameras, triggers, barriers,
 -- prompts on stand-ins. No props, except the rover: the player walks into it in S32, so its hull, bay and the
--- things in it are built in every pass (see rover below).
+-- things in it are built in every pass (see rover below). The STRUCTURE pass of the trail and the basin is in
+-- WildsStructure, passed in as opts.Structure.
 --
 --   Builder.Build({ BK = BK, Common = Common, Layout = Layout, pass = "blockout", areas = { "Basin" } })
 
@@ -87,10 +88,13 @@ function areas.Basin(ctx, T)
 	T.slope(S, "Embankment_W", "Z", -186, -32, -400, -424, 0, FLOOR_Y, T.ROCK)
 	T.slope(S, "Embankment_E", "Z", 32, 182, -400, -424, 0, FLOOR_Y, T.ROCK)
 	-- The dam (west), the cliffs (north), the intake tower and the four rock formations: everything that blocks.
-	T.box(S, "Dam", -200, FLOOR_Y, -724, -186, 18, -424, T.CONCRETE_DARK)
+	-- The dam, its top lowered to Y 4 at the spillway notch (Z -590..-560).
+	T.box(S, "Dam_N", -200, FLOOR_Y, -724, -186, 18, -590, T.CONCRETE_DARK)
+	T.box(S, "Dam_Spillway", -200, FLOOR_Y, -590, -186, 4, -560, T.CONCRETE_DARK)
+	T.box(S, "Dam_S", -200, FLOOR_Y, -560, -186, 18, -424, T.CONCRETE_DARK)
 	T.box(S, "Cliffs", -200, FLOOR_Y, -740, 182, 40, -724, T.ROCK_DARK)
 	BK.cyl(S, { Name = "IntakeTower", Axis = "Y", Size = Vector3.new(18, 46, 18), CFrame = CFrame.new(T.W(-95, 11, -600)), Color = P.CONCRETE_MID, Material = "Concrete" })
-	for _, rock in ipairs(Builder.ROCKS) do
+	for _, rock in ipairs(if ctx.level < 2 then Builder.ROCKS else {}) do -- the structure pass builds them from pieces
 		T.box(S, rock[1], rock[2] - rock[4] / 2, FLOOR_Y, rock[3] - rock[6] / 2, rock[2] + rock[4] / 2, FLOOR_Y + rock[5], rock[3] + rock[6] / 2, T.ROCK)
 	end
 	-- Where things start.
@@ -275,6 +279,10 @@ function Builder.Build(opts)
 		local ctx = C.begin(opts, L.ZONE, area)
 		ctx.C = C
 		build(ctx, L.tools(ctx))
+		local more = opts.Structure and opts.Structure[area]
+		if more and ctx.level >= 2 then
+			more(ctx, L.tools(ctx), Builder)
+		end
 		reports[area] = C.finish(ctx)
 		opts.BK.breathe()
 	end

@@ -756,3 +756,8 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 - **Tested:** edit-mode screenshots (south gate with sign and leaves, power station, rover); play: `/checkpoint CH1_DEPLOYED` → 32 OutpostLights off, bunker dark and red; then a load with power → 32/32 on, emergency lamps 0.3, 3 spark emitters on, lever exactly at its down CFrame; before/after screenshots of the ops room.
 - **Not done (next session):** the structure pass of the Trail and the Basin (dam markers, intake tower details, rock formations, signpost); the bunker's one flickering fixture (client ambient); the lever and flicker not watched in motion.
 - **Next steps:** finish the Trail/Basin structure pass and tick the Phase 4 map item; then Phase 5. **User:** please save/publish the place (File → Publish to Roblox), and time three Strider fights (Phase 3 test 1; the autopilot won in ~73 s).
+
+**Session 7, continued after the break: Trail and Basin structure pass (D-079)**
+- **Done:** `WildsStructure` (signpost, pipeline, outcrops; dam notch, stain, depth marks, rails, hut; intake tower details; RF1–RF4 from pieces; boat wreck). Outpost 07: 1,057 parts.
+- **Tested:** builders run with no warnings; checksums match; a screenshot of the basin from above the ramp (dam with the notch and rails, stain band, tower grates and walkway, rock formations). Not tested in play after this change: a Frame driving round the new rock pieces (they sit inside the old boxes, so the earlier route sweep still bounds them).
+- **Phase 4 status:** every item ticked. Left for the user: save/publish; the Phase 3 fight timing. Next: Phase 5.

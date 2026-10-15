@@ -45,7 +45,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [ ] Phase 3 acceptance tests all PASS — 2 to 8 pass (journal); **1 (three fights, 2–3.5 min) needs the user**: their first fight took about a minute, health was raised to 6000 (D-064), re-timing wanted. The user said to go on to Phase 4 (2026-10-10)
 
 ## Phase 4 — First mission flow
-- [ ] Outpost 07 blockout + structure (all areas) — **blockout built** (D-067), routes swept, driven and walked end to end in the Session 7 autopilot run; **structure pass: Ridge (D-070) and the whole compound (D-078) done; Trail and Basin to do**
+- [x] Outpost 07 blockout + structure (all areas) — blockout (D-067) driven and walked end to end (Session 7 autopilot run); structure pass: Ridge (D-070), the compound with the power-on effect (D-078), Trail and Basin (D-079); 1,057 parts, 46 lights. Props are the dressed pass (Phase 7)
 - [x] SequenceService + actions/conditions; CH1 S10–S33 — S08–S33 built and play-tested (D-069, D-071, D-075; journal Session 7); split into Sequence/Actions and Conditions; cinematics, C3 and the hub scenes are Phase 5
 - [x] AllyFrameService — Follow, Hold, Combat, Scripted, Parked (D-074); play-tested (journal Session 7); Scripted not used by any step yet
 - [x] Checkpoints + restore + fail/retry — resume on join, all 7 mission checkpoints rejoined for real (D-072, D-076; journal Session 7); fail/retry of S28 from Session 6
