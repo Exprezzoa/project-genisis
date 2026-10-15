@@ -61,6 +61,15 @@ function Builder.Build(opts)
 	BK.prompt(kiosk, "INT_STATUS_WALL", "Look")
 	local poster = C.standIn(ctx, "Poster_StandIn", V(-59.5, 4, 18.5), V(-59.4, 8, 21.5), { Color = P.SLATE_DEEP })
 	BK.prompt(poster, "INT_POSTER", "Look")
+	-- Consoles C1-C8 facing north, a chair behind each (docs/07 §6: Console 6 x 3 x 2.5, Chair 2 x 3.6 x 2; the seat
+	-- 1.0 up is ours, so seated feet reach the floor). The seated NPCs sit on these chairs (Config/NPCs; D-081).
+	local consoles = { { "C1", -36, 14 }, { "C2", -24, 14 }, { "C3", 24, 14 }, { "C4", 36, 14 }, { "C5", -36, 26 }, { "C6", -24, 26 }, { "C7", 24, 26 }, { "C8", 36, 26 } }
+	for _, c in ipairs(consoles) do
+		local name, x, z = c[1], c[2], c[3]
+		C.standIn(ctx, "Console_" .. name .. "_StandIn", V(x - 3, 0, z - 1.25), V(x + 3, 3, z + 1.25), { Color = P.STEEL_DARK })
+		C.standIn(ctx, "Chair_" .. name .. "_StandIn", V(x - 1, 0, z + 2), V(x + 1, 1.0, z + 4), { Color = P.FABRIC_DARK })
+		C.standIn(ctx, "ChairBack_" .. name .. "_StandIn", V(x - 1, 1.0, z + 3.7), V(x + 1, 3.6, z + 4), { Color = P.FABRIC_DARK })
+	end
 
 	C.placeRegistry(ctx)
 	return C.finish(ctx)

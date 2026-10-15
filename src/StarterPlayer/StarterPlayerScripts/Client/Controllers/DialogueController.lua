@@ -11,6 +11,8 @@
 -- while a conversation or cinematic runs. The box drops in and unfolds; it folds away at the end.
 --
 --   getState() -> { open, mode, dialogueId, nodeId, text, typed, choices }      advance()      choose(index)
+--   Line: Signal(speaker?, mode, seconds?)   each line shown (seconds for a radio line, which ends by itself);
+--                                            speaker nil when the dialogue closes (NPCAnimator: TalkFidget)
 
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +21,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Modules.Net)
+local Signal = require(Shared.Modules.Signal)
 local Speakers = require(Shared.Dialogue.Speakers)
 local UIStyle = require(Shared.Config.UIStyle)
 
@@ -28,6 +31,8 @@ local InputController = require(script.Parent.InputController)
 local UIController = require(script.Parent.UIController)
 
 local DialogueController = {}
+
+DialogueController.Line = Signal.new()
 
 local TYPE_RATE = 60 -- characters per second (docs/14 §6)
 local MIN_ADVANCE = 0.6 -- a line can be advanced this long after it appears (docs/05)
@@ -344,6 +349,9 @@ local function onNode(payload)
 	end
 	if payload.mode == "radio" or payload.mode == nil then
 		HUDController.showSubtitle({ text = node.text, speaker = node.speaker, thought = node.style == "thought", duration = node.duration })
+		if node.style ~= "thought" then
+			DialogueController.Line:Fire(node.speaker, "radio", node.duration or (1 + #node.text / 15))
+		end
 		return
 	end
 	token += 1
@@ -351,6 +359,7 @@ local function onNode(payload)
 	local opening = not state.open
 	state.open, state.mode, state.dialogueId, state.nodeId = true, payload.mode, payload.dialogueId, payload.nodeId
 	state.text, state.choices, state.sent = node.text, payload.choices, false
+	DialogueController.Line:Fire(if node.style == "thought" then nil else node.speaker, payload.mode, nil)
 	shownAt = os.clock()
 	if opening then
 		InputController.setContext("Dialogue")
@@ -383,6 +392,7 @@ end
 
 local function onEnd()
 	token += 1
+	DialogueController.Line:Fire(nil, nil, nil)
 	local wasOpen = state.open
 	state.open, state.mode, state.choices = false, nil, nil
 	clearChoices()

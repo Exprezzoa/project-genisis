@@ -6,7 +6,9 @@
 -- the numbers.
 --
 --   get(player, var) -> number      add(player, var, delta, reason, toast?) -> number (the new value)
---   Changed: Signal(player, var, value, delta)
+--   VARS: the known variables       Changed: Signal(player, var, value, delta)
+-- An unknown variable is refused (a typo would otherwise live in the profile for good), and one already in a
+-- profile is dropped when the profile loads.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -25,12 +27,19 @@ local RelationshipService = {}
 
 RelationshipService.Changed = Signal.new() :: Signal.Signal<Player, string, number, number>
 
+-- docs/17 profile: relationships = { mara, vale, voss, orin }.
+RelationshipService.VARS = { mara = true, vale = true, voss = true, orin = true }
+
 function RelationshipService.get(player: Player, var: string): number
 	local profile = PlayerDataService.getProfile(player)
 	return if profile then (profile.relationships[var] or 0) else 0
 end
 
 function RelationshipService.add(player: Player, var: string, delta: number, reason: string, toast: string?): number
+	if not RelationshipService.VARS[var] then
+		Log.warn(TAG, "unknown relationship %s (%s); not changed", tostring(var), reason)
+		return 0
+	end
 	local value = 0
 	PlayerDataService.update(player, function(profile)
 		local before = profile.relationships[var] or 0
@@ -48,6 +57,26 @@ function RelationshipService.add(player: Player, var: string, delta: number, rea
 		Net.fireClient(player, "UI_Toast", { text = toast })
 	end
 	return value
+end
+
+local function dropUnknown(player: Player)
+	PlayerDataService.update(player, function(profile)
+		for var in pairs(profile.relationships) do
+			if not RelationshipService.VARS[var] then
+				profile.relationships[var] = nil
+				Log.warn(TAG, "dropped unknown relationship %s from %s's profile", var, player.Name)
+			end
+		end
+	end)
+end
+
+function RelationshipService.Start()
+	PlayerDataService.Loaded:Connect(dropUnknown)
+	for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+		if PlayerDataService.getProfile(player) then
+			dropUnknown(player)
+		end
+	end
 end
 
 return RelationshipService

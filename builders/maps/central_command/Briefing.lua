@@ -23,6 +23,16 @@ function Builder.Build(opts)
 	-- Two steps up to tier 3 in the center aisle (Z -24..-16); the doc gives the tiers but no way up (D-026).
 	BK.stairs(S, "AisleSteps", V(-91, 0, -20), V(-1, 0, 0), 8, 2, { railings = false, stringers = false, material = "SmoothPlastic", color = ctx.FLOOR.Color })
 
+	-- Stand-ins: a bench on each tier in both blocks either side of the aisle (docs/07 §6 Bench: 1.8 tall, 1.6
+	-- deep; one per block here) and the lectern Vale stands behind (map_01 §6; its size is ours, D-081).
+	for _, tier in ipairs({ { -109, 0 }, { -103, 1 }, { -97, 2 } }) do
+		local x, y = tier[1], tier[2]
+		for index, block in ipairs({ { -36, -24 }, { -16, -4 } }) do
+			C.standIn(ctx, ("Bench_X%d_%d_StandIn"):format(-x, index), V(x - 0.8, y, block[1]), V(x + 0.8, y + 1.8, block[2]), { Color = ctx.P.FABRIC_DARK })
+		end
+	end
+	C.standIn(ctx, "Lectern_StandIn", V(-122.75, 0, -21), V(-121.25, 3.6, -19), { Color = ctx.P.STEEL_DARK })
+
 	BK.trigger(G, "TRG_BRIEFING_ENTER", V(-92, 0, -24), V(-82, 10, -16), "TRG_BRIEFING_ENTER")
 	BK.camPoint(G, "CAM_BRF_WIDE", V(-92, 9, -20), V(-125, 7, -20))
 	BK.camPoint(G, "CAM_BRF_VALE", V(-112, 6.5, -16), V(-122, 6, -20))

@@ -54,8 +54,9 @@ local IDS = {
 -- Phase 2: the boarding prompts (with FrameService). Phase 5: NPCs.
 local HUB_ZONES = { "CentralCommand", "Hangar", "Backdrops" }
 
+-- TALK_TAMSIN and TALK_OKAFOR aren't map parts: NPCService puts them on the NPCs at runtime (D-081).
 local DEFERRED = {
-	InteractId = { "TALK_TAMSIN", "TALK_OKAFOR", "INT_BOARD_BAY1", "INT_BOARD_BAY2" },
+	InteractId = { "INT_BOARD_BAY1", "INT_BOARD_BAY2" },
 }
 
 -- { zone, area, min, max } with half the wall thickness included. Y: slab bottom to roof or parapet top.

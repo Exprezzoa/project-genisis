@@ -24,6 +24,7 @@ local TitanService = require(script.Parent.TitanService)
 local TitanConfig = require(Shared.Config.TitanConfig)
 local FlagService = require(script.Parent.FlagService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local RelationshipService = require(script.Parent.RelationshipService)
 local SequenceService = require(script.Parent.SequenceService)
 local Doors = require(script.Parent.Parent.Sequence.Doors)
 
@@ -305,6 +306,20 @@ function handlers.checkpoint(player, args)
 		saved = if PlayerDataService.saveNow(player, "debug") then ", saved" else ", NOT saved"
 	end
 	return ("checkpoint %s -> step %s%s"):format(args[1], tostring(message), saved)
+end
+
+-- /rel <var> <value>: set a relationship (clamped to -3..3 by RelationshipService).
+function handlers.rel(player, args)
+	local var, value = args[1], tonumber(args[2] or "")
+	if not var or not value then
+		return "usage: " .. Debug.Commands.rel.usage
+	end
+	var = string.lower(var)
+	if not RelationshipService.VARS[var] then
+		return ("unknown relationship %s (mara, vale, voss, orin)"):format(var)
+	end
+	local now = RelationshipService.add(player, var, value - RelationshipService.get(player, var), "debug")
+	return ("%s = %d"):format(var, now)
 end
 
 function handlers.timescale()
