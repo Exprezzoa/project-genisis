@@ -5,13 +5,13 @@
 -- SequenceService binds what the actions need from the runner itself (radio lines, the client's state,
 -- checkpoints, the ZoneState signal) before any step runs.
 --
---   Actions.bind({ speak, publish, save, zoneState })
+--   Actions.bind({ publish, save, zoneState })
 --   Actions.run(runner, token, list, restoring)        runs a list; stops when the runner moved on
 --   Actions.handlers[name](runner, action)
 --
 -- Built so far (the rest of docs/13 §1.2 comes with the steps that need it): fade, lighting, teleport, wait,
--- setFlag, clearFlag, objective, prompt, dialogue (radio lines, stepped by SequenceService until DialogueService
--- exists), tutorial (a toast for now), toast, zoneState, checkpoint, frame (forceBoard, park, repair,
+-- setFlag, clearFlag, objective, prompt, dialogue (any mode, through DialogueService), tutorial (a toast for
+-- now), toast, zoneState, checkpoint, frame (forceBoard, park, repair,
 -- autoWalk, stopWalk), door, card, spawnTitan, despawnTitan, titanCommand (with the Watcher's stand-in:
 -- WatcherPath, PeelRover, TakeCanister, WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01).
 
@@ -25,6 +25,7 @@ local Net = require(Shared.Modules.Net)
 local Services = script.Parent.Parent.Services
 local AllyFrameService = require(Services.AllyFrameService)
 local CharacterService = require(Services.CharacterService)
+local DialogueService = require(Services.DialogueService)
 local CombatService = require(Services.CombatService)
 local FlagService = require(Services.FlagService)
 local FrameService = require(Services.FrameService)
@@ -100,7 +101,7 @@ function actions.prompt(runner, a)
 end
 
 function actions.dialogue(runner, a)
-	hooks.speak(runner, a.id, a.block == true)
+	DialogueService.start(runner.player, a.id, { block = a.block == true })
 end
 
 -- Until TutorialController exists a tutorial is a toast, shown once per profile (flag TUT_<id>).

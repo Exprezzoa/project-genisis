@@ -8,7 +8,7 @@
 --   showSubtitle({ text, speaker?, thought?, duration? })
 --   getState() -> { objective, optional, toasts, subtitle }      -- for tests
 --
--- Remotes: UI_Toast {text}; Dialogue_Node {dialogueId, nodeId} for dialogues in "radio" mode
+-- Remotes: UI_Toast {text}. Radio lines arrive through DialogueController, which calls showSubtitle
 -- (the conversation and cinematic modes belong to DialogueController, Phase 5).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,7 +27,6 @@ local UIController = require(script.Parent.UIController)
 
 local HUDController = {}
 
-local dialogues = {}
 local objectiveFrame, objectiveTitle, objectiveText, objectiveFlash, optionalHolder
 local toastHolder
 local subtitleLabel
@@ -273,13 +272,6 @@ end
 
 function HUDController.Init()
 	HUDController.build(UIController.getLayer("HUD"))
-	for _, moduleScript in ipairs(Shared.Dialogue:GetChildren()) do
-		if moduleScript:IsA("ModuleScript") and moduleScript.Name ~= "Speakers" then
-			for id, dialogue in pairs(require(moduleScript)) do
-				dialogues[id] = dialogue
-			end
-		end
-	end
 end
 
 function HUDController.Start()
@@ -298,13 +290,6 @@ function HUDController.Start()
 		end
 		if text ~= state.objective then
 			HUDController.setObjective(text)
-		end
-	end)
-	Net.on("Dialogue_Node", function(payload)
-		local dialogue = dialogues[payload.dialogueId]
-		local node = dialogue and dialogue.nodes[payload.nodeId]
-		if node and dialogue.mode == "radio" then
-			HUDController.showSubtitle({ text = node.text, speaker = node.speaker, thought = node.style == "thought", duration = node.duration })
 		end
 	end)
 	SettingsController.Changed:Connect(function(key)

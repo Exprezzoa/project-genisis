@@ -1,6 +1,6 @@
 # Implementation Checklist
 
-**Current phase: 4 — First mission flow** (structure pass of Outpost 07 left). Phases 0–3 are built; their open acceptance tests need the user (touch and gamepad in Phases 1–2, timed fights in Phase 3). See the journal.
+**Current phase: 5 — Story introduction.** Phase 4 complete (journal Session 7). Phases 0–3 are built; their open acceptance tests need the user (touch and gamepad in Phases 1–2, timed fights in Phase 3). See the journal.
 
 Tick an item only after it was **tested** and the journal records how. Full task lists and acceptance tests: `docs/18_roadmap.md`.
 
@@ -53,7 +53,7 @@ Tick an item only after it was **tested** and the journal records how. Full task
 
 ## Phase 5 — Story introduction
 - [ ] All NPCs, Watcher rig, MemorySet
-- [ ] Dialogue, relationships, evidence, barks, tutorials, NPC behaviors, cinematics, PA
+- [ ] Dialogue, relationships, evidence, barks, tutorials, NPC behaviors, cinematics, PA — dialogue (all server modes, UI), relationships and evidence services built and play-tested (D-080); barks, tutorials, NPCs, cinematics, PA to do
 - [ ] All scenes S01–S43 wired exactly per script
 - [ ] Cards, terminal, boot, anomaly effects
 - [ ] Phase 5 acceptance tests all PASS

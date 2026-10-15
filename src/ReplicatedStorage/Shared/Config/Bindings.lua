@@ -3,7 +3,7 @@
 --
 -- Action -> inputs per input context, bound through ContextActionService by InputController.
 -- Movement, camera, jump and ProximityPrompt interaction (E / X / tap) stay with the Roblox defaults.
--- Lock-on (R, C) arrives with the Titans; the Dialogue and Cinematic contexts with Phase 5.
+-- Lock-on (R, C) arrives with the Titans; the Dialogue context with Phase 5, the Cinematic context with the cinematics.
 
 local K = Enum.KeyCode
 local M = Enum.UserInputType
@@ -33,7 +33,12 @@ return {
 		MissionLog = MENU_KEYS.MissionLog,
 		Menu = MENU_KEYS.Menu,
 	},
-	Dialogue = {},
+	-- A conversation or a cinematic with choices (DialogueController); clicks and taps go to the box and buttons.
+	Dialogue = {
+		Advance = { K.Space, K.Return, K.E, K.ButtonA },
+		Choice1 = { K.One }, Choice2 = { K.Two }, Choice3 = { K.Three }, Choice4 = { K.Four },
+		ChoiceUp = { K.Up, K.DPadUp }, ChoiceDown = { K.Down, K.DPadDown },
+	},
 	Cinematic = {},
 	-- While a menu is open the same keys close it; B closes too.
 	Menu = {

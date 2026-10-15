@@ -761,3 +761,12 @@ The user fought the Strider: "It took about a minute", against a target of 2–3
 - **Done:** `WildsStructure` (signpost, pipeline, outcrops; dam notch, stain, depth marks, rails, hut; intake tower details; RF1–RF4 from pieces; boat wreck). Outpost 07: 1,057 parts.
 - **Tested:** builders run with no warnings; checksums match; a screenshot of the basin from above the ramp (dam with the notch and rails, stain band, tower grates and walkway, rock formations). Not tested in play after this change: a Frame driving round the new rock pieces (they sit inside the old boxes, so the earlier route sweep still bounds them).
 - **Phase 4 status:** every item ticked. Left for the user: save/publish; the Phase 3 fight timing. Next: Phase 5.
+
+---
+
+### Session 7, continued — Phase 5 start: dialogue
+**Studio state found:** Studio had restarted (new instance id, helpers gone); every script matched the last commit; Outpost 07 at 1,057 parts.
+**Done (D-080):** RelationshipService, EvidenceService (+ `Shared/Evidence`), DialogueService (all server-run modes; SequenceService's radio moved into it), DialogueController (conversation box, cinematic letterbox, choices, timers), Dialogue input bindings; HUDController now only draws subtitles; hub dialogue data S02–S07 (Tamsin, Okafor, PA, office barks, hangar reveal line, Mara C1, walk banter, briefing C2, BR_17).
+**Tested (how → result):** play mode, Output clean (0 warnings): boot with 18 services; `DLG_CH1_MARA_HANGAR` driven with real keys (Space, "1") → all 22 nodes in order on branch 1, `CH1_ADMITTED_NERVES` set, no relationship change, control unlocked after; screenshots of the box and the choices (choice text was capped at 14 px by the button's size limit: fixed). `DLG_CH1_BRIEFING` left alone → letterbox, lines timed by length, C2 timer ran out after 11.9 s → option 3 → BR_14, no Lowmarch flag; screenshot with the timer bar. After it: letterbox 0, box hidden, W moved the character 14 studs. Regression: arrival radio lines and the urgent OOB_01 behave as before.
+**Not tested:** gamepad selection, touch taps, a choice with `cond`, `rel`/`evidence` effects through a dialogue (services tested only by boot), the C2 Lowmarch branch with its 1.2 s pause.
+**Next:** NPCService and the NPC templates (Mara, Vale, Hollis, Okafor, Tamsin, officers), then CinematicService and the hub scenes S01–S07.

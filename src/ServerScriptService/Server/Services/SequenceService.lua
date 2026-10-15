@@ -15,8 +15,8 @@
 --   StepEntered / StepCompleted: Signal(player, stepId)       ZoneState: Signal(zone, key, value)
 --
 -- The actions are in Server/Sequence/Actions, the completion conditions in Server/Sequence/Conditions (docs/16
--- §2). Radio lines are stepped here until DialogueService exists. A step's onFail runs when the player's Frame
--- is disabled during it, then its checkpoint is loaded.
+-- §2). Dialogues of every mode go through DialogueService. A step's onFail runs when the player's Frame is
+-- disabled during it, then its checkpoint is loaded.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -31,6 +31,7 @@ local Actions = require(script.Parent.Parent.Sequence.Actions)
 local Conditions = require(script.Parent.Parent.Sequence.Conditions)
 local CharacterService = require(script.Parent.CharacterService)
 local CombatService = require(script.Parent.CombatService)
+local DialogueService = require(script.Parent.DialogueService)
 local FlagService = require(script.Parent.FlagService)
 local FrameService = require(script.Parent.FrameService)
 local InteractionService = require(script.Parent.InteractionService)
@@ -40,7 +41,6 @@ local TitanService = require(script.Parent.TitanService)
 local TriggerService = require(script.Parent.TriggerService)
 
 local TAG = "SequenceService"
-local LINE_GAP = 0.25 -- seconds of silence between two radio lines
 local PLAYER_UNIT = "02"
 local POLL = 0.25 -- seconds between looks at the conditions nothing announces (proximity)
 local FAIL_CARD = 2.5 -- the FRAME DISABLED card (docs/14) before a failed step's onFail runs
@@ -53,52 +53,10 @@ SequenceService.StepCompleted = Signal.new()
 SequenceService.ZoneState = Signal.new()
 
 local sequences = {} -- [id] = sequence
-local dialogues = {} -- [id] = dialogue
 local runners = {} -- [player] = runner
 local gated = {} -- [interactId] = true: prompts that some step switches on and off
 
 local enter, gate -- forward
-
-----------------------------------------------------------------------------------------------------------------
--- Radio lines: one dialogue at a time per player, in the order they were asked for.
-----------------------------------------------------------------------------------------------------------------
-local function speak(runner, id, block)
-	local dialogue = dialogues[id]
-	if not dialogue then
-		Log.warn(TAG, "unknown dialogue %s", tostring(id))
-		return
-	end
-	local item = { id = id, done = false }
-	table.insert(runner.lines, item)
-	if not runner.speaking then
-		runner.speaking = true
-		task.spawn(function()
-			while #runner.lines > 0 and runner.player.Parent do
-				local current = table.remove(runner.lines, 1)
-				local spoken = dialogues[current.id]
-				local nodeId = spoken.start
-				while nodeId and runner.player.Parent do
-					local node = spoken.nodes[nodeId]
-					if node.pause then
-						task.wait(node.pause)
-					end
-					-- An urgent line (say) has the radio until it is over.
-					while runner.holdUntil and os.clock() < runner.holdUntil and runner.player.Parent do
-						task.wait(0.1)
-					end
-					Net.fireClient(runner.player, "Dialogue_Node", { dialogueId = current.id, nodeId = nodeId, mode = spoken.mode })
-					task.wait((node.duration or math.max(2.2, 0.06 * #node.text)) + LINE_GAP) -- docs/13 §2
-					nodeId = node.next
-				end
-				current.done = true
-			end
-			runner.speaking = false
-		end)
-	end
-	while block and not item.done and runner.player.Parent do
-		task.wait(0.1)
-	end
-end
 
 ----------------------------------------------------------------------------------------------------------------
 -- State for the client, and checkpoints
@@ -272,7 +230,7 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 	end
 	local runner = runners[player]
 	if not runner then
-		runner = { player = player, token = 0, lines = {}, speaking = false, titans = {} }
+		runner = { player = player, token = 0, titans = {} }
 		runners[player] = runner
 	end
 	runner.sequence = sequence
@@ -315,37 +273,10 @@ function SequenceService.stop(player)
 	end
 end
 
--- A radio dialogue from outside the steps, queued behind what the player hears; urgent = true plays it at once
--- over whatever line is showing (Overwatch's bounds warning), and the queued lines wait until it is over.
+-- A radio dialogue from outside the steps (DialogueService): queued behind what the player hears; urgent = true
+-- plays it at once over whatever line is showing (Overwatch's bounds warning) and the queue waits.
 function SequenceService.say(player, dialogueId, urgent)
-	if not urgent then
-		speak(runners[player] or { player = player, lines = {}, speaking = false }, dialogueId, false)
-		return
-	end
-	local dialogue = dialogues[dialogueId]
-	if not dialogue then
-		Log.warn(TAG, "unknown dialogue %s", tostring(dialogueId))
-		return
-	end
-	local total, nodeId = 0, dialogue.start
-	while nodeId do
-		local node = dialogue.nodes[nodeId]
-		total += (node.duration or math.max(2.2, 0.06 * #node.text)) + LINE_GAP
-		nodeId = node.next
-	end
-	local runner = runners[player]
-	if runner then
-		runner.holdUntil = math.max(runner.holdUntil or 0, os.clock() + total)
-	end
-	task.spawn(function()
-		local nodeId = dialogue.start
-		while nodeId and player.Parent do
-			local node = dialogue.nodes[nodeId]
-			Net.fireClient(player, "Dialogue_Node", { dialogueId = dialogueId, nodeId = nodeId, mode = dialogue.mode })
-			task.wait((node.duration or math.max(2.2, 0.06 * #node.text)) + LINE_GAP)
-			nodeId = node.next
-		end
-	end)
+	DialogueService.start(player, dialogueId, { urgent = urgent == true })
 end
 
 function SequenceService.getState(player)
@@ -360,7 +291,7 @@ function SequenceService.getState(player)
 end
 
 function SequenceService.Init()
-	Actions.bind({ speak = speak, publish = publish, save = save, zoneState = SequenceService.ZoneState })
+	Actions.bind({ publish = publish, save = save, zoneState = SequenceService.ZoneState })
 	Conditions.bind({ publish = publish, notify = SequenceService.notify })
 	for _, module in ipairs(Shared:WaitForChild("Sequences"):GetChildren()) do
 		if module:IsA("ModuleScript") then
@@ -381,13 +312,6 @@ function SequenceService.Init()
 				for _, listener in ipairs(step.parallel or {}) do
 					scan(listener.actions)
 				end
-			end
-		end
-	end
-	for _, module in ipairs(Shared:WaitForChild("Dialogue"):GetChildren()) do
-		if module:IsA("ModuleScript") and module.Name ~= "Speakers" then
-			for id, dialogue in pairs(require(module)) do
-				dialogues[id] = dialogue
 			end
 		end
 	end
