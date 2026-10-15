@@ -25,6 +25,7 @@ local Net = require(Shared.Modules.Net)
 local UIStyle = require(Shared.Config.UIStyle)
 
 local BriefingScreen = require(script.Parent.Parent.UI.BriefingScreen)
+local CameraController = require(script.Parent.CameraController)
 local Components = require(script.Parent.Parent.UI.Components)
 local DialogueController = require(script.Parent.DialogueController)
 local InputController = require(script.Parent.InputController)
@@ -141,6 +142,11 @@ function CinematicController.finish(id: string?, send: string?)
 	end
 	local saved = playing.saved
 	step("camera", function()
+		-- Piloting: the Frame camera takes the view back on its next frame.
+		CameraController.suspend(false)
+		if CameraController.getState().following then
+			return
+		end
 		local camera = workspace.CurrentCamera
 		camera.CameraType = saved.cameraType == Enum.CameraType.Scriptable and Enum.CameraType.Custom or saved.cameraType
 		local character = localPlayer.Character
@@ -265,6 +271,7 @@ function CinematicController.play(id: string, params)
 	current = { id = id, data = data, token = mine, saved = save(), connections = {}, skippable = params.skippable == true }
 
 	local camera = workspace.CurrentCamera
+	CameraController.suspend(true)
 	camera.CameraType = Enum.CameraType.Scriptable
 	InputController.hold("Cinematic")
 	for _, name in ipairs(HIDDEN_LAYERS) do

@@ -156,19 +156,21 @@ return {
 			},
 		},
 		{
-			-- The door rises in 4 s (map_02 §4); the two shots of S09 are Phase 5's, so the player keeps control.
+			-- S09: the door rises in 4 s (map_02 §4) during the reveal (9 s; DR_01-03 are the cinematic's). Unit 01 joins
+			-- at its spot behind the player's Frame as it starts and follows from there (D-084).
 			id = "S09_DOOR",
 			objective = "OBJ_CH1_DOOR",
 			waypoint = { spawn = "WP_DEPLOY_DOOR" },
 			complete = { "trigger", id = "TRG_DEPLOY_DOOR", who = "frame" },
 			onComplete = {
+				{ "ally", mode = "Follow", place = "follow" },
 				{ "door", id = "DOOR_HANGAR_EAST", open = true },
-				{ "dialogue", id = "DLG_CH1_DOOR" },
+				{ "cinematic", id = "CIN_DOOR_REVEAL" },
 			},
 		},
 		{
 			-- Launch (docs/05 S10): the Frame walks itself east along the causeway while the Bulwark's gate opens (6 s),
-			-- black at 7 s, the transit card, then the outpost (S20). The crane shot is Phase 5's.
+			-- black at 7 s under the crane shot, the transit card, then the outpost (S20). Unit 01 follows.
 			id = "S10_LAUNCH",
 			objective = "OBJ_CH1_LAUNCH",
 			waypoint = { spawn = "WP_LAUNCH_CENTER" },
@@ -177,6 +179,7 @@ return {
 				{ "dialogue", id = "DLG_CH1_LAUNCH" },
 				{ "frame", command = "autoWalk", to = "AUTO_CAUSEWAY_END" },
 				{ "door", id = "DOOR_BULWARK_GATE", open = true },
+				{ "cinematic", id = "CIN_LAUNCH", block = false },
 				{ "wait", seconds = 6 },
 				{ "fade", to = 1, duration = 1.0 },
 				{ "frame", command = "stopWalk" },

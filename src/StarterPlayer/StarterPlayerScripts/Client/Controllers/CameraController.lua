@@ -11,6 +11,7 @@
 --   setShot(shot?, blendIn?, blendOut?)   a directed view laid over the gameplay camera: shot() -> CFrame;
 --                            nil hands the view back over blendOut seconds (the Core Strike camera)
 --   setStride(on)            the wider stride field of view
+--   suspend(on)              a cinematic has the camera: the Frame camera stops writing it until released
 --   shake(magnitude, duration)     a rotational shake that fades out (x the Camera Shake setting)
 --   punch(degrees, duration)       a field-of-view kick that eases back
 --   getState() -> { yaw, pitch, distance, wanted, fov }      -- for tests
@@ -46,6 +47,7 @@ local yaw, pitch = 0, math.rad(Feel.pitch.default)
 local wanted = Feel.distance.default -- the distance the player asked for
 local distance = Feel.distance.default -- the distance in use (shorter while something is in the way)
 local stride = false
+local suspended = false -- a cinematic has the camera
 local fov = Feel.fov.base
 local stick = Vector2.zero
 local lookTouch: InputObject? = nil
@@ -120,6 +122,9 @@ local function update(dt: number)
 	local camera = workspace.CurrentCamera
 	local rootPart = root
 	if not (camera and rootPart and rootPart.Parent) then
+		return
+	end
+	if suspended then
 		return
 	end
 	if active() and stick.Magnitude > STICK_DEADZONE then
@@ -243,6 +248,10 @@ end
 
 function CameraController.setStride(on: boolean)
 	stride = on
+end
+
+function CameraController.suspend(on: boolean)
+	suspended = on
 end
 
 function CameraController.shake(magnitude: number, duration: number?)

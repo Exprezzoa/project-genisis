@@ -29,6 +29,24 @@ return {
 		},
 		events = { { at = 6.5, dialogue = "DLG_CH1_HANGAR_REVEAL" } },
 	},
+	-- S09: the deployment door rises (4 s, server) seen from outside, then from behind Unit 02 toward the
+	-- launch platform, the Bulwark and the wilderness, pushing 20 studs forward; DR_01-03 over the second shot.
+	CIN_DOOR_REVEAL = {
+		letterbox = true,
+		shots = {
+			{ cam = "CAM_DOOR_EXT", seconds = 4.0, fov = 60 },
+			{ cam = "CAM_DOOR_REVEAL", to = { pos = { 80, 46, -150 } }, seconds = 5.0, fov = 60 },
+		},
+		events = { { at = 4.0, dialogue = "DLG_CH1_DOOR" } },
+	},
+	-- S10: the crane shot, from beside Unit 02 rising toward the open Frame Gate; the step fades to black at 7 s.
+	CIN_LAUNCH = {
+		letterbox = true,
+		shots = {
+			{ cam = "CAM_LAUNCH_A", to = { pos = { 200, 110, -60 }, look = { 440, 40, -150 } }, seconds = 7.0, fov = 60 },
+			{ hold = true, seconds = 1.0 },
+		},
+	},
 	-- S07: the briefing. Vale's lines name their shot (CAM_BRF_WIDE / VALE / PILOTS) and slide.
 	CIN_BRIEFING = {
 		letterbox = true,
