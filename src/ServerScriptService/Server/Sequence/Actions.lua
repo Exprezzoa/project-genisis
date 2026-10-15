@@ -342,10 +342,14 @@ function actions.controls(runner, a)
 end
 
 -- Cinematics (CinematicService): { "cinematic", id, block = true, once = "FLAG", titan = id? } plays it (skipped when the flag is
--- set, which is set after: docs/13 §1.2); { "cinematic", id, stop = true } ends a dialogue-driven one.
+-- set, which is set after: docs/13 §1.2); { "cinematic", id, stop = true } ends a dialogue-driven or cued one;
+-- { "cinematic", id, cue = name } cuts a cued one to that beat.
 function actions.cinematic(runner, a)
 	if a.stop then
 		CinematicService.stop(runner.player, a.id)
+		return
+	elseif a.cue then
+		CinematicService.cue(runner.player, a.id, a.cue)
 		return
 	end
 	if a.once and FlagService.has(runner.player, a.once) then

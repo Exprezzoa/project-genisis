@@ -357,19 +357,33 @@ return {
 			onComplete = {
 				{ "spawnTitan", type = "Watcher", id = "WATCHER", spawn = "TITAN_WATCHER_W0" },
 				{ "ally", mode = "Hold", face = "TITAN_WATCHER_W0" }, -- Mara turns to the ridge
+				-- Beat 1: over Unit 01's shoulder. Beats 2-3: the telephoto.
+				{ "cinematic", id = "CIN_WATCHER", block = false, titan = "WATCHER" },
 				{ "dialogue", id = "DLG_M01_WATCHER_1", block = true },
-				-- Beat 4: down the ridge to the rover in 12 s while Vale and Mara talk; beat 5: the roof, the canister.
-				{ "dialogue", id = "DLG_M01_WATCHER_2" },
+				{ "cinematic", id = "CIN_WATCHER", cue = "telephoto" },
+				{ "dialogue", id = "DLG_M01_WATCHER_2", block = true },
+				{ "dialogue", id = "DLG_M01_WATCHER_3", block = true },
+				-- Beat 4: down the ridge to the rover in 12 s while Vale and Mara talk.
+				{ "cinematic", id = "CIN_WATCHER", cue = "wide" },
+				{ "dialogue", id = "DLG_M01_WATCHER_4" },
 				{ "titanCommand", id = "WATCHER", command = "WatcherPath", nodes = { "W1", "W2", "W3" }, seconds = 12, block = true },
+				-- Beat 5: the roof, the canister.
+				{ "cinematic", id = "CIN_WATCHER", cue = "rover" },
 				{ "titanCommand", id = "WATCHER", command = "PeelRover" },
 				{ "titanCommand", id = "WATCHER", command = "TakeCanister" },
-				-- Beat 6: it looks straight at Unit 02 for 1.5 s.
+				{ "wait", seconds = 1.0 },
+				-- Beat 6: it looks straight at Unit 02 for 1.5 s (static on the player's screen).
+				{ "cinematic", id = "CIN_WATCHER", cue = "reverse" },
 				{ "titanCommand", id = "WATCHER", command = "WatcherFace", target = "Frame:Player", seconds = 0.6 },
 				{ "wait", seconds = 1.5 },
-				{ "dialogue", id = "DLG_M01_WATCHER_3", block = true },
+				-- Beat 7: over Unit 02; choice C3. Beat 8: up the ridge into the fog.
+				{ "cinematic", id = "CIN_WATCHER", cue = "unit02" },
+				{ "dialogue", id = "DLG_M01_WATCHER_5", block = true },
+				{ "cinematic", id = "CIN_WATCHER", cue = "leave" },
 				{ "titanCommand", id = "WATCHER", command = "WatcherPath", nodes = { "W2", "W1", "W4", "W5" }, seconds = 8, block = true },
 				{ "despawnTitan", id = "WATCHER" },
-				{ "dialogue", id = "DLG_M01_WATCHER_4", block = true },
+				{ "dialogue", id = "DLG_M01_WATCHER_6", block = true },
+				{ "cinematic", id = "CIN_WATCHER", stop = true },
 			},
 		},
 		{

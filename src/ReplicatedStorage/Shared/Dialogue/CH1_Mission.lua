@@ -3,8 +3,8 @@
 --
 -- The radio lines of the deployment and the Outpost 07 mission. Line ids and text are exactly the script's; the
 -- dialogue ids (DLG_M01_...) are ours. All are "radio" mode: the server steps through them by itself.
--- S31's choice C3 and the lines that hang on it (WA_09a-WA_10b, WA_09c) need the dialogue UI and come with
--- DialogueService (Phase 5); so do the VOICE lines of S33.
+-- S31 plays its lines in cinematic mode (choice C3, WA_09a-WA_10b, WA_09c, D-088); the VOICE lines of S33 come
+-- with the anomaly.
 
 local function radio(lines: { { string } })
 	local nodes = {}
@@ -12,6 +12,12 @@ local function radio(lines: { { string } })
 		nodes[line[1]] = { speaker = line[2], text = line[3], next = if lines[index + 1] then lines[index + 1][1] else nil }
 	end
 	return { mode = "radio", start = lines[1][1], nodes = nodes }
+end
+
+local function cinematic(lines: { { string } })
+	local dialogue = radio(lines)
+	dialogue.mode = "cinematic"
+	return dialogue
 end
 
 return {
@@ -114,22 +120,51 @@ return {
 		{ "VI_03", "M", "Good. Good. Ember-1 to Overwatch. Target down." },
 		{ "VI_04", "O", "Overwatch copies. Nice work, both of you. Secure the area." },
 	}),
-	DLG_M01_WATCHER_1 = radio({
+	-- S31 (the Watcher) plays as a cinematic: its lines sit in the letterbox, one dialogue per camera beat.
+	DLG_M01_WATCHER_1 = cinematic({
 		{ "WA_01", "M", "Eli. Ridge. Two o'clock." },
+	}),
+	DLG_M01_WATCHER_2 = cinematic({
 		{ "WA_02", "E", "That's... bigger." },
 		{ "WA_03", "M", "Why isn't it moving?" },
+	}),
+	DLG_M01_WATCHER_3 = cinematic({
 		{ "WA_04", "O", "Ember Squad, I have a second contact. It's—it's not on any registry." },
 	}),
-	DLG_M01_WATCHER_2 = radio({
+	DLG_M01_WATCHER_4 = cinematic({
 		{ "WA_05", "V", "Ember Squad, Vale. Status." },
 		{ "WA_06", "M", "Second Titan. Class-Three, maybe Four. It's not attacking, sir." },
 	}),
-	DLG_M01_WATCHER_3 = radio({
-		{ "WA_07", "V", "Ember Squad, pursue and maintain contact." },
-		{ "WA_08", "M", "Sir, we're banged up. Two damaged Frames against a Class-Three-plus—" },
-		{ "WA_11", "V", "Negative on pursuit, then. Hold position. Observe and record. Do not engage." },
-	}),
-	DLG_M01_WATCHER_4 = radio({
+	-- Beat 7 and choice C3 (timer 10 s; timeout = option 3). The toast is the same for 1 and 2, deliberately.
+	DLG_M01_WATCHER_5 = {
+		mode = "cinematic",
+		start = "WA_07",
+		nodes = {
+			WA_07 = { speaker = "V", text = "Ember Squad, pursue and maintain contact.", next = "WA_08" },
+			WA_08 = {
+				speaker = "M", text = "Sir, we're banged up. Two damaged Frames against a Class-Three-plus—",
+				timer = 10, timeoutChoice = 3,
+				choices = {
+					{
+						text = "She's right, sir. We're in no shape.", next = "WA_09a",
+						effects = { { rel = "mara", add = 1, toast = "Mara will remember that." }, { rel = "vale", add = -1 }, { flag = "CH1_SIDED_MARA" } },
+					},
+					{
+						text = "We can handle it, Mara.", next = "WA_09b",
+						effects = { { rel = "mara", add = -1, toast = "Mara will remember that." }, { rel = "vale", add = 1 }, { flag = "CH1_SIDED_VALE" } },
+					},
+					{ text = "[Say nothing]", next = "WA_09c", effects = { { flag = "CH1_SILENT_PURSUIT" } } },
+				},
+			},
+			WA_09a = { speaker = "V", text = "...Noted, Ember-2.", next = "WA_10a" },
+			WA_10a = { speaker = "M", text = "Thanks.", style = "quiet", next = "WA_11" },
+			WA_09b = { speaker = "M", text = "Eli—", next = "WA_10b" },
+			WA_10b = { speaker = "V", text = "Noted.", next = "WA_11" },
+			WA_09c = { speaker = "M", text = "Eli? ...Fine.", next = "WA_11" },
+			WA_11 = { speaker = "V", text = "Negative on pursuit, then. Hold position. Observe and record. Do not engage." },
+		},
+	},
+	DLG_M01_WATCHER_6 = cinematic({
 		{ "WA_12", "O", "Contact's off my scope. It just... went." },
 		{ "WA_13", "M", "Titans don't take things, Eli. They don't take things." },
 		{ "WA_14", "V", "Ember Squad. Investigate that vehicle. I want to know what it was carrying." },

@@ -8,7 +8,7 @@
 --
 --   play(player, id, opts?) -> boolean   opts.block (default true) yields until it ends; opts.params go to the
 --                                        client (a dynamic shot's subject); false if the id is unknown
---   stop(player, id)                     isPlaying(player) -> id?
+--   stop(player, id)      cue(player, id, name)      isPlaying(player) -> id?
 --   Ended: Signal(player, id, skipped)
 
 local Players = game:GetService("Players")
@@ -85,8 +85,9 @@ function CinematicService.play(player: Player, id: string, opts): boolean
 			end
 		end)
 	end
-	-- A timed cinematic ends by itself on the server too if the client never answers.
-	if not data.dialogueDriven then
+	-- A timed cinematic ends by itself on the server too if the client never answers (a dialogue-driven or cued one
+	-- runs until stop()).
+	if not data.dialogueDriven and not data.cues then
 		task.delay(length(data) + SLACK, function()
 			if not entry.done then
 				Log.warn(TAG, "%s: no answer from %s's client; ending it", id, player.Name)
@@ -111,6 +112,14 @@ function CinematicService.stop(player: Player, id: string)
 	end
 end
 
+-- A cued cinematic (S31): the client cuts to the named beat of `cues` and holds or tracks it until the next.
+function CinematicService.cue(player: Player, id: string, name: string)
+	local entry = playing[player]
+	if entry and entry.id == id then
+		Net.fireClient(player, "Cinematic_Play", { cinematicId = id, params = { cue = name }, t0 = workspace:GetServerTimeNow() })
+	end
+end
+
 function CinematicService.isPlaying(player: Player): string?
 	return playing[player] and playing[player].id or nil
 end
@@ -123,7 +132,7 @@ function CinematicService.Start()
 		local entry = playing[player]
 		local data = entry and Cinematics[entry.id]
 		-- Only what the client was allowed to skip; a dialogue-driven one ends when its dialogue does.
-		if entry and entry.id == payload.cinematicId and entry.skippable and data and not data.dialogueDriven then
+		if entry and entry.id == payload.cinematicId and entry.skippable and data and not data.dialogueDriven and not data.cues then
 			finish(player, entry.id, true)
 		end
 	end)

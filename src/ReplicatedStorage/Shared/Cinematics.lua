@@ -67,6 +67,22 @@ return {
 		},
 		clientEvents = { { at = 6.0, fx = "TitanRoar", shake = 0.6, duration = 1.2 } },
 	},
+	-- S31 (~45 s): the Watcher, cued beat by beat by the server (`cues`; docs/05 S31's table). params { frame,
+	-- titan = the Watcher }. Beats 2-3 share the telephoto; beat 6's static comes as it looks at Unit 02.
+	CIN_WATCHER = {
+		letterbox = true,
+		start = "ridge",
+		fov = 60,
+		cues = {
+			ridge = { cam = "CAM_WA_1", fov = 60 }, -- 1: over Unit 01's shoulder toward the ridge
+			telephoto = { cam = "CAM_WA_2", fov = 30 }, -- 2-3
+			wide = { cam = "CAM_WA_3", dynamic = "track", fov = 55 }, -- 4: following it down the ridge
+			rover = { cam = "CAM_WA_4", fov = 55 }, -- 5: the roof, the canister
+			reverse = { dynamic = "reverse", fov = 50, fx = "Static", fxAt = 0.7 }, -- 6: it looks at Unit 02
+			unit02 = { dynamic = "overShoulder", fov = 60 }, -- 7: over Unit 02, choice C3
+			leave = { cam = "CAM_WA_1", dynamic = "track", fov = 60 }, -- 8: up the ridge into the fog
+		},
+	},
 	-- S07: the briefing. Vale's lines name their shot (CAM_BRF_WIDE / VALE / PILOTS) and slide.
 	CIN_BRIEFING = {
 		letterbox = true,

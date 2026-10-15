@@ -26,6 +26,7 @@ local Net = require(Shared.Modules.Net)
 local UIStyle = require(Shared.Config.UIStyle)
 
 local BriefingScreen = require(script.Parent.Parent.UI.BriefingScreen)
+local Shots = require(script.Parent.Parent.UI.CinematicShots)
 local CameraController = require(script.Parent.CameraController)
 local Components = require(script.Parent.Parent.UI.Components)
 local DialogueController = require(script.Parent.DialogueController)
@@ -46,24 +47,6 @@ local localPlayer = Players.LocalPlayer
 local current = nil -- { id, data, token, saved, connections, skippable, holdStart, shotTween }
 local tokens = 0
 local skipHint, skipFill, skipLabel, dof
-
-----------------------------------------------------------------------------------------------------------------
--- Cam points
-----------------------------------------------------------------------------------------------------------------
-local function vec(t)
-	return Vector3.new(t[1], t[2], t[3])
-end
-
-local function camPoint(id: string): (Vector3?, Vector3?)
-	for _, part in ipairs(game:GetService("CollectionService"):GetTagged("CinematicCam")) do
-		if part:GetAttribute("CamId") == id then
-			local look = part:GetAttribute("LookAt")
-			return part.Position, if typeof(look) == "Vector3" then look else part.Position + part.CFrame.LookVector * 50
-		end
-	end
-	Log.warn(TAG, "no cam point %s", tostring(id))
-	return nil, nil
-end
 
 local function focus(pos: Vector3, look: Vector3)
 	if dof then
@@ -200,25 +183,6 @@ local function fovs(value, fallback): (number, number)
 	return value or fallback, value or fallback
 end
 
--- Plays one shot; yields for its length. Returns false if the cinematic ended meanwhile.
--- Over Unit 02's right shoulder toward a Titan (S28 Shot 3): from the cinematic's params { frame, titan }.
-local function overShoulder(params): (Vector3?, Vector3?)
-	local frame, titan = params.frame, params.titan
-	local frameRoot = typeof(frame) == "Instance" and frame:IsA("Model") and frame.PrimaryPart
-	local titanRoot = typeof(titan) == "Instance" and titan:IsA("Model") and titan.PrimaryPart
-	if not frameRoot or not titanRoot then
-		return nil, nil
-	end
-	local toward = (titanRoot.Position - frameRoot.Position) * Vector3.new(1, 0, 1)
-	if toward.Magnitude < 1 then
-		return nil, nil
-	end
-	toward = toward.Unit
-	local right = toward:Cross(Vector3.yAxis)
-	local look = titanRoot.Position + Vector3.new(0, titan:GetExtentsSize().Y * 0.3, 0)
-	return frameRoot.Position - toward * 34 + right * 14 + Vector3.new(0, 24, 0), look
-end
-
 -- The cinematic's own camera shake (the Frame camera's is suspended): a fading noise rotation.
 local function jolt(): CFrame
 	local entry = current and current.shake
@@ -245,18 +209,18 @@ local function playShot(shot, mine): boolean
 		task.wait(shot.seconds or 0)
 		return current ~= nil and current.token == mine
 	elseif shot.dynamic == "overShoulder" then
-		fromPos, fromLook = overShoulder(current.params)
+		fromPos, fromLook = Shots.overShoulder(current.params)
 	elseif shot.cam then
-		fromPos, fromLook = camPoint(shot.cam)
+		fromPos, fromLook = Shots.camPoint(shot.cam)
 	elseif shot.from then
-		fromPos, fromLook = vec(shot.from[1]), vec(shot.from[2])
+		fromPos, fromLook = Shots.vec(shot.from[1]), Shots.vec(shot.from[2])
 	end
 	if not fromPos then
 		task.wait(shot.seconds or 0)
 		return current ~= nil and current.token == mine
 	end
-	local toPos = if shot.to and shot.to.pos then vec(shot.to.pos) else fromPos
-	local toLook = if shot.to and shot.to.look then vec(shot.to.look) else fromLook
+	local toPos = if shot.to and shot.to.pos then Shots.vec(shot.to.pos) else fromPos
+	local toLook = if shot.to and shot.to.look then Shots.vec(shot.to.look) else fromLook
 	local fov0, fov1 = fovs(shot.fov, 70)
 	local seconds = math.max(shot.seconds or 0, 0.01)
 	local started = os.clock()
@@ -266,7 +230,7 @@ local function playShot(shot, mine): boolean
 		local pos, look = fromPos:Lerp(toPos, e), fromLook:Lerp(toLook, e)
 		if shot.dynamic == "overShoulder" then
 			-- It keeps the Titan's head in frame as it turns, pushing in a little.
-			local _, liveLook = overShoulder(current.params)
+			local _, liveLook = Shots.overShoulder(current.params)
 			look = liveLook or look
 			pos = fromPos:Lerp(look, 0.08 * e)
 		end
@@ -283,7 +247,7 @@ end
 
 -- A dialogue-driven cut: straight to the cam point, then a slow push toward its target.
 local function cut(camId: string, mine)
-	local pos, look = camPoint(camId)
+	local pos, look = Shots.camPoint(camId)
 	if not pos then
 		return
 	end
@@ -305,20 +269,10 @@ end
 -- The first boarding's close-up (CIN_HATCH_TAP): Elias turns to the hatch; the camera beside him, at his
 -- shoulder's height, drifts in toward his hand and the hatch.
 local function hatchShot(mine, frame)
-	local character = localPlayer.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local hatch = typeof(frame) == "Instance" and frame:FindFirstChild("Hatch")
-	if not root or not hatch then
+	local from, to, look = Shots.hatch(frame)
+	if not from then
 		return
 	end
-	local flat = Vector3.new(hatch.Position.X - root.Position.X, 0, hatch.Position.Z - root.Position.Z)
-	if flat.Magnitude > 0.5 then
-		root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
-	end
-	local cf = root.CFrame
-	local look = hatch.Position:Lerp(root.Position + Vector3.new(0, 1.5, 0), 0.35)
-	local from = root.Position + cf.RightVector * 2.6 + Vector3.new(0, 1.6, 0) + cf.LookVector * 0.6
-	local to = from:Lerp(look, 0.15)
 	local camera = workspace.CurrentCamera
 	camera.FieldOfView = 50
 	local started = os.clock()
@@ -333,37 +287,64 @@ local function hatchShot(mine, frame)
 	end)
 end
 
--- TapHatch (docs/08 §4.6) on the player's own character: RightShoulder (95, 0, -10), RightElbow 30, two 8° taps
--- a quarter second apart, 1.2 s in all; laid over the Animator's pose in PreSimulation like the NPC gestures.
-local function tapHatch(mine)
-	local character = localPlayer.Character
-	local upper = character and character:FindFirstChild("RightUpperArm")
-	local lower = character and character:FindFirstChild("RightLowerArm")
-	local shoulder = upper and upper:FindFirstChild("RightShoulder")
-	local elbow = lower and lower:FindFirstChild("RightElbow")
-	if not shoulder or not elbow then
+-- A cued beat (S31): cut to it, move over `seconds` if it has a `to`, then hold or keep tracking until the next.
+--   dynamic "track"    from the cam point's position, following the Titan's head
+--   dynamic "reverse"  from behind the Titan's head toward the player's Frame
+--   dynamic "overShoulder"  over the player's Frame toward the Titan
+local function runCue(name: string, mine)
+	local data = current and current.data
+	local shot = data and data.cues and data.cues[name]
+	if not shot then
+		Log.warn(TAG, "%s: no cue %s", tostring(current and current.id), tostring(name))
 		return
 	end
+	current.cue = (current.cue or 0) + 1
+	local cueToken = current.cue
+	local params = current.params
+	local camera = workspace.CurrentCamera
+	local fromPos, fromLook
+	if shot.cam then
+		fromPos, fromLook = Shots.camPoint(shot.cam)
+	end
+	local toPos = if shot.to and shot.to.pos then Shots.vec(shot.to.pos) else fromPos
+	local toLook = if shot.to and shot.to.look then Shots.vec(shot.to.look) else fromLook
+	local fov0, fov1 = fovs(shot.fov, 60)
 	local started = os.clock()
-	local connection
-	connection = RunService.PreSimulation:Connect(function()
-		local t = os.clock() - started
-		if not current or current.token ~= mine or t > 1.2 then
-			connection:Disconnect()
-			return
-		end
-		local w = math.clamp(t / 0.25, 0, 1) * math.clamp((1.2 - t) / 0.2, 0, 1)
-		local tap = 0
-		for _, at in ipairs({ 0.55, 0.8 }) do
-			local d = (t - at) / 0.125
-			if d > -1 and d < 1 then
-				tap += 1 - d * d
+	if shot.fx == "Static" then
+		task.delay(shot.fxAt or 0, function()
+			if current and current.cue == cueToken then
+				Shots.staticFlash(UIController.getLayer("Letterbox"), 0.2)
 			end
+		end)
+	end
+	task.spawn(function()
+		while current and current.token == mine and current.cue == cueToken do
+			local t = if shot.seconds then math.clamp((os.clock() - started) / shot.seconds, 0, 1) else 1
+			local e = Easing.apply(shot.easing or "SineInOut", t)
+			local pos, look
+			if shot.dynamic == "track" then
+				pos, look = fromPos, Shots.headOf(params.titan) or fromLook
+			elseif shot.dynamic == "reverse" then
+				pos, look = Shots.reverse(params)
+			elseif shot.dynamic == "overShoulder" then
+				pos, look = Shots.overShoulder(params)
+			elseif fromPos then
+				pos, look = fromPos:Lerp(toPos, e), fromLook:Lerp(toLook, e)
+			end
+			if pos and look then
+				camera.CFrame = CFrame.lookAt(pos, look) * jolt()
+				focus(pos, look)
+			end
+			camera.FieldOfView = fov0 + (fov1 - fov0) * e
+			RunService.RenderStepped:Wait()
 		end
-		shoulder.Transform *= CFrame.fromEulerAnglesYXZ(math.rad(95) * w, 0, math.rad(-10) * w)
-		elbow.Transform *= CFrame.fromEulerAnglesYXZ(math.rad(30 + 8 * tap) * w, 0, 0)
 	end)
-	table.insert(current.connections, connection)
+end
+
+function CinematicController.cue(id: string, name: string)
+	if current and current.id == id then
+		runCue(name, current.token)
+	end
 end
 
 function CinematicController.play(id: string, params)
@@ -404,7 +385,12 @@ function CinematicController.play(id: string, params)
 		hatchShot(mine, params.frame)
 	end
 	if data.gesture == "TapHatch" then
-		tapHatch(mine)
+		local connection = Shots.tapHatch(function()
+			return current ~= nil and current.token == mine
+		end)
+		if connection then
+			table.insert(current.connections, connection)
+		end
 	end
 	-- Effects on this client at their time: the S28 roar (the Titan's glow and blast, and this camera's shake).
 	for _, event in ipairs(data.clientEvents or {}) do
@@ -452,6 +438,11 @@ function CinematicController.play(id: string, params)
 		end))
 	end
 
+	if data.cues then
+		camera.FieldOfView = data.fov or 60
+		runCue(data.start, mine)
+		return
+	end
 	if data.dialogueDriven then
 		camera.FieldOfView = data.fov or 70
 		if data.screen then
@@ -511,6 +502,8 @@ function CinematicController.Start()
 		local params = payload.params or {}
 		if params.stop then
 			CinematicController.finish(payload.cinematicId, nil)
+		elseif params.cue then
+			CinematicController.cue(payload.cinematicId, params.cue)
 		else
 			CinematicController.play(payload.cinematicId, params)
 		end
