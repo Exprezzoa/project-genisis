@@ -414,11 +414,11 @@ return {
 			objective = "OBJ_M01_UPLOAD",
 			waypoint = { entity = "Frame:Player" },
 			complete = { "event", name = "FrameBoarded" },
-			-- The anomaly itself (HUD glitch, the Frame's head turning, the memory) is a Phase 5 cinematic.
+			-- The upload and the anomaly (docs/05 S33): the client's cinematic ends behind black; AN_01, 2 s of black, then
+			-- the checkpoint, the evening, the hangar.
 			onComplete = {
-				{ "toast", text = "UPLOADING SPINDLE // 61%" },
-				{ "wait", seconds = 2.4 },
-				{ "fade", to = 1, duration = 1.0 },
+				{ "cinematic", id = "CIN_ANOMALY" },
+				{ "fade", to = 1, duration = 0 },
 				{ "dialogue", id = "DLG_M01_DARK", block = true },
 				{ "wait", seconds = 2 },
 				{ "checkpoint", id = "M01_COMPLETE" },

@@ -40,6 +40,7 @@ local SLOTS = {
 local ENTER_STEP = 0.05 -- seconds between two HUD elements sliding in
 local BANNER_TIME = 1.5
 local LOW, CRITICAL = 0.34, 0.15
+local RESONANCE = UIStyle.Resonance -- cyan: the anomaly only
 
 local root
 local frame = nil
@@ -424,6 +425,62 @@ local function show(model)
 			TweenService:Create(entry.element, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, (index - 1) * ENTER_STEP), { Position = entry.shown }):Play()
 		end
 	end
+end
+
+-- S33's anomaly (docs/05): the HUD jitters (±4 px every 0.05 s), the core line tweens amber -> cyan (resonance, the
+-- reserved color), the system panel prints the readings 0.25 s apart, and at the shutdown every element folds
+-- flat (0.3 s). reset() puts it all back.
+--   local anomaly = FrameHUDController.anomaly(); anomaly.print(lines); anomaly.collapse(); anomaly.reset()
+function FrameHUDController.anomaly()
+	local elements = {}
+	for _, child in ipairs(root:GetChildren()) do
+		if child:IsA("GuiObject") then
+			elements[child] = { position = child.Position, size = child.Size }
+		end
+	end
+	local jittering = true
+	task.spawn(function()
+		while jittering do
+			for element, rest in pairs(elements) do
+				element.Position = rest.position + UDim2.fromOffset(math.random(-4, 4), math.random(-4, 4))
+			end
+			task.wait(0.05)
+		end
+	end)
+	local sync = systemLines.Sync
+	TweenService:Create(sync, TweenInfo.new(1.2, Enum.EasingStyle.Quad), { TextColor3 = RESONANCE }):Play()
+	local panel = sync.Parent
+	local printed = {}
+	local handle = {}
+	function handle.print(lines, interval)
+		for index, text in ipairs(lines) do
+			local label = Components.label(panel, text, { font = "Mono", size = UIStyle.TextSize.Tiny, color = UIStyle.Accent }, {
+				Name = "Anomaly" .. index, Position = UDim2.fromOffset(12, 92 + (index - 1) * 18), Size = UDim2.new(2, 0, 0, 18),
+			})
+			table.insert(printed, label)
+			task.wait(interval or 0.25)
+		end
+	end
+	function handle.collapse(seconds)
+		jittering = false
+		for element, rest in pairs(elements) do
+			element.Position = rest.position
+			TweenService:Create(element, TweenInfo.new(seconds or 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Size = UDim2.new(rest.size.X.Scale, rest.size.X.Offset, 0, 0),
+			}):Play()
+		end
+	end
+	function handle.reset()
+		jittering = false
+		for element, rest in pairs(elements) do
+			element.Position, element.Size = rest.position, rest.size
+		end
+		for _, label in ipairs(printed) do
+			label:Destroy()
+		end
+		sync.TextColor3 = UIStyle.TextSecondary
+	end
+	return handle
 end
 
 function FrameHUDController.getState()

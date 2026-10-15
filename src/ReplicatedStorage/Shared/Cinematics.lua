@@ -83,6 +83,9 @@ return {
 			leave = { cam = "CAM_WA_1", dynamic = "track", fov = 60 }, -- 8: up the ridge into the fog
 		},
 	},
+	-- S33 (about 20.6 s): the upload and the anomaly, a scripted cinematic (Client/Cinematics/Anomaly). The HUD stays and
+	-- the gameplay camera runs until the shot outside; it ends behind black and the server says AN_01. params { frame }.
+	CIN_ANOMALY = { script = "Anomaly", keepHud = true, keepCamera = true, seconds = 20.6 },
 	-- S07: the briefing. Vale's lines name their shot (CAM_BRF_WIDE / VALE / PILOTS) and slide.
 	CIN_BRIEFING = {
 		letterbox = true,

@@ -183,6 +183,11 @@ return {
 		{ "RV_07", "E", "Data spindle. Classified seals all over it." },
 		{ "RV_08", "V", "Pilot, bring it to your Frame. Standard protocol: upload a copy to Overwatch." },
 	}),
+	-- S33's memory: the client shows these itself during the anomaly (italic cyan, no name; VOICE in Speakers).
+	DLG_M01_VOICE = radio({
+		{ "VOICE_01", "VOICE", "Eli... count the steps." },
+		{ "VOICE_02", "VOICE", "All the way home." },
+	}),
 	DLG_M01_DARK = radio({
 		{ "AN_01", "M", "Eli! Eli, answer me! Overwatch, his Frame's gone dark—" },
 	}),

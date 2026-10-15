@@ -34,7 +34,7 @@ local playing = {} -- [player] = { id, token, done }
 local tokens = 0
 
 local function length(data): number
-	local total = 0
+	local total = data.seconds or 0 -- a scripted cinematic says how long it runs
 	for _, shot in ipairs(data.shots or {}) do
 		total += shot.seconds or 0
 	end

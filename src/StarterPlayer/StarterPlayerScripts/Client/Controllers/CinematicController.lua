@@ -363,15 +363,24 @@ function CinematicController.play(id: string, params)
 	current = { id = id, data = data, token = mine, saved = save(), connections = {}, skippable = params.skippable == true, params = params }
 
 	local camera = workspace.CurrentCamera
-	CameraController.suspend(true)
-	camera.CameraType = Enum.CameraType.Scriptable
-	InputController.hold("Cinematic")
-	for _, name in ipairs(HIDDEN_LAYERS) do
-		UIController.getLayer(name).Enabled = false
+	local function takeCamera()
+		CameraController.suspend(true)
+		camera.CameraType = Enum.CameraType.Scriptable
+		dof.Enabled = true
 	end
-	local waypoints = localPlayer.PlayerGui:FindFirstChild("PG_Waypoints")
-	if waypoints then
-		waypoints.Enabled = false
+	-- A scripted cinematic may keep the gameplay camera and the HUD for a while (S33 starts in the cockpit).
+	if not data.keepCamera then
+		takeCamera()
+	end
+	InputController.hold("Cinematic")
+	if not data.keepHud then
+		for _, name in ipairs(HIDDEN_LAYERS) do
+			UIController.getLayer(name).Enabled = false
+		end
+		local waypoints = localPlayer.PlayerGui:FindFirstChild("PG_Waypoints")
+		if waypoints then
+			waypoints.Enabled = false
+		end
 	end
 	if data.letterbox then
 		DialogueController.letterbox("cinematic", true)
@@ -379,7 +388,7 @@ function CinematicController.play(id: string, params)
 	for key, value in pairs(DOF) do
 		dof[key] = value
 	end
-	dof.Enabled = true
+	dof.Enabled = not data.keepCamera
 	showSkip(current.skippable)
 	if data.dynamic == "hatch" then
 		hatchShot(mine, params.frame)
@@ -438,6 +447,26 @@ function CinematicController.play(id: string, params)
 		end))
 	end
 
+	-- A scripted cinematic (Client/Cinematics/<script>) runs its own timeline, then ends.
+	if data.script then
+		task.spawn(function()
+			local ok, message = pcall(function()
+				require(script.Parent.Parent.Cinematics[data.script]).run({
+					params = params, takeCamera = takeCamera, focus = focus,
+					alive = function()
+						return current ~= nil and current.token == mine
+					end,
+				})
+			end)
+			if not ok then
+				Log.warn(TAG, "%s failed: %s", id, tostring(message))
+			end
+			if current and current.token == mine then
+				CinematicController.finish(id, "done")
+			end
+		end)
+		return
+	end
 	if data.cues then
 		camera.FieldOfView = data.fov or 60
 		runCue(data.start, mine)
