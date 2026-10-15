@@ -4,7 +4,8 @@
 -- Plays what CinematicService sends (Cinematic_Play): a Scriptable camera through the shots, the shared letterbox,
 -- the HUD, prompts and waypoints hidden, depth of field on (docs/06: far 0.25, focus on the shot's target, radius
 -- 30). A dialogue-driven cinematic cuts to each line's `action.cam` and pushes in slowly until the server stops it;
--- `action.slide` goes to the briefing screen. A skippable one shows "HOLD [SPACE] TO SKIP" (Space / A / the SKIP
+-- `action.slide` goes to the briefing screen. A `dynamic` shot is placed at run time (the first boarding's close-up
+-- beside Elias at the hatch, with his TapHatch arm gesture). A skippable one shows "HOLD [SPACE] TO SKIP" (Space / A / the SKIP
 -- button, 1.0 s).
 -- Guaranteed restore: the camera type, subject, FOV and CFrame, the mouse, the HUD and the input context are put
 -- back by finish(), which runs on the end, a skip, an error, the character dying or respawning, and the server's
@@ -255,6 +256,70 @@ local function cut(camId: string, mine)
 	end)
 end
 
+-- The first boarding's close-up (CIN_HATCH_TAP): Elias turns to the hatch; the camera beside him, at his
+-- shoulder's height, drifts in toward his hand and the hatch.
+local function hatchShot(mine, frame)
+	local character = localPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local hatch = typeof(frame) == "Instance" and frame:FindFirstChild("Hatch")
+	if not root or not hatch then
+		return
+	end
+	local flat = Vector3.new(hatch.Position.X - root.Position.X, 0, hatch.Position.Z - root.Position.Z)
+	if flat.Magnitude > 0.5 then
+		root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
+	end
+	local cf = root.CFrame
+	local look = hatch.Position:Lerp(root.Position + Vector3.new(0, 1.5, 0), 0.35)
+	local from = root.Position + cf.RightVector * 2.6 + Vector3.new(0, 1.6, 0) + cf.LookVector * 0.6
+	local to = from:Lerp(look, 0.15)
+	local camera = workspace.CurrentCamera
+	camera.FieldOfView = 50
+	local started = os.clock()
+	task.spawn(function()
+		while current and current.token == mine do
+			local t = math.clamp((os.clock() - started) / 2.2, 0, 1)
+			local p = from:Lerp(to, Easing.apply("SineInOut", t))
+			camera.CFrame = CFrame.lookAt(p, look)
+			focus(p, look)
+			RunService.RenderStepped:Wait()
+		end
+	end)
+end
+
+-- TapHatch (docs/08 §4.6) on the player's own character: RightShoulder (95, 0, -10), RightElbow 30, two 8° taps
+-- a quarter second apart, 1.2 s in all; laid over the Animator's pose in PreSimulation like the NPC gestures.
+local function tapHatch(mine)
+	local character = localPlayer.Character
+	local upper = character and character:FindFirstChild("RightUpperArm")
+	local lower = character and character:FindFirstChild("RightLowerArm")
+	local shoulder = upper and upper:FindFirstChild("RightShoulder")
+	local elbow = lower and lower:FindFirstChild("RightElbow")
+	if not shoulder or not elbow then
+		return
+	end
+	local started = os.clock()
+	local connection
+	connection = RunService.PreSimulation:Connect(function()
+		local t = os.clock() - started
+		if not current or current.token ~= mine or t > 1.2 then
+			connection:Disconnect()
+			return
+		end
+		local w = math.clamp(t / 0.25, 0, 1) * math.clamp((1.2 - t) / 0.2, 0, 1)
+		local tap = 0
+		for _, at in ipairs({ 0.55, 0.8 }) do
+			local d = (t - at) / 0.125
+			if d > -1 and d < 1 then
+				tap += 1 - d * d
+			end
+		end
+		shoulder.Transform *= CFrame.fromEulerAnglesYXZ(math.rad(95) * w, 0, math.rad(-10) * w)
+		elbow.Transform *= CFrame.fromEulerAnglesYXZ(math.rad(30 + 8 * tap) * w, 0, 0)
+	end)
+	table.insert(current.connections, connection)
+end
+
 function CinematicController.play(id: string, params)
 	params = params or {}
 	local data = Cinematics[id]
@@ -289,6 +354,12 @@ function CinematicController.play(id: string, params)
 	end
 	dof.Enabled = true
 	showSkip(current.skippable)
+	if data.dynamic == "hatch" then
+		hatchShot(mine, params.frame)
+	end
+	if data.gesture == "TapHatch" then
+		tapHatch(mine)
+	end
 
 	-- Interruptions: the character dying or being replaced ends it (and tells the server).
 	local character = localPlayer.Character

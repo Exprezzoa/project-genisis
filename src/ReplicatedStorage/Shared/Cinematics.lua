@@ -29,6 +29,14 @@ return {
 		},
 		events = { { at = 6.5, dialogue = "DLG_CH1_HANGAR_REVEAL" } },
 	},
+	-- S08, the first boarding only (2.2 s): a close-up from beside Elias of his hand tapping the hatch twice
+	-- (TapHatch, docs/08 §4.6); the server opens the hatch at 1.2 s and fades out. The shot is placed from the
+	-- character and the Frame's hatch where they are (`dynamic`).
+	CIN_HATCH_TAP = {
+		dynamic = "hatch",
+		gesture = "TapHatch",
+		shots = { { hold = true, seconds = 2.2 } },
+	},
 	-- S09: the deployment door rises (4 s, server) seen from outside, then from behind Unit 02 toward the
 	-- launch platform, the Bulwark and the wilderness, pushing 20 studs forward; DR_01-03 over the second shot.
 	CIN_DOOR_REVEAL = {

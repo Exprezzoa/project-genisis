@@ -16,6 +16,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CombatConfig = require(Shared.Config.CombatConfig)
 local UIStyle = require(Shared.Config.UIStyle)
 
+local BootOverlay = require(script.Parent.Parent.UI.BootOverlay)
 local BoundsWarning = require(script.Parent.Parent.UI.BoundsWarning)
 local Components = require(script.Parent.Parent.UI.Components)
 local CombatController = require(script.Parent.CombatController)
@@ -454,8 +455,29 @@ function FrameHUDController.Init()
 	FrameHUDController.build(UIController.getLayer("HUD"))
 end
 
+-- A first boarding (the Frame plays Boot) runs the cockpit boot overlay before the HUD comes up (docs/05 S08).
+local function onPiloting(model)
+	if not model then
+		show(nil)
+		return
+	end
+	task.spawn(function()
+		local waited = 0
+		while waited < 1.0 and model:GetAttribute("Anim") ~= "Boot" and model:GetAttribute("Anim") ~= "RiseFromKneel" do
+			task.wait(0.05)
+			waited += 0.05
+		end
+		if model:GetAttribute("Anim") == "Boot" and FrameController.getFrame() == model then
+			BootOverlay.play(UIController.getLayer("HUD"), model:GetAttribute("Unit"))
+		end
+		if FrameController.getFrame() == model then
+			show(model)
+		end
+	end)
+end
+
 function FrameHUDController.Start()
-	FrameController.Piloting:Connect(show)
+	FrameController.Piloting:Connect(onPiloting)
 	CombatController.Refused:Connect(refuse)
 	show(FrameController.getFrame())
 end

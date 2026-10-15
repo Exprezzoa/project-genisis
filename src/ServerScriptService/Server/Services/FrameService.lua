@@ -31,6 +31,7 @@ local Net = require(Shared.Modules.Net)
 local Signal = require(Shared.Modules.Signal)
 
 local CharacterService = require(script.Parent.CharacterService)
+local CinematicService = require(script.Parent.CinematicService)
 local CollisionService = require(script.Parent.CollisionService)
 local InteractionService = require(script.Parent.InteractionService)
 local TriggerService = require(script.Parent.TriggerService)
@@ -311,18 +312,27 @@ function FrameService.board(player, frame, force)
 		return false, "occupied"
 	end
 	local kneeling = frame:GetAttribute("State") == "Kneeling"
+	-- The first boarding of this Frame (docs/05 S08): a 2.2 s close-up, two taps, the hatch opens at 1.2 s, fade.
+	local first = not kneeling and not frame:GetAttribute("Booted")
 	local promptPart = if kneeling then frame.BoardPoint else frame.Hatch
 	if not force and (root.Position - promptPart.Position).Magnitude > config.boardDistance + promptPart.Prompt.MaxActivationDistance then
 		return false, "too far"
 	end
 	busy[player] = true
-	frame:SetAttribute("Pilot", player.UserId)
 	setPrompt(frame, "Hatch", false)
 	setPrompt(frame, "Hand", false)
-	frame:SetAttribute("HatchOpen", not kneeling)
+	frame:SetAttribute("HatchOpen", not kneeling and not first)
+	if first then
+		-- The pilot is marked only after the close-up: the client hides its pilot and takes the Frame's camera then.
+		CinematicService.play(player, "CIN_HATCH_TAP", { block = false, params = { frame = frame } })
+		task.wait(1.2)
+		frame:SetAttribute("HatchOpen", true)
+		task.wait(2.2 - 1.2 - FrameConfig.Fade)
+	end
+	frame:SetAttribute("Pilot", player.UserId)
 
 	Net.fireClient(player, "Fade", { to = 1, duration = FrameConfig.Fade })
-	task.wait(math.max(FrameConfig.Fade, if kneeling then 0 else config.hatch.time))
+	task.wait(math.max(FrameConfig.Fade, if kneeling or first then 0 else config.hatch.time))
 	character, humanoid, root = characterParts(player)
 	if not character or not frame.Parent then
 		frame:SetAttribute("Pilot", 0)

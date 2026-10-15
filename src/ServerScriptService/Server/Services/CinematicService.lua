@@ -6,7 +6,8 @@
 -- the shots' length + 5 s), and the flag SEEN_<id> that makes it skippable next time. A dialogue-driven
 -- cinematic runs until stop() (Cinematic_Play with params.stop = true).
 --
---   play(player, id, opts?) -> boolean   opts.block (default true) yields until it ends; false if unknown
+--   play(player, id, opts?) -> boolean   opts.block (default true) yields until it ends; opts.params go to the
+--                                        client (a dynamic shot's subject); false if the id is unknown
 --   stop(player, id)                     isPlaying(player) -> id?
 --   Ended: Signal(player, id, skipped)
 
@@ -66,7 +67,11 @@ function CinematicService.play(player: Player, id: string, opts): boolean
 	local skippable = data.skippable == true or FlagService.has(player, "SEEN_" .. id)
 	local entry = { id = id, token = tokens, done = false, skippable = skippable }
 	playing[player] = entry
-	Net.fireClient(player, "Cinematic_Play", { cinematicId = id, params = { skippable = skippable }, t0 = workspace:GetServerTimeNow() })
+	local params = { skippable = skippable }
+	for key, value in pairs(opts.params or {}) do -- what a dynamic shot needs (the first boarding's Frame)
+		params[key] = value
+	end
+	Net.fireClient(player, "Cinematic_Play", { cinematicId = id, params = params, t0 = workspace:GetServerTimeNow() })
 
 	-- The server's timeline (a skipped cinematic drops what hadn't happened yet).
 	local started = os.clock()
