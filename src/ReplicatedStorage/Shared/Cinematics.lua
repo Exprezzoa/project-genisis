@@ -98,6 +98,10 @@ return {
 	-- S43: the message on the Q-3 terminal, a scripted cinematic (Client/Cinematics/Message): the terminal types it, then
 	-- the push to the father's photo and black. About 15 s; it ends behind black.
 	CIN_MESSAGE = { script = "Message", keepHud = false, seconds = 16 },
+	-- The first shift (D-096, user direction): Elias loses control and starts to break, then the lightning lands with
+	-- impact frames and the Titan stands up (Client/Cinematics/FirstShift; the server shifts at ShifterConfig
+	-- .firstShift.strikeAt on this timeline).
+	CIN_FIRST_SHIFT = { script = "FirstShift", letterbox = true, seconds = 9.0 },
 	-- S07: the briefing. Vale's lines name their shot (CAM_BRF_WIDE / VALE / PILOTS) and slide.
 	CIN_BRIEFING = {
 		letterbox = true,

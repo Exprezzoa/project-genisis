@@ -143,7 +143,9 @@ local function tryBuffered(model: Model)
 	elseif name == "Heavy" or name == "Special" then
 		local moveName = (CombatConfig.Requests :: any)[name]
 		local move = (CombatConfig.Frames :: any)[class][moveName]
-		if not idle then
+		if not move then
+			return drop("Rejected") -- this class has no such move (the Titan form's specials are ShifterController's)
+		elseif not idle then
 			return
 		elseif not ready(model, moveName .. "ReadyAt") then
 			return drop("Cooldown")
@@ -269,7 +271,8 @@ local function update()
 			cancel(model)
 		end
 	end
-	if InputController.getContext() == "Frame" then
+	local context = InputController.getContext()
+	if context == "Frame" or context == "Shifter" then -- the Titan form fights on the same moves (D-096)
 		tryBuffered(model)
 	else
 		buffered = nil

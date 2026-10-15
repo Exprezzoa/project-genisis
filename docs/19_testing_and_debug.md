@@ -30,6 +30,9 @@ Opened with **F2** (a debug panel with a command box) or typed as chat-like comm
 | `/flag <name> [on/off]` | Set or clear a flag |
 | `/rel <var> <value>` | Set a relationship |
 | `/shifter [on\|off]` | The ability to shift into Elias's Titan form by holding Z (profile flag `CAN_SHIFT`; toggles without an argument). Works in the Training Yard (`/zone training`) or where a story step allows it (D-095) |
+| `/shifter special <hardening\|rage\|all> [on\|off]` | Unlock (or lock) the Titan form's specials, as the story or a purchase will (D-096) |
+| `/shifter energy <0-100>` | Set the shift meter (D-096) |
+| `/flag SEEN_FIRST_SHIFT off` | See the first-shift cinematic again |
 | `/give xp <n>` / `/give credits <n>` | Progression testing |
 | `/save` / `/wipe` | Force save / reset the profile (with confirmation) |
 | `/dsfail on/off` | Simulate DataStore failures |

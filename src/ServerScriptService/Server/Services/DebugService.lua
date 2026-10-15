@@ -326,8 +326,38 @@ end
 
 -- /shifter [on|off]: the ability to shift into the Titan form by holding Z, where it is allowed (the Training
 -- Yard, or a story step that allows it). Without an argument it toggles. It is a profile flag, so it is saved.
+-- /shifter special <hardening|rage|all> [on|off]: unlock (or lock) specials, as the story or a purchase will.
+-- /shifter energy <0-100>: set the meter.
 function handlers.shifter(player, args)
 	local mode = string.lower(args[1] or "")
+	if mode == "special" then
+		local which, onOff = string.lower(args[2] or ""), string.lower(args[3] or "on")
+		local names = {}
+		for _, name in ipairs(ShifterConfig.specials.order) do
+			if which == "all" or which == string.lower(name) then
+				table.insert(names, name)
+			end
+		end
+		if #names == 0 or (onOff ~= "on" and onOff ~= "off") then
+			return "usage: /shifter special <" .. string.lower(table.concat(ShifterConfig.specials.order, "|")) .. "|all> [on|off]"
+		end
+		for _, name in ipairs(names) do
+			local flag = (ShifterConfig.specials :: any)[name].flag
+			if onOff == "on" then
+				FlagService.set(player, flag)
+			else
+				FlagService.clear(player, flag)
+			end
+		end
+		return ("specials %s: %s"):format(onOff, table.concat(names, ", "))
+	elseif mode == "energy" then
+		local value = tonumber(args[2] or "")
+		if not value then
+			return "usage: /shifter energy <0-100>"
+		end
+		ShifterService.setEnergy(player, value)
+		return ("shift meter %d"):format(ShifterService.getEnergy(player))
+	end
 	if mode == "" then
 		mode = if FlagService.has(player, ShifterConfig.FLAG) then "off" else "on"
 	end

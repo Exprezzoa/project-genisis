@@ -75,4 +75,4 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [ ] (planned — see roadmap)
 
 ## User requests outside the phase plan
-- [x] Shifting: `/shifter` and hold Z in the Training Yard or where a step allows it (D-095; journal Session 8, continued). The Titan form is a placeholder (Q-020)
+- [x] Shifting: `/shifter` and hold Z in the Training Yard or where a step allows it (D-095); the Titan form fights: fists, specials, meter, first-shift cinematic (D-096; journal Session 8, continued)

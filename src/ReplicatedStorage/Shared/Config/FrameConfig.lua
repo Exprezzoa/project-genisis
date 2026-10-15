@@ -41,21 +41,32 @@ FrameConfig.Vanguard = {
 	hatch = { openAngle = -100, time = 0.6 },
 }
 
--- Not a Frame: Elias's Titan form (D-095) is ridden on the Frame's controls and camera (FrameController,
--- CameraController), so it has an entry here for how it moves. It has no Unit, integrity, energy or weapons;
--- context = the input context while riding it (Config/Bindings.Shifter). Speeds are a giant on foot: a walk and
--- a run.
+-- Not a Frame: Elias's Titan form (D-095, D-096) is ridden on the Frame's controls, camera and combat
+-- (FrameController, CameraController, CombatService through FrameService.adopt), so it has an entry here. It has no
+-- Unit, plates or cockpit; context = the input context while riding it (Config/Bindings.Shifter). A mid-to-late game
+-- power, built to be overpowered: integrity is its health (the Strider's whole HP is 6000), it regenerates
+-- (ShifterConfig.titan), and at 0 it isn't disabled but gives way (NoDisable). Energy is unused (the Titan form's
+-- meter is ShifterConfig.energy). Speeds are a giant on foot: a walk and a run.
 FrameConfig.Shifter = {
 	rig = "Shifter", -- ServerStorage.Templates.Titans.Shifter_<who>, Shared.Poses.Shifter
 	scale = 1,
 	height = 80,
 	hipHeight = 24,
+	integrity = 9000,
+	energy = { max = 100, regen = 100, regenDelay = 0 },
 	walkSpeed = 28,
 	strideSpeed = 50,
 	acceleration = 60,
 	deceleration = 90,
-	turnRate = { free = 120, locked = 160, stride = 90 },
+	turnRate = { free = 120, locked = 180, stride = 90 },
 	limp = { threshold = 0, walkScale = 1 },
+	body = { radius = 14, height = 80 },
+	damageStates = {
+		{ name = "Pristine", above = 0.5, plates = 0 },
+		{ name = "Scuffed", above = 0, plates = 0 },
+		{ name = "Disabled", above = -1, plates = 0 },
+	},
+	plates = {},
 	context = "Shifter",
 }
 

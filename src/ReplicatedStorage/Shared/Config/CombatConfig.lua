@@ -62,11 +62,39 @@ CombatConfig.Frames = {
 			box = { size = V(22.5, 15, 30) * S, offset = V(-7.5, -6.5, -16) * S }, aim = V(-3, -9, -24) * S,
 		},
 	},
+	-- Elias's Titan form (D-096; not in docs/12): fists. Built to be overpowered (a mid-to-late game power): a
+	-- jab, a cross and an uppercut chain for 980 against the Strider's 6000, the overhead smash breaks its 300
+	-- poise in one hit. Lengths are real studs (80-stud body, root 31 up, fists about 30 ahead at shoulder height).
+	-- Special is not here: the Titan form's specials are ShifterService's (ShifterConfig.specials).
+	Shifter = {
+		Light1 = {
+			clip = "Punch1", startup = 0.18, active = 0.12, recovery = 0.30, damage = 260, poise = 60, energy = 0,
+			chain = "Light2", cancelRecovery = true,
+			box = { size = V(40, 60, 50), offset = V(0, 5, -30) }, reach = 55, aim = V(0, 20, -35),
+		},
+		Light2 = {
+			clip = "Punch2", startup = 0.20, active = 0.12, recovery = 0.33, damage = 300, poise = 70, energy = 0,
+			chain = "Light3", cancelRecovery = true,
+			box = { size = V(40, 60, 50), offset = V(0, 5, -30) }, reach = 55, aim = V(0, 20, -35),
+		},
+		Light3 = {
+			clip = "Punch3", startup = 0.30, active = 0.15, recovery = 0.50, damage = 420, poise = 130, energy = 0,
+			cancelRecovery = true,
+			box = { size = V(44, 70, 48), offset = V(-6, 10, -28) }, reach = 55, aim = V(0, 25, -32),
+		},
+		Heavy = {
+			clip = "Smash", startup = 0.55, active = 0.20, recovery = 0.75, damage = 900, poise = 320, energy = 0,
+			cancelRecovery = true, dodgeCancelBefore = 0.40,
+			lunge = { distance = 24, from = 0.35, to = 0.60 },
+			box = { size = V(60, 70, 60), offset = V(0, -5, -32) }, reach = 60, aim = V(0, 0, -34),
+		},
+	},
 }
 
 -- Dodge per class: one timeline, no hitbox.
 CombatConfig.Dodge = {
 	Vanguard = { duration = 0.35, settle = 0.10, distance = 55 * S, energy = 25, cooldown = 0.8, iFrames = { from = 0.05, to = 0.30 } },
+	Shifter = { duration = 0.40, settle = 0.10, distance = 70, energy = 0, cooldown = 0.6, iFrames = { from = 0.04, to = 0.34 } },
 }
 
 CombatConfig.CoreStrike = {
@@ -75,6 +103,8 @@ CombatConfig.CoreStrike = {
 	-- CoreStrike clip at its Impact (19 to the right, 48 ahead, at the height of a downed Strider's core). The
 	-- step-in puts the Frame where that point is on the core.
 	Vanguard = { clip = "CoreStrike", duration = 1.6, damage = 700, impact = 0.62, range = 34 * S, facing = 60, stepTime = 0.5, blade = V(19, 0, -48) },
+	-- The Titan form drives both fists down into the core, straight ahead of it (D-096).
+	Shifter = { clip = "NapeStrike", duration = 1.4, damage = 1800, impact = 0.60, range = 55, facing = 70, stepTime = 0.4, blade = V(0, 0, -32) },
 }
 
 -- Titan attacks (docs/10 §1.4, docs/12 §7). Lengths are the Titan's own studs; the hit tests add the Frame's

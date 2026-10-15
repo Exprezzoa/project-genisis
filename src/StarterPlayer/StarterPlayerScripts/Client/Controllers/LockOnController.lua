@@ -294,7 +294,8 @@ function LockOnController.Start()
 	end)
 	-- While locked on, the mouse wheel steps through the zones (the camera leaves it alone then).
 	UserInputService.InputChanged:Connect(function(input, processed)
-		if target and not processed and input.UserInputType == Enum.UserInputType.MouseWheel and InputController.getContext() == "Frame" then
+		local context = InputController.getContext()
+		if target and not processed and input.UserInputType == Enum.UserInputType.MouseWheel and (context == "Frame" or context == "Shifter") then
 			LockOnController.cycle(if input.Position.Z > 0 then 1 else -1)
 		end
 	end)

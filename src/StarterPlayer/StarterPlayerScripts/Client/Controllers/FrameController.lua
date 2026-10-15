@@ -204,7 +204,9 @@ local function update(dt: number)
 	local stride = striding and amount > 0 and not limping and not busy and typeof(autoWalk) ~= "Vector3"
 	CameraController.setStride(stride)
 
-	target = (if stride then config.strideSpeed else config.walkSpeed) * amount * (if limping then config.limp.walkScale else 1) * moveScale
+	-- SpeedMult: a buff of the rig (the Titan form's Rage, D-096).
+	local boost = (model:GetAttribute("SpeedMult") :: number?) or 1
+	target = (if stride then config.strideSpeed else config.walkSpeed) * amount * (if limping then config.limp.walkScale else 1) * moveScale * boost
 	if speed < target then
 		speed = math.min(target, speed + config.acceleration * dt)
 	else
@@ -264,6 +266,7 @@ local function stop()
 	speed, target, striding = 0, 0, false
 	setPilotHidden(false)
 	CameraController.setFrame(nil)
+	InputController.setGameplayContext("OnFoot") -- also when a cinematic holds the input right now
 	if InputController.getContext() == riding then
 		InputController.setContext("OnFoot")
 	end
@@ -311,7 +314,12 @@ local function start(model: Model)
 		end
 	end)
 	setPilotHidden(true)
-	InputController.setContext(classConfig.context or "Frame")
+	-- Under a cinematic (the first shift) the controls switch once it is over.
+	if InputController.getHold() then
+		InputController.setGameplayContext(classConfig.context or "Frame")
+	else
+		InputController.setContext(classConfig.context or "Frame")
+	end
 	CameraController.setFrame(model)
 	-- Before the camera, so the camera follows this frame's movement input.
 	RunService:BindToRenderStep("PG_FrameMove", Enum.RenderPriority.Input.Value + 1, update)

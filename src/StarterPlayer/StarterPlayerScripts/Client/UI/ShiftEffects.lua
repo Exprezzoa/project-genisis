@@ -5,8 +5,10 @@
 --   bolt(ground)              the yellow bolt from the sky (6-9 Neon segments, 2-3 forks, redrawn 3 times in 0.35 s),
 --                             a ground ring, dust and a light burst (Brightness 8 -> 0, Range 60)
 --   flash(layer, reduced)     the full-screen yellow-white flash: 0.12 s up, 0.6 s down (30% with Reduce Flashing)
---   steam(position)           the burst of steam when the Titan form gives way (not in the docs yet)
+--   steam(position, model?)   the steam when the Titan form gives way: a jet from its nape (NapeSteam), a body haze
 --   fadeOut(model, seconds)   the Titan's body fading into the steam
+--   regen(model, on)          light steam while it heals          hardened(model, on)   crystal forearms, cyan outline
+--   rage(model, on)           steam and burning eyes              slam(position)        dust where the fists hit
 --   clench(character, charge) Elias clenching his right fist to his chest until it sparks, wincing (Q-012's
 --                             recommended way: no blood, no wound); charge() -> 0..1 while held, nil when let go
 -- Yellow (SHIFT_LIGHTNING) is the transformation moment only (docs/06 §3): the bolt, its ring and the sparks.
@@ -154,7 +156,37 @@ function ShiftEffects.flash(layer: ScreenGui, reduced: boolean)
 	end)
 end
 
-function ShiftEffects.steam(position: Vector3)
+local function steamEmitter(parent, rate, size, speed)
+	local steam = Instance.new("ParticleEmitter")
+	steam.Name = "ShiftSteamJet"
+	steam.Color = ColorSequence.new(STEAM)
+	steam.LightEmission = 0.1
+	steam.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, size[1]), NumberSequenceKeypoint.new(1, size[2]) })
+	steam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(0.6, 0.55), NumberSequenceKeypoint.new(1, 1) })
+	steam.Lifetime = NumberRange.new(1.4, 2.4)
+	steam.Speed = NumberRange.new(speed[1], speed[2])
+	steam.SpreadAngle = Vector2.new(14, 14)
+	steam.EmissionDirection = Enum.NormalId.Front
+	steam.Acceleration = Vector3.new(0, 8, 0)
+	steam.Drag = 1.2
+	steam.Rotation = NumberRange.new(0, 360)
+	steam.RotSpeed = NumberRange.new(-40, 40)
+	steam.Rate = rate
+	steam.Parent = parent
+	return steam
+end
+
+-- When the Titan form gives way (user direction: "kneeling and steam coming out the nape"): a hard jet of steam out
+-- of its nape that follows the kneeling body, and a haze off the whole body.
+function ShiftEffects.steam(position: Vector3, model: Model?)
+	local nape = model and model:FindFirstChild("NapeSteam", true)
+	if nape then
+		local jet = steamEmitter(nape, 70, { 5, 28 }, { 25, 45 })
+		jet:Emit(40)
+		task.delay(ShifterConfig.collapse + ShifterConfig.fade, function()
+			jet.Enabled = false
+		end)
+	end
 	local holder = Instance.new("Folder")
 	holder.Name = "ShiftSteam"
 	holder.Parent = effectsFolder()
@@ -181,6 +213,115 @@ function ShiftEffects.steam(position: Vector3)
 		end)
 	end
 	task.delay(ShifterConfig.collapse + ShifterConfig.fade + 3.5, function()
+		holder:Destroy()
+	end)
+end
+
+-- While the Titan form heals itself: a light steam off its body.
+function ShiftEffects.regen(model: Model, on: boolean)
+	local torso = model:FindFirstChild("UpperTorso")
+	if not torso then
+		return
+	end
+	local steam = torso:FindFirstChild("ShiftRegenSteam")
+	if on and not steam then
+		steam = steamEmitter(torso, 10, { 8, 22 }, { 4, 10 })
+		steam.Name = "ShiftRegenSteam"
+		steam.EmissionDirection = Enum.NormalId.Top
+		steam.SpreadAngle = Vector2.new(60, 60)
+		steam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 1) })
+	elseif steam then
+		steam.Enabled = on
+	end
+end
+
+-- Hardening (a special): the forearms and fists turn to a pale crystal, outlined in Lattice cyan.
+local HARDENED = Color3.fromHex("#DDE9F2")
+local CYAN = Color3.fromHex("#7FE3F0")
+function ShiftEffects.hardened(model: Model, on: boolean)
+	for _, name in ipairs({ "LeftLowerArm", "RightLowerArm", "LeftHand", "RightHand" }) do
+		local main = model:FindFirstChild(name)
+		if main then
+			local parts = { main }
+			for _, part in ipairs(main:GetDescendants()) do
+				if part:IsA("BasePart") and part:GetAttribute("Skin") ~= nil then
+					table.insert(parts, part)
+				end
+			end
+			for _, part in ipairs(parts) do
+				if on then
+					if part:GetAttribute("RestColor") == nil then
+						part:SetAttribute("RestColor", part.Color)
+						part:SetAttribute("RestMaterial", part.Material.Name)
+					end
+					part.Color = HARDENED
+					part.Material = Enum.Material.Glass
+				elseif part:GetAttribute("RestColor") ~= nil then
+					part.Color = part:GetAttribute("RestColor")
+					part.Material = Enum.Material[part:GetAttribute("RestMaterial")]
+				end
+			end
+		end
+	end
+	local highlight = model:FindFirstChild("ShiftHardened")
+	if on and not highlight then
+		highlight = Instance.new("Highlight")
+		highlight.Name = "ShiftHardened"
+		highlight.FillTransparency = 1
+		highlight.OutlineColor = CYAN
+		highlight.OutlineTransparency = 0.2
+		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+		highlight.Parent = model
+	elseif not on and highlight then
+		highlight:Destroy()
+	end
+end
+
+-- Rage (a special): steam rolls off the body and the eyes burn brighter.
+function ShiftEffects.rage(model: Model, on: boolean)
+	local torso = model:FindFirstChild("UpperTorso")
+	local head = model:FindFirstChild("Head")
+	local steam = torso and torso:FindFirstChild("ShiftRageSteam")
+	if on and torso and not steam then
+		steam = steamEmitter(torso, 30, { 10, 30 }, { 10, 22 })
+		steam.Name = "ShiftRageSteam"
+		steam.EmissionDirection = Enum.NormalId.Top
+		steam.SpreadAngle = Vector2.new(80, 80)
+	elseif steam then
+		steam.Enabled = on
+	end
+	local glow = head and head:FindFirstChild("ShiftRageGlow")
+	if on and head and not glow then
+		glow = Instance.new("PointLight")
+		glow.Name = "ShiftRageGlow"
+		glow.Color = CYAN
+		glow.Brightness = 3
+		glow.Range = 30
+		glow.Parent = head
+	elseif glow then
+		glow.Enabled = on
+	end
+end
+
+-- The smash and the core strike landing: a ring of dust where the fists hit the ground.
+function ShiftEffects.slam(position: Vector3)
+	local holder = Instance.new("Folder")
+	holder.Name = "ShiftSlam"
+	holder.Parent = effectsFolder()
+	local anchor = anchorPart(position + Vector3.new(0, 2, 0), holder)
+	local dust = Instance.new("ParticleEmitter")
+	dust.Color = ColorSequence.new(DUST)
+	dust.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 5), NumberSequenceKeypoint.new(1, 16) })
+	dust.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) })
+	dust.Lifetime = NumberRange.new(0.8, 1.6)
+	dust.Speed = NumberRange.new(30, 60)
+	dust.SpreadAngle = Vector2.new(180, 6)
+	dust.EmissionDirection = Enum.NormalId.Top
+	dust.Drag = 3
+	dust.Rate = 0
+	dust.Parent = anchor
+	dust:Emit(45)
+	task.delay(2, function()
 		holder:Destroy()
 	end)
 end

@@ -5,12 +5,12 @@
 --   Build({ BK = BK, Body = require(DT.Builders.Rigs.Watcher:Clone()) })  -> stats
 --       builds ServerStorage.Templates.Titans.Shifter_Elias
 --
--- Elias's Titan form, a placeholder until it is designed (Q-020): the body of the user's Titan model rigged the
--- way the Watcher is (builders/rigs/Watcher.copy), without what is the Watcher's own (its white hair, pointed
--- ears and wrist bands), with Elias's skin tone, a dark messy head of hair from the checked Titan hair, and eyes
--- glowing Lattice cyan (a Shifter's glow, docs/02 §8). It is ridden like a Frame (Server/Services/ShifterService,
+-- Elias's Titan form: the body of the user's Titan model rigged the way the Watcher is (builders/rigs/Watcher.copy)
+-- with the hair the model comes with (user direction, D-096: "keep the default hair it comes with and not random
+-- hair"), without the Watcher's pointed ears and wrist bands, with Elias's skin tone and eyes glowing Lattice cyan
+-- (a Shifter's glow, docs/02 §8). It is ridden like a Frame (Server/Services/ShifterService,
 -- Client/Controllers/FrameController): a Humanoid, a root with its Facing (anchored here, let go at spawn), a
--- PilotSeat in the nape, and Dust attachments under the feet for the footfall puffs.
+-- PilotSeat in the nape, a NapeSteam attachment (the steam when it gives way), and Dust attachments under the feet.
 
 local Builder = {}
 
@@ -18,7 +18,6 @@ local V = Vector3.new
 
 Builder.NAME = "Shifter_Elias"
 Builder.SKIN = Color3.fromHex("#C69C7A") -- Elias's skin (docs/03)
-Builder.HAIR = "MessyHair" -- "short messy crop, dark brown" (docs/03): one of ServerStorage.Templates.TitanHair
 Builder.EYES = Color3.fromHex("#7FE3F0") -- LATTICE_CYAN: reserved for resonance and Shifters (docs/06 §3)
 
 -- The colors of the reference's skin (as in builders/rigs/Strider).
@@ -36,13 +35,13 @@ function Builder.Build(opts)
 	local model, info = Body.copy(BK, {
 		name = Builder.NAME,
 		leaveOut = function(part)
-			return part.Material == Enum.Material.Ice or part.Name == "Ears" or part.Name == "Handle"
+			return part.Material == Enum.Material.Ice or part.Name == "Ears" -- the hair (Handle) stays
 		end,
 	})
 	local main, hrp, jointAt = info.main, info.hrp, info.jointAt
 	local head = main.Head
 
-	-- Skin, eyes, hair.
+	-- Skin and eyes (the model's own hair stays as it is).
 	for _, part in ipairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
 			if SKIN[part.Color:ToHex()] then
@@ -53,18 +52,14 @@ function Builder.Build(opts)
 			end
 		end
 	end
-	model:SetAttribute("HeadWidth", head.Size.X)
-	local anchor = Instance.new("Attachment")
-	anchor.Name = "HairAnchor" -- at the head's center, turned like the rig (TitanLook.setHair)
-	anchor.CFrame = head.CFrame:ToObjectSpace(CFrame.new(head.Position))
-	anchor.Parent = head
-	local TitanLook = require(game:GetService("ServerScriptService").Server.Titans.TitanLook:Clone())
-	local hair = ServerStorage.Templates:FindFirstChild("TitanHair") and ServerStorage.Templates.TitanHair:FindFirstChild(Builder.HAIR)
-	if hair then
-		TitanLook.setHair(model, hair)
-	else
-		BK.warn(("Shifter builder: no Titan hair %s (run builders/rigs/Strider BuildHair)"):format(Builder.HAIR))
+	if not head:FindFirstChild("Handle", true) then
+		BK.warn("Shifter builder: the reference's hair (Head.Handle) wasn't found")
 	end
+	-- Where the steam pours out when it gives way: the nape, just under the back of the neck.
+	local nape = Instance.new("Attachment")
+	nape.Name = "NapeSteam"
+	nape.CFrame = main.UpperTorso.CFrame:ToObjectSpace(CFrame.lookAt(jointAt.Neck + V(0, -3, 6), jointAt.Neck + V(0, 6, 14)))
+	nape.Parent = main.UpperTorso
 
 	-- Ridden like a Frame: the root stands on the ground with the Humanoid's hip height and turns by Facing.
 	hrp.CanCollide = true
@@ -125,7 +120,7 @@ function Builder.Build(opts)
 	local stats = BK.report(model, startClock)
 	stats.height = info.top - info.low
 	stats.hipHeight = humanoid.HipHeight
-	stats.hair = model:GetAttribute("Hair")
+	stats.hair = head:FindFirstChild("Handle", true) ~= nil
 	return stats
 end
 

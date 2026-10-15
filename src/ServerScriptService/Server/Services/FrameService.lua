@@ -15,6 +15,8 @@
 --   kneelAt(player, unitId, groundCFrame, exitCFrame)   kneeling at a pad, the pilot on foot (a load after a dismount)
 --   playAnim(frame, clip, speed?)              setState(frame, state)
 --   spendEnergy(frame, amount) -> boolean      setEnergy(frame, value)
+--   adopt(player, rig)  unadopt(player)        a rig that isn't a unit (Elias's Titan form, ShifterService, D-096)
+--                                              counts as the player's piloted one: combat, Titans, debug commands
 --   Boarded(player, frame)   Dismounted(player, frame)
 
 local CollectionService = game:GetService("CollectionService")
@@ -55,6 +57,7 @@ local frames = {} -- [unitId] = Model
 local piloted = {} -- [Player] = Model
 local energy = {} -- [Model] = { value, lastSpend, published }
 local busy = {} -- [Player] = true while a board or dismount transition runs
+local adopted = {} -- [Model] = Player: a rig ridden by its own service's rules (adopt)
 local registered = {} -- [unitId] = true once the unit's board prompts have a handler
 
 local function now()
@@ -111,12 +114,17 @@ function FrameService.setIntegrity(frame, value)
 	return integrity
 end
 
--- Every unit of FrameConfig.Units that exists right now.
+-- Every unit of FrameConfig.Units that exists right now, and every adopted rig (Titans fight those too).
 function FrameService.getFrames()
 	local list = {}
 	for _, frame in pairs(frames) do
 		if frame.Parent then
 			table.insert(list, frame)
+		end
+	end
+	for rig in pairs(adopted) do
+		if rig.Parent then
+			table.insert(list, rig)
 		end
 	end
 	return list
@@ -176,6 +184,31 @@ local function updateWeaponsLock(player)
 		local zoneId = ZoneService.getZone(player)
 		local zone = zoneId and ZoneService.getZoneInfo(zoneId)
 		frame:SetAttribute("WeaponsLocked", zone == nil or zone.weapons ~= "Free")
+	end
+end
+
+-- A rig that isn't a unit, ridden by the player under its own service's rules (Elias's Titan form: ShifterService
+-- seats and unseats the rider itself). While adopted it is the player's piloted rig: CombatService fights with it,
+-- Titans target it, the debug commands act on it. Its class entry in FrameConfig gives integrity and energy.
+function FrameService.adopt(player, rig)
+	local config = configOf(rig)
+	piloted[player] = rig
+	adopted[rig] = player
+	energy[rig] = { value = config.energy.max, lastSpend = 0, published = now() }
+	rig:SetAttribute("EnergyMax", config.energy.max)
+	rig:SetAttribute("Energy", config.energy.max)
+	rig:SetAttribute("IntegrityMax", config.integrity)
+	FrameService.setIntegrity(rig, config.integrity)
+	rig:SetAttribute("WeaponsLocked", true)
+	updateWeaponsLock(player)
+end
+
+function FrameService.unadopt(player)
+	local rig = piloted[player]
+	if rig and adopted[rig] then
+		piloted[player] = nil
+		adopted[rig] = nil
+		energy[rig] = nil
 	end
 end
 
@@ -459,6 +492,8 @@ function FrameService.dismount(player, padId)
 	local frame = piloted[player]
 	if not frame or busy[player] then
 		return false, "not piloting"
+	elseif adopted[frame] then
+		return false, "not a Frame"
 	end
 	local pad = nil
 	for _, candidate in ipairs(CollectionService:GetTagged("DismountPad")) do
@@ -556,7 +591,9 @@ function FrameService.Start()
 	-- A pilot who leaves or loses the character leaves the Frame where it stands.
 	local function abandon(player)
 		local frame = piloted[player]
-		if frame then
+		if frame and adopted[frame] then
+			FrameService.unadopt(player) -- its own service ends it (ShifterService: back to human form)
+		elseif frame then
 			release(player, frame, nil)
 		end
 		busy[player] = nil

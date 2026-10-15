@@ -6,7 +6,7 @@
 -- (Dialogue, Cinematic, Menu). restoreGameplay() goes back to the last gameplay context, or to the held
 -- context: hold("Cinematic") keeps a playing cinematic under the dialogue or menu opened over it.
 --
---   setContext(name)   restoreGameplay()   getContext()   isGameplay()   hold(name?)   getHold()
+--   setContext(name)   restoreGameplay()   getContext()   isGameplay()   hold(name?)   getHold()   setGameplayContext(name)
 --   getDevice() -> "KeyboardMouse" | "Gamepad" | "Touch"        glyph(action) -> string
 --   ActionPressed(action, began: boolean, input)   ContextChanged(name)   DeviceChanged(device)
 --   press(action, began)   -- for on-screen buttons
@@ -112,6 +112,13 @@ end
 
 function InputController.getHold(): string?
 	return held
+end
+
+-- The gameplay context to go back to, without switching now (a rig taken during a cinematic: the first shift's).
+function InputController.setGameplayContext(name: string)
+	if GAMEPLAY[name] then
+		gameplayContext = name
+	end
 end
 
 function InputController.Init()

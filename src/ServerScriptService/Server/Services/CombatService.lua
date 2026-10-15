@@ -20,6 +20,8 @@
 --   getAction(frame) -> { name, elapsed, queued }?
 --   HitLanded: Signal(hit)     FrameHit: Signal(frame, hit, { integrity, heavy, stun, disabled })
 --   FrameEvaded: Signal(frame, hit, reason)     FrameDisabled: Signal(frame)
+--   RigSpent: Signal(rig)     a rig with the attribute NoDisable ran out of integrity (it isn't disabled)
+-- Multipliers a rig may carry (its specials): DamageMult on what it deals, DamageTakenMult on what it takes.
 --
 -- A hurtbox is a part tagged "Hurtbox" with attribute Zone, inside a model with attribute TargetId. A target
 -- nobody registered is a training target: it takes no damage, and the hit is written on its model as the
@@ -52,6 +54,7 @@ CombatService.HitLanded = Signal.new()
 CombatService.FrameHit = Signal.new()
 CombatService.FrameEvaded = Signal.new()
 CombatService.FrameDisabled = Signal.new()
+CombatService.RigSpent = Signal.new() -- a NoDisable rig ran out of integrity (the Titan form, D-096)
 
 local actions = {} -- [frame] = { name, kind, move, t0, seq, player, hit, nextSample, lastSample, queued, direction }
 local cooldowns = {} -- [frame] = { Special = readyAt, Dodge = readyAt }
@@ -194,7 +197,9 @@ local function onRequest(player, payload)
 	elseif name == "Heavy" or name == "Special" then
 		local moveName = CombatConfig.Requests[name]
 		local move = moves[moveName]
-		if not idle then
+		if not move then
+			return reject("Rejected") -- this class has no such move (the Titan form's specials are ShifterService's)
+		elseif not idle then
 			return reject("Busy")
 		elseif (cooldowns[frame][moveName] or 0) > t then
 			return reject("Cooldown")
@@ -297,9 +302,10 @@ local function land(action, frame, model, hurtbox)
 	local move = action.move
 	local zoneName = hurtbox:GetAttribute("Zone") or "Body"
 	local zone = CombatConfig.Zones[zoneName] or CombatConfig.Zones.Body
+	local mult = frame:GetAttribute("DamageMult") or 1 -- a buff of the attacking rig (the Titan form's specials)
 	deliver({
 		attacker = action.player, frame = frame, targetId = model:GetAttribute("TargetId"), model = model, zone = zoneName,
-		damage = move.damage * zone.hpMult, poise = move.poise * zone.poiseMult, move = action.name, position = hurtbox.Position,
+		damage = move.damage * zone.hpMult * mult, poise = move.poise * zone.poiseMult * mult, move = action.name, position = hurtbox.Position,
 	})
 end
 
@@ -433,11 +439,21 @@ end
 local function applyHit(frame, hit)
 	local t = now()
 	lastHit[frame] = t
-	local integrity = FrameService.setIntegrity(frame, (frame:GetAttribute("Integrity") or 0) - hit.damage)
-	local heavy = hit.damage >= CombatConfig.HitReact.heavyAt
+	-- A buff of the rig hit (the Titan form's Hardening) takes part of the damage.
+	local damage = hit.damage * (frame:GetAttribute("DamageTakenMult") or 1)
+	local integrity = FrameService.setIntegrity(frame, (frame:GetAttribute("Integrity") or 0) - damage)
+	local heavy = damage >= CombatConfig.HitReact.heavyAt
 	local react = if heavy then CombatConfig.HitReact.Heavy else CombatConfig.HitReact.Light
 	local stun = hit.stagger or react.stun
 	local disabled = integrity <= 0
+	if disabled and frame:GetAttribute("NoDisable") then
+		-- A rig that can't be disabled (the Titan form) is spent instead: its own service ends it.
+		actions[frame] = nil
+		frame:SetAttribute("Action", "")
+		CombatService.FrameHit:Fire(frame, hit, { integrity = 0, heavy = heavy, stun = 0, disabled = false })
+		CombatService.RigSpent:Fire(frame)
+		return
+	end
 	local player = Players:GetPlayerByUserId(frame:GetAttribute("Pilot") or 0)
 	if player and FrameService.getPiloted(player) == frame then
 		if disabled then
@@ -454,7 +470,7 @@ local function applyHit(frame, hit)
 		end
 		rootBudget[frame] = { distance = hit.knockback.Magnitude * ROOT_MOTION_MARGIN, expires = t + KNOCKBACK_TIME + ROOT_MOTION_SLACK }
 		feedback(player, {
-			kind = "HitTaken", damage = hit.damage, knockback = hit.knockback, time = KNOCKBACK_TIME, heavy = heavy, stun = stun,
+			kind = "HitTaken", damage = damage, knockback = hit.knockback, time = KNOCKBACK_TIME, heavy = heavy, stun = stun,
 			attack = hit.attack, disabled = disabled,
 		})
 	elseif disabled then

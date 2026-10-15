@@ -18,8 +18,19 @@ All bindings live in `Shared/Config/Bindings.lua` and are bound through **Contex
 | Menu (pause/settings) | P or M | D-pad Up | `≡` button (top-right) |
 | Shift into the Titan form (user request 2026-10-15, D-095): only with the ability, in the Training Yard or where a story step allows it | Hold Z (1.0 s) | Hold Y | not built yet |
 
-### In the Titan form (D-095)
-Ridden like a Frame (Move, Camera and Menu as below); Stride = run. **Hold Z / Y (1.0 s)** returns to human form.
+### In the Titan form (D-095, D-096)
+| Action | Keyboard / mouse | Gamepad |
+|---|---|---|
+| Move, camera, run | WASD, mouse, hold Left Shift | Left stick, right stick, L3 |
+| Punches (jab, cross, uppercut chain) | Left mouse | RB |
+| Smash (heavy) | Right mouse | RT |
+| Dodge | Space | B |
+| Into an open core | F | X |
+| Use the selected special (Hardening, Rage, …) | Q | LB |
+| Next unlocked special | T | D-pad Left |
+| Lock on / cycle zone | R / C | R3 / D-pad Right |
+| Aim lock | Left Ctrl | D-pad Down |
+| Back to human form | **Hold Z (1.0 s)** | Hold Y |
 
 ### Piloting a Frame
 | Action | Keyboard / mouse | Gamepad | Touch |
