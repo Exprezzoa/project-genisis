@@ -253,7 +253,8 @@ function HUDController.build(hud)
 	local toastLayout = list(toastHolder, UIStyle.Gap)
 	toastLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
-	subtitleLabel = Components.label(hud, "", { font = "BodyBold", size = UIStyle.SubtitleSize.M, wrap = true }, {
+	-- Radio subtitles have their own layer above the fade (UIController "Subtitles").
+	subtitleLabel = Components.label(UIController.getLayer("Subtitles"), "", { font = "BodyBold", size = UIStyle.SubtitleSize.M, wrap = true }, {
 		Name = "Subtitle",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.82),

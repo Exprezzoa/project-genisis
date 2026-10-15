@@ -13,7 +13,8 @@
 -- setFlag, clearFlag, objective, prompt, dialogue (any mode, through DialogueService), tutorial (a toast for
 -- now), toast, zoneState, checkpoint, frame (forceBoard, park, repair,
 -- autoWalk, stopWalk), door, card, spawnTitan, despawnTitan, titanCommand (with the Watcher's stand-in:
--- WatcherPath, PeelRover, TakeCanister, WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01).
+-- WatcherPath, PeelRover, TakeCanister, WatcherFace), unlock (a case's lock light, S32), ally (Mara's Unit 01),
+-- cinematic, npcs, npc, sit (the player on a seat mark), paLoop (the Central Command PA).
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,16 +22,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Log = require(Shared.Modules.Log)
 local Net = require(Shared.Modules.Net)
+local NPCConfig = require(Shared.Config.NPCs)
 
 local Services = script.Parent.Parent.Services
 local AllyFrameService = require(Services.AllyFrameService)
 local CharacterService = require(Services.CharacterService)
+local CinematicService = require(Services.CinematicService)
 local DialogueService = require(Services.DialogueService)
 local CombatService = require(Services.CombatService)
 local FlagService = require(Services.FlagService)
 local FrameService = require(Services.FrameService)
 local InteractionService = require(Services.InteractionService)
+local NPCService = require(Services.NPCService)
 local TitanService = require(Services.TitanService)
+local ZoneService = require(Services.ZoneService)
 local Doors = require(script.Parent.Doors)
 local ZoneEffects = require(script.Parent.ZoneEffects)
 local WatcherStandIn = require(script.Parent.Parent.Titans.WatcherStandIn)
@@ -205,8 +210,15 @@ end
 -- A full-screen card (docs/14 §9): { "card", kind, lines, seconds }. The card brings its own black, so the fade
 -- layer is lifted while it shows and put back to black before it goes; it blocks for `seconds`.
 function actions.card(runner, a)
-	local seconds = a.seconds or 3
-	Net.fireClient(runner.player, "UI_Card", { kind = a.kind, lines = a.lines, seconds = seconds, show = true })
+	local seconds = a.seconds
+	if not seconds and a.times then -- a Title card: each line's time, then its fade
+		seconds = 0
+		for _, t in ipairs(a.times) do
+			seconds += math.max(t - 0.5, 0.6) + 0.5
+		end
+	end
+	seconds = seconds or 3
+	Net.fireClient(runner.player, "UI_Card", { kind = a.kind, lines = a.lines, seconds = seconds, times = a.times, show = true })
 	Net.fireClient(runner.player, "Fade", { to = 0, duration = 0 })
 	task.wait(seconds)
 	Net.fireClient(runner.player, "Fade", { to = 1, duration = 0 })
@@ -313,6 +325,140 @@ function actions.titanCommand(runner, a)
 	else
 		TitanService.command(model, a.command)
 	end
+end
+
+-- { "controls", locked = true | false }: the player's movement (S01 keeps it still while the screen is black).
+function actions.controls(runner, a)
+	CharacterService.setControlLocked(runner.player, a.locked == true)
+end
+
+-- Cinematics (CinematicService): { "cinematic", id, block = true, once = "FLAG" } plays it (skipped when the flag is
+-- set, which is set after: docs/13 §1.2); { "cinematic", id, stop = true } ends a dialogue-driven one.
+function actions.cinematic(runner, a)
+	if a.stop then
+		CinematicService.stop(runner.player, a.id)
+		return
+	end
+	if a.once and FlagService.has(runner.player, a.once) then
+		return
+	end
+	CinematicService.play(runner.player, a.id, { block = a.block ~= false })
+	if a.once then
+		FlagService.set(runner.player, a.once)
+	end
+end
+
+-- NPC sets (NPCService): { "npcs", set = "HUB_MORNING" } places that set exactly; add / remove change it.
+function actions.npcs(_, a)
+	if a.set then
+		NPCService.only(a.set)
+	end
+	if a.add then
+		NPCService.spawn(a.add)
+	end
+	if a.remove then
+		NPCService.despawn(a.remove)
+	end
+end
+
+-- One NPC: { "npc", id, place = at } | { walk = target, follow = true?, block = true?, despawnAfter = true? } | { sit = at, height = "BENCH" |
+-- "CHAIR" | n } | { stop = true } | { despawn = true } | { gesture = name | false }.
+function actions.npc(runner, a)
+	if a.place then
+		NPCService.place(a.id, a.place)
+	end
+	if a.sit then
+		NPCService.sit(a.id, a.sit, if type(a.height) == "string" then NPCConfig.Seat[a.height] else a.height)
+	end
+	if a.gesture ~= nil then
+		NPCService.setGesture(a.id, a.gesture or nil)
+	end
+	if a.walk then
+		local opts = { follow = if a.follow then runner.player else nil }
+		local function go()
+			-- despawnAfter: gone (fading) once there, as Mara at the Bay 1 bridge in S07
+			if NPCService.walkTo(a.id, a.walk, opts) and a.despawnAfter then
+				NPCService.despawn(a.id, true)
+			end
+		end
+		if a.block then
+			go()
+		else
+			task.spawn(go)
+		end
+	end
+	if a.stop then
+		NPCService.stop(a.id)
+	end
+	if a.despawn then
+		NPCService.despawn(a.id)
+	end
+end
+
+-- The player sits at a seat mark (S07): { "sit", at = "SEAT_BRF_ELIAS", height = "BENCH" }; { "sit", stand = true,
+-- at = "SPAWN_BRF_DOOR" } gets up there. The seat is invisible and made for the occasion (as NPCService does).
+function actions.sit(runner, a)
+	local player = runner.player
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local runtime = workspace:FindFirstChild("Runtime")
+	local old = runtime and runtime:FindFirstChild("PlayerSeat_" .. player.UserId)
+	if old then
+		old:Destroy()
+	end
+	if not humanoid or not root then
+		return
+	end
+	if a.stand then
+		humanoid.Sit = false
+		if a.at then
+			task.wait() -- the seat weld goes with the seat; move a frame later
+			CharacterService.teleport(player, a.at)
+		end
+		return
+	end
+	local mark = CharacterService.getSpawnCFrame(a.at)
+	if not mark then
+		Log.warn(TAG, "sit: no seat mark %s", tostring(a.at))
+		return
+	end
+	local height = if type(a.height) == "string" then NPCConfig.Seat[a.height] else (a.height or NPCConfig.Seat.CHAIR)
+	local seat = Instance.new("Seat")
+	seat.Name = "PlayerSeat_" .. player.UserId
+	seat.Size = Vector3.new(2, 0.2, 2)
+	seat.Transparency = 1
+	seat.CanCollide, seat.CanTouch, seat.CanQuery = false, false, false
+	seat.Anchored = true
+	seat.CFrame = mark * CFrame.new(0, height - 0.1, 0)
+	seat.Parent = runtime
+	root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
+	seat:Sit(humanoid)
+end
+
+-- The Central Command PA (docs/05 S03): a random line every `every` seconds while the player is in one of `zones`,
+-- never the same twice running, until the runner reaches `untilStep` (or leaves the sequence).
+function actions.paLoop(runner, a)
+	runner.paToken = (runner.paToken or 0) + 1
+	local mine, last = runner.paToken, nil
+	task.spawn(function()
+		while runner.paToken == mine and runner.player.Parent do
+			task.wait(a.every or 45)
+			if runner.paToken ~= mine or not runner.step or runner.step.id == a.untilStep then
+				return
+			end
+			if table.find(a.zones, ZoneService.getZone(runner.player) or "") and not DialogueService.isActive(runner.player) then
+				local choices = {}
+				for _, id in ipairs(a.lines) do
+					if id ~= last then
+						table.insert(choices, id)
+					end
+				end
+				last = choices[math.random(#choices)]
+				DialogueService.start(runner.player, last)
+			end
+		end
+	end)
 end
 
 function Actions.run(runner, token, list, restoring)

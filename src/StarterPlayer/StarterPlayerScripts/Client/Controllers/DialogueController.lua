@@ -11,6 +11,8 @@
 -- while a conversation or cinematic runs. The box drops in and unfolds; it folds away at the end.
 --
 --   getState() -> { open, mode, dialogueId, nodeId, text, typed, choices }      advance()      choose(index)
+--   letterbox(owner, on)     the shared letterbox bars (they stay while any owner wants them)
+--   Node: Signal(dialogueId, nodeId, node)   every line shown, with its data (a cinematic's cam and slide)
 --   Line: Signal(speaker?, mode, seconds?)   each line shown (seconds for a radio line, which ends by itself);
 --                                            speaker nil when the dialogue closes (NPCAnimator: TalkFidget)
 
@@ -33,6 +35,7 @@ local UIController = require(script.Parent.UIController)
 local DialogueController = {}
 
 DialogueController.Line = Signal.new()
+DialogueController.Node = Signal.new()
 
 local TYPE_RATE = 60 -- characters per second (docs/14 §6)
 local MIN_ADVANCE = 0.6 -- a line can be advanced this long after it appears (docs/05)
@@ -195,7 +198,17 @@ local function openBox()
 	end
 end
 
-local function setLetterbox(on)
+-- The letterbox is shared: a cinematic (CinematicController) and a cinematic-mode dialogue each own it, and it
+-- stays while anyone does. The cinematic line clears when the dialogue lets go.
+local letterboxOwners = {}
+
+local function setLetterbox(on, owner)
+	owner = owner or "dialogue"
+	letterboxOwners[owner] = if on then true else nil
+	if not on and owner == "dialogue" then
+		cineLabel.Text = ""
+	end
+	on = next(letterboxOwners) ~= nil
 	local goal = if on then LETTERBOX else 0
 	if animated then
 		tween(barTop, 0.4, { Size = UDim2.fromScale(1, goal) }, Enum.EasingStyle.Quad)
@@ -203,9 +216,10 @@ local function setLetterbox(on)
 	else
 		barTop.Size, barBottom.Size = UDim2.fromScale(1, goal), UDim2.fromScale(1, goal)
 	end
-	if not on then
-		cineLabel.Text = ""
-	end
+end
+
+function DialogueController.letterbox(owner, on)
+	setLetterbox(on, owner)
 end
 
 ----------------------------------------------------------------------------------------------------------------
@@ -347,6 +361,7 @@ local function onNode(payload)
 	if not node then
 		return
 	end
+	DialogueController.Node:Fire(payload.dialogueId, payload.nodeId, node)
 	if payload.mode == "radio" or payload.mode == nil then
 		HUDController.showSubtitle({ text = node.text, speaker = node.speaker, thought = node.style == "thought", duration = node.duration })
 		if node.style ~= "thought" then

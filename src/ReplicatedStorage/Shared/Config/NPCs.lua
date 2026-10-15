@@ -82,6 +82,8 @@ return {
 		-- S01-S07: the hub and the hangar in the morning. Vale joins at S06 (`add`). T3 (control booth) and T6
 		-- (forklift) wait for their props in the dressed pass (D-081).
 		HUB_MORNING = { "Tamsin", "Okafor", "OfficerC3", "OfficerC4", "OfficerC7", "OfficerC5", "OfficerC8", "OfficerRouteA", "Morrow", "Hollis", "Mara", "Pell", "T1", "T2", "T4", "T5" },
+		-- S08-S10 (and a load at CH1_BRIEFED): Mara has boarded Unit 01; Vale stays at the lectern.
+		HUB_BRIEFED = { "Tamsin", "Okafor", "OfficerC3", "OfficerC4", "OfficerC7", "OfficerC5", "OfficerC8", "OfficerRouteA", "Morrow", "Hollis", "Vale", "Pell", "T1", "T2", "T4", "T5" },
 	},
 	-- Talk prompts (docs/05 S02: HoldDuration 0, MaxActivationDistance 8).
 	Talk = { DISTANCE = 8, PREFIX = "TALK_" },

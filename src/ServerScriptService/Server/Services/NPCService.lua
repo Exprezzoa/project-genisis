@@ -7,7 +7,7 @@
 -- the model's attributes: NPC (id), Gesture, Speaker, Barks, TalkingTo (a UserId while it talks to them).
 --
 --   only(setName)                 that set exactly: places the missing ones, removes the rest
---   spawn(ids) / despawn(ids)     ids: a list, one id, or "all" for despawn
+--   spawn(ids) / despawn(ids, fade?)   ids: a list, one id, or "all" for despawn
 --   get(id) -> Model?             place(id, at)          stop(id)
 --   walkTo(id, target, opts?) -> boolean    yields; opts.follow = player (follower mode, docs/05 S06)
 --   sit(id, at, height?)          on an invisible seat at a SpawnId or point
@@ -15,6 +15,7 @@
 -- Talking NPCs turn to the player by tweening their anchored root (D-081); seated ones only turn their head.
 
 local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -38,6 +39,7 @@ local FACING = {
 	["-X"] = Vector3.new(-1, 0, 0), ["+X"] = Vector3.new(1, 0, 0),
 }
 
+local FADE = 0.6 -- seconds a fading despawn takes
 local TURN_RANGE = 20 -- a participant further away (Hollis at Bay 3 in S05) keeps its pose until it walks in
 
 local NPCService = {}
@@ -234,7 +236,8 @@ function NPCService.spawn(ids)
 	end
 end
 
-function NPCService.despawn(ids)
+-- fade = true: the NPC fades out over FADE seconds first (Mara boarding in S07).
+function NPCService.despawn(ids, fade: boolean?)
 	local targets = {}
 	if ids == "all" then
 		for id in pairs(active) do
@@ -249,7 +252,18 @@ function NPCService.despawn(ids)
 			active[id] = nil
 			npc.job += 1
 			removeSeat(npc)
-			npc.model:Destroy()
+			if fade then
+				anchor(npc, true)
+				local info = TweenInfo.new(FADE, Enum.EasingStyle.Quad)
+				for _, item in ipairs(npc.model:GetDescendants()) do
+					if (item:IsA("BasePart") and item.Transparency < 1) or item:IsA("Decal") then
+						TweenService:Create(item, info, { Transparency = 1 }):Play()
+					end
+				end
+				Debris:AddItem(npc.model, FADE + 0.1)
+			else
+				npc.model:Destroy()
+			end
 		end
 	end
 end

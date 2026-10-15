@@ -3,9 +3,10 @@
 --
 -- Input contexts and bindings (Config/Bindings) through ContextActionService, plus the device in use.
 -- Exactly one context is bound at a time: a gameplay context (OnFoot, Frame) or one that suspends it
--- (Dialogue, Cinematic, Menu). restoreGameplay() goes back to the last gameplay context.
+-- (Dialogue, Cinematic, Menu). restoreGameplay() goes back to the last gameplay context, or to the held
+-- context: hold("Cinematic") keeps a playing cinematic under the dialogue or menu opened over it.
 --
---   setContext(name)   restoreGameplay()   getContext()   isGameplay()
+--   setContext(name)   restoreGameplay()   getContext()   isGameplay()   hold(name?)   getHold()
 --   getDevice() -> "KeyboardMouse" | "Gamepad" | "Touch"        glyph(action) -> string
 --   ActionPressed(action, began: boolean, input)   ContextChanged(name)   DeviceChanged(device)
 --   press(action, began)   -- for on-screen buttons
@@ -29,6 +30,7 @@ InputController.DeviceChanged = Signal.new() :: Signal.Signal<string>
 
 local context: string? = nil
 local gameplayContext = "OnFoot"
+local held: string? = nil
 local bound: { string } = {}
 local device = "KeyboardMouse"
 
@@ -97,7 +99,19 @@ function InputController.setContext(name: string)
 end
 
 function InputController.restoreGameplay()
-	InputController.setContext(gameplayContext)
+	InputController.setContext(held or gameplayContext)
+end
+
+-- Holds a suspending context (and switches to it), or lets it go with nil; the caller restores gameplay after.
+function InputController.hold(name: string?)
+	held = name
+	if name then
+		InputController.setContext(name)
+	end
+end
+
+function InputController.getHold(): string?
+	return held
 end
 
 function InputController.Init()

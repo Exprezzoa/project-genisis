@@ -5,9 +5,11 @@
 -- the server lifts the fade layer under it and puts the black back before the card goes (Sequence action "card").
 -- Built so far: Transit (S10): black, RobotoMono 20 amber typed in line by line with a block cursor, corner
 -- brackets that draw in round the text, an underline, and a thin track filling over the card's time.
--- (The Frame Disabled card lives in FrameDamageController; Title, Mission Complete and Chapter End come later.)
+-- Title (S01): black, one line at a time centered, Michroma 28 then 18, letter-spaced with spaced characters;
+-- each rises in over 0.6 s, holds for its time (`times`), fades out; a hairline draws under the place.
+-- (The Frame Disabled card lives in FrameDamageController; Mission Complete and Chapter End come later.)
 --
---   show(kind, lines, seconds)      hide()      getState() -> { kind, visible, text }
+--   show(kind, lines, seconds, times?)      hide()      getState() -> { kind, visible, text }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -26,7 +28,7 @@ local TYPE_RATE = 40 -- characters per second
 local LINE_PAUSE = 0.15
 local CORNER = 18 -- px, the length of a bracket's arms
 
-local root, block, labels, cursor, rule, track, fill
+local root, block, labels, cursor, rule, track, fill, title, titleLabel, titleRule
 local corners = {}
 local state = { kind = nil, visible = false, text = "" }
 local token = 0
@@ -74,6 +76,22 @@ local function build(layer)
 		Name = "Track", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.5, BLOCK.Y / 2 + 34), Size = UDim2.new(0.32, 0, 0, 2),
 	})
 	fill = Components.slab(track, { color = UIStyle.Accent, slant = false }, { Name = "Fill", Size = UDim2.fromScale(0, 1) })
+
+	title = Instance.new("Frame")
+	title.Name = "Title"
+	title.BackgroundTransparency = 1
+	title.AnchorPoint = Vector2.new(0.5, 0.5)
+	title.Position = UDim2.fromScale(0.5, 0.47)
+	title.Size = UDim2.fromOffset(1100, 80)
+	title.Visible = false
+	title.Parent = root
+	titleLabel = Components.label(title, "", { font = "Header", size = 28, color = UIStyle.Paper }, {
+		Name = "Line", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, 0, 0, 40),
+		TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 2,
+	})
+	titleRule = Components.slab(title, { color = UIStyle.Paper, transparency = 0.6, slant = false }, {
+		Name = "Rule", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.5, 26), Size = UDim2.fromOffset(0, 1), ZIndex = 2,
+	})
 end
 
 local function placeCursor(label)
@@ -87,7 +105,46 @@ function CardController.hide()
 	root.Visible = false
 end
 
-function CardController.show(kind, lines, seconds)
+-- Letter-spacing the way docs/05 S01 asks: a space between characters, three between words.
+local function spaced(text)
+	local out = {}
+	for _, code in utf8.codes(text) do
+		local char = utf8.char(code)
+		table.insert(out, if char == " " then "  " else char)
+	end
+	return table.concat(out, " ")
+end
+
+local function playTitle(lines, times, mine)
+	title.Visible = true
+	for index, text in ipairs(lines or {}) do
+		if token ~= mine then
+			return
+		end
+		local hold = (times and times[index]) or 2
+		titleLabel.Text = spaced(text)
+		titleLabel.TextSize = if index == 1 then 28 else 18
+		titleLabel:FindFirstChildOfClass("UITextSizeConstraint").MaxTextSize = titleLabel.TextSize
+		titleLabel.TextTransparency = 1
+		titleLabel.Position = UDim2.new(0.5, 0, 0.5, 10)
+		titleRule.Size = UDim2.fromOffset(0, 1)
+		local rise = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+		TweenService:Create(titleLabel, rise, { TextTransparency = 0, Position = UDim2.fromScale(0.5, 0.5) }):Play()
+		if index > 1 then
+			TweenService:Create(titleRule, TweenInfo.new(0.9, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(math.min(900, #text * 22), 1) }):Play()
+		end
+		task.wait(math.max(hold - 0.5, 0.6))
+		if token ~= mine then
+			return
+		end
+		local out = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		TweenService:Create(titleLabel, out, { TextTransparency = 1 }):Play()
+		TweenService:Create(titleRule, out, { Size = UDim2.fromOffset(0, 1) }):Play()
+		task.wait(0.5)
+	end
+end
+
+function CardController.show(kind, lines, seconds, times)
 	token += 1
 	local mine = token
 	state.kind, state.visible, state.text = kind, true, table.concat(lines or {}, "\n")
@@ -99,6 +156,12 @@ function CardController.show(kind, lines, seconds)
 	fill.Size = UDim2.fromScale(0, 1)
 	root.Visible = true
 	block.Visible = kind == "Transit"
+	track.Visible = kind == "Transit"
+	title.Visible = false
+	if kind == "Title" then
+		task.spawn(playTitle, lines, times, mine)
+		return
+	end
 	for _, pair in ipairs(corners) do
 		pair[1].Size, pair[2].Size = UDim2.fromOffset(0, 2), UDim2.fromOffset(2, 0)
 		local draw = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -151,7 +214,7 @@ function CardController.Start()
 			return
 		end
 		if payload.show then
-			CardController.show(payload.kind, payload.lines, payload.seconds)
+			CardController.show(payload.kind, payload.lines, payload.seconds, payload.times)
 		else
 			CardController.hide()
 		end

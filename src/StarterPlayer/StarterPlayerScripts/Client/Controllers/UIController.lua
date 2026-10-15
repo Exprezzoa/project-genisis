@@ -18,7 +18,8 @@ local Net = require(Shared.Modules.Net)
 
 -- Full-screen layers ignore the inset; HUD layers stay inside the safe area.
 local FULL_SCREEN = { Cards = true, Menu = true, Letterbox = true, Fade = true }
-local LAYERS = { "HUD", "Prompts", "Dialogue", "Cards", "Menu", "Letterbox", "Fade" }
+-- Subtitles sit over the fade: radio lines play over black (S01, S33) and through cinematics (D-083).
+local LAYERS = { "HUD", "Prompts", "Dialogue", "Cards", "Menu", "Letterbox", "Fade", "Subtitles" }
 -- Core UI this game replaces or doesn't use (Tab opens the Mission Log; there is no on-foot health).
 local HIDDEN_CORE = { Enum.CoreGuiType.PlayerList, Enum.CoreGuiType.Backpack, Enum.CoreGuiType.Health, Enum.CoreGuiType.EmotesMenu }
 

@@ -32,6 +32,12 @@ function Builder.Build(opts)
 		end
 	end
 	C.standIn(ctx, "Lectern_StandIn", V(-122.75, 0, -21), V(-121.25, 3.6, -19), { Color = ctx.P.STEEL_DARK })
+	-- The slide screen on the west wall (Z -35..-5, Y 3..13, its +X face toward the seats). Each client draws
+	-- the slides on it (Client/UI/BriefingScreen); the base is docs/07 §6's screen color.
+	BK.part(G, {
+		Name = "BriefingScreen", Size = V(0.2, 10, 30), CFrame = CFrame.new(-128.9, 8, -20), Color = "#1B2A33",
+		Material = "SmoothPlastic", CanCollide = false, CastShadow = false,
+	})
 
 	BK.trigger(G, "TRG_BRIEFING_ENTER", V(-92, 0, -24), V(-82, 10, -16), "TRG_BRIEFING_ENTER")
 	BK.camPoint(G, "CAM_BRF_WIDE", V(-92, 9, -20), V(-125, 7, -20))

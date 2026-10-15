@@ -3,7 +3,7 @@
 --
 -- Action -> inputs per input context, bound through ContextActionService by InputController.
 -- Movement, camera, jump and ProximityPrompt interaction (E / X / tap) stay with the Roblox defaults.
--- Lock-on (R, C) arrives with the Titans; the Dialogue context with Phase 5, the Cinematic context with the cinematics.
+-- The Dialogue and Cinematic contexts suspend gameplay (InputController.hold keeps a cinematic under its lines).
 
 local K = Enum.KeyCode
 local M = Enum.UserInputType
@@ -39,7 +39,10 @@ return {
 		Choice1 = { K.One }, Choice2 = { K.Two }, Choice3 = { K.Three }, Choice4 = { K.Four },
 		ChoiceUp = { K.Up, K.DPadUp }, ChoiceDown = { K.Down, K.DPadDown },
 	},
-	Cinematic = {},
+	-- A playing cinematic: hold to skip (docs/11 §1: 1.0 s; only seen or skippable ones). Touch: the SKIP button.
+	Cinematic = {
+		Skip = { K.Space, K.ButtonA },
+	},
 	-- While a menu is open the same keys close it; B closes too.
 	Menu = {
 		MissionLog = MENU_KEYS.MissionLog,
@@ -52,8 +55,8 @@ return {
 
 	-- Glyph text per device for the UI (docs/11 §1 "Device glyphs").
 	Glyphs = {
-		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", ShiftLock = "CTRL", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", LockOn = "R", CycleZone = "C", MissionLog = "TAB", Menu = "P" },
-		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", ShiftLock = "D-PAD DOWN", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", LockOn = "R3", CycleZone = "D-PAD RIGHT", MissionLog = "VIEW", Menu = "D-PAD" },
-		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", ShiftLock = "AIM", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", LockOn = "LOCK", CycleZone = "LOCK", MissionLog = "LOG", Menu = "≡" },
+		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", ShiftLock = "CTRL", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", LockOn = "R", CycleZone = "C", MissionLog = "TAB", Menu = "P", Skip = "SPACE" },
+		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", ShiftLock = "D-PAD DOWN", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", LockOn = "R3", CycleZone = "D-PAD RIGHT", MissionLog = "VIEW", Menu = "D-PAD", Skip = "A" },
+		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", ShiftLock = "AIM", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", LockOn = "LOCK", CycleZone = "LOCK", MissionLog = "LOG", Menu = "≡", Skip = "SKIP" },
 	},
 }

@@ -54,7 +54,7 @@ local UIStyle = {
 
 	Motion = { Time = 0.2, Style = Enum.EasingStyle.Quad, Direction = Enum.EasingDirection.Out, Slide = 12 },
 
-	DisplayOrder = { HUD = 10, Prompts = 15, Dialogue = 20, Cards = 30, Menu = 40, Letterbox = 50, Fade = 90, Loading = 100 },
+	DisplayOrder = { HUD = 10, Prompts = 15, Dialogue = 20, Cards = 30, Menu = 40, Letterbox = 50, Fade = 90, Subtitles = 95, Loading = 100 },
 
 	-- UIScale = clamp(min(viewportX / 1920, viewportY / 1080), 0.65, 1.25); x 1.15 on phones (smallest side < 500).
 	Scale = { Reference = Vector2.new(1920, 1080), Min = 0.65, Max = 1.25, PhoneSide = 500, PhoneBoost = 1.15 },

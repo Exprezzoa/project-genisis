@@ -3,18 +3,19 @@
 --
 -- Completion conditions of the Sequence Runner. A compiled condition is { ready() -> boolean,
 -- on(kind, key, who) -> boolean }: ready() looks at the world as it is when the step arms, on() is asked for
--- every event SequenceService passes along ("trigger", "interact", "event", "timer", "tick").
+-- every event SequenceService passes along ("trigger", "interact", "event", "line", "timer", "tick").
 --
 --   Conditions.bind({ publish, notify })
 --   Conditions.compile(runner, token, cond) -> compiled
 --
--- Built: trigger, interact, counter, event, timer, proximity, any, all.
+-- Built: trigger, interact, counter, event, line, timer, proximity, zone, any, all.
 
 local Services = script.Parent.Parent.Services
 local CharacterService = require(Services.CharacterService)
 local FlagService = require(Services.FlagService)
 local FrameService = require(Services.FrameService)
 local TriggerService = require(Services.TriggerService)
+local ZoneService = require(Services.ZoneService)
 
 local Conditions = {}
 
@@ -46,8 +47,9 @@ function Conditions.compile(runner, token, cond)
 				return k == "trigger" and key == cond.id and (who == nil or who == eventWho)
 			end,
 		}
-	elseif kind == "interact" or kind == "event" then
-		local wanted = if kind == "interact" then cond.id else cond.name
+	elseif kind == "interact" or kind == "event" or kind == "line" then
+		-- "line": a dialogue line was shown (DialogueService.NodeShown; cond.id is the line id).
+		local wanted = if kind == "event" then cond.name else cond.id
 		-- An event that leaves a lasting state also counts when that state already holds as the step arms: a player
 		-- who boarded while the last lines of the step before still played must not wait forever.
 		local holds = STATE_OF_EVENT[wanted]
@@ -103,6 +105,12 @@ function Conditions.compile(runner, token, cond)
 				return elapsed
 			end,
 		}
+	elseif kind == "zone" then
+		-- The player (on foot or in the Frame) is in that zone of Config/Zones (looked at on every tick).
+		local function inside()
+			return ZoneService.getZone(player) == cond.id
+		end
+		return { ready = inside, on = inside }
 	elseif kind == "proximity" then
 		-- The player's Frame (or the character on foot) within `radius` of a spawn marker, along the ground.
 		local function near()

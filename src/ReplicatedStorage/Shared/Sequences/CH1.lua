@@ -1,16 +1,20 @@
 --!nonstrict
 -- Shared/Sequences/CH1.lua  (docs/13_missions_dialogue_relationships.md §1; docs/05_chapter1_script.md)
 --
--- Chapter 1 as data for the Sequence Runner. So far: the deployment from boarding to the launch (S08-S10) and the
--- Outpost 07 mission to the return (S20-S33). The other hub scenes (S01-S07, S40-S43) come with Phase 5, and so do
--- the cinematics: for now the Strider just rises while its lines play, the Watcher is a stand-in the player
--- watches from the cockpit (no choice C3 yet), and S33's anomaly is a fade to black. Mara's Unit 01 is the "ally" action
+-- Chapter 1 as data for the Sequence Runner. So far: the morning in the hub (S01-S07: NPCService, the hangar
+-- reveal and briefing cinematics), the deployment from boarding to the launch (S08-S10) and the Outpost 07
+-- mission to the return (S20-S33). The evening (S40-S43) and the other cinematics are still to come: for now
+-- the Strider just rises while its lines play, the Watcher is a stand-in the player watches from the cockpit (no
+-- choice C3 yet), and S33's anomaly is a fade to black. Mara's Unit 01 is the "ally" action
 -- (AllyFrameService): she follows on the road and the trail, holds in the courtyard and at the regroup mark, and
 -- fights beside the player.
 -- Step ids follow the script's scene numbers. A step with `checkpoint` saves when it completes, or when it
 -- begins with checkpointOnEnter (docs/13 §1.1). `checkpoints` says which step a saved checkpoint loads into
 -- (docs/05 §11); that step's onRestore puts the player where the table says.
 
+-- The Central Command PA (docs/05 S03) and where it can be heard: the building, not the hangar or the yard.
+local PA_LINES = { "DLG_CH1_PA_A1", "DLG_CH1_PA_A2", "DLG_CH1_PA_A3", "DLG_CH1_PA_A4" }
+local CENTRAL_COMMAND = { "Quarters", "Briefing", "Medical", "Equipment", "Research", "OpsHall", "Corridors", "Arrival", "ObservationDeck" }
 local CLUES = { "INT_CLUE_A", "INT_CLUE_B", "INT_CLUE_C" }
 local CLUE_FLAGS = { INT_CLUE_A = "CH1_CLUE_A", INT_CLUE_B = "CH1_CLUE_B", INT_CLUE_C = "CH1_CLUE_C" }
 local POWER_ON = { "zoneState", zone = "Outpost07", key = "Power", value = true }
@@ -46,11 +50,102 @@ return {
 	},
 	steps = {
 		{
-			-- Until S01-S07 are written (Phase 5) a new profile starts here, on foot where it spawned; CH1_BRIEFED puts
-			-- the player at the briefing room door in the morning (docs/05 §11).
+			-- S01 (docs/05): black, the title card, the morning broadcast; on S01_04 the picture comes up in Q-3, at
+			-- the desk, and control returns.
+			id = "S01_COLD_OPEN",
+			onEnter = {
+				{ "fade", to = 1, duration = 0 },
+				{ "controls", locked = true },
+				{ "lighting", preset = "MORNING", instant = true },
+				{ "frame", command = "park", spawn = "SPAWN_Q3_DESK" },
+				{ "ally", mode = "Parked" },
+				{ "npcs", set = "HUB_MORNING" },
+				{ "card", kind = "Title", lines = { "2187", "NEW HALDEN — HALDEN CENTRAL COMMAND" }, times = { 1.5, 2.5 } },
+				{ "dialogue", id = "DLG_CH1_COLD_OPEN" },
+			},
+			complete = { "line", id = "S01_04" },
+			onComplete = {
+				{ "fade", to = 0, duration = 1.2 },
+				{ "controls", locked = false },
+			},
+		},
+		{
+			-- S02-S03: free roam from Q-3 to the hangar. The Q-3 prompts, the Ops Hall's, Tamsin and Okafor (Talk) and
+			-- the officers' barks are always there; the PA plays in Central Command until the briefing.
+			id = "S02_QUARTERS",
+			onEnter = {
+				{ "paLoop", lines = PA_LINES, every = 45, zones = CENTRAL_COMMAND, untilStep = "S07_BRIEFING" },
+			},
+			objective = "OBJ_CH1_HANGAR",
+			waypoint = { spawn = "WP_HANGAR_ENTRANCE" },
+			complete = { "trigger", id = "TRG_HANGAR_REVEAL", who = "foot" },
+		},
+		{
+			-- S04: the hangar reveal, first entry only; then the waypoint moves to the Safe Viewing Line, where Mara is.
+			id = "S04_REVEAL",
+			onEnter = {
+				{ "cinematic", id = "CIN_HANGAR_REVEAL", once = "SEEN_HANGAR_REVEAL" },
+			},
+			objective = "OBJ_CH1_HANGAR",
+			waypoint = { pos = Vector3.new(0, 0, -168) },
+			complete = { "proximity", spawn = "MARK_MARA_VIEW", radius = 12 },
+		},
+		{
+			-- S05: Mara at the viewing line (choice C1); Hollis walks in for MH_14 and back after MH_18 (line actions).
+			id = "S05_MARA",
+			onEnter = {
+				{ "dialogue", id = "DLG_CH1_MARA_HANGAR", block = true },
+			},
+			complete = { "timer", seconds = 0 },
+		},
+		{
+			-- S06: Mara leads the way to Briefing Room One (a follower: she waits if the player is 30 studs behind);
+			-- the walk banter in the Ops Hall; Vale is already at the lectern.
+			id = "S06_WALK",
+			onEnter = {
+				{ "npcs", add = { "Vale" } },
+				{ "npc", id = "Mara", walk = "NAV_BRF_IN", follow = true },
+			},
+			objective = "OBJ_CH1_BRIEFING",
+			waypoint = { spawn = "WP_BRIEFING_DOOR" },
+			parallel = {
+				{ when = { "zone", id = "OpsHall" }, actions = { { "dialogue", id = "DLG_CH1_WALK" } } },
+			},
+			complete = { "trigger", id = "TRG_BRIEFING_ENTER", who = "foot" },
+		},
+		{
+			-- S07: the briefing. Black, Elias and Mara on the tier-2 bench, the cinematic (Vale's lines cut the shots and
+			-- the slides; choice C2), black, both at the door, BR_17. Checkpoint CH1_BRIEFED when it ends.
+			id = "S07_BRIEFING",
+			checkpoint = "CH1_BRIEFED",
+			onEnter = {
+				{ "fade", to = 1, duration = 0.3 },
+				{ "npc", id = "Mara", stop = true },
+				{ "sit", at = "SEAT_BRF_ELIAS", height = "BENCH" },
+				{ "npc", id = "Mara", sit = "SEAT_BRF_MARA", height = "BENCH" },
+				{ "cinematic", id = "CIN_BRIEFING", block = false },
+				{ "wait", seconds = 0.4 },
+				{ "fade", to = 0, duration = 0.6 },
+				{ "dialogue", id = "DLG_CH1_BRIEFING", block = true },
+				{ "fade", to = 1, duration = 0.6 },
+				{ "cinematic", id = "CIN_BRIEFING", stop = true },
+				{ "sit", stand = true, at = "SPAWN_BRF_DOOR" },
+				{ "npc", id = "Mara", place = { -85, 0, -23, "+X" } },
+				{ "fade", to = 0, duration = 0.6 },
+				{ "dialogue", id = "DLG_CH1_BRIEF_END" },
+			},
+			complete = { "timer", seconds = 0 },
+		},
+		{
+			-- After the briefing Mara walks to Bay 1 and boards: she fades out at the Bay 1 hatch (docs/05 S07). CH1_BRIEFED
+			-- loads here: the briefing room door in the morning, Mara already aboard (docs/05 §11).
 			id = "S08_BOARD",
+			onEnter = {
+				{ "npc", id = "Mara", walk = "NAV_BAY1_HATCH", despawnAfter = true },
+			},
 			onRestore = {
 				{ "lighting", preset = "MORNING", instant = true }, { "frame", command = "park", spawn = "SPAWN_BRF_DOOR" }, { "ally", mode = "Parked" },
+				{ "npcs", set = "HUB_BRIEFED" },
 			},
 			objective = "OBJ_CH1_BOARD",
 			waypoint = { spawn = "WP_BAY2_BRIDGE" },

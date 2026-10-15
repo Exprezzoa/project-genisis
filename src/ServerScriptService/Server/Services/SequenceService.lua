@@ -9,7 +9,7 @@
 --   start(player, sequenceId, stepId?, restoring?)     stop(player)     (a rejoining player resumes by itself)
 --   jump(player, stepId) -> ok, message                 the step as a checkpoint load would enter it (/step)
 --   loadCheckpoint(player, checkpoint) -> ok, message   the step that checkpoint loads into (docs/05 §11)
---   notify(player, kind, key, who?)                     feed an event by hand: "trigger" | "interact" | "event"
+--   notify(player, kind, key, who?)                     feed an event by hand: "trigger" | "interact" | "event" | "line"
 --   say(player, dialogueId, urgent?)                    a radio dialogue outside the steps
 --   getState(player) -> { sequenceId, stepId, objective, args, armed }?
 --   StepEntered / StepCompleted: Signal(player, stepId)       ZoneState: Signal(zone, key, value)
@@ -342,6 +342,9 @@ function SequenceService.Start()
 	end)
 	InteractionService.Interacted:Connect(function(player, interactId)
 		SequenceService.notify(player, "interact", interactId)
+	end)
+	DialogueService.NodeShown:Connect(function(player, _, nodeId)
+		SequenceService.notify(player, "line", nodeId)
 	end)
 	FrameService.Boarded:Connect(function(player)
 		SequenceService.notify(player, "event", "FrameBoarded")

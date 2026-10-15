@@ -105,6 +105,17 @@ chain(briefing, {
 })
 
 return {
+	-- S01: the morning broadcast over black; the picture comes up on S01_04 (the step waits for that line).
+	DLG_CH1_COLD_OPEN = {
+		mode = "radio",
+		start = "S01_01",
+		nodes = chain({}, {
+			{ "S01_01", "PA", "Good morning, Halden. Day four thousand one hundred and twelve without a breach of the Bulwark." },
+			{ "S01_02", "PA", "Ash advisory for the eastern districts. Masks recommended after noon." },
+			{ "S01_03", "PA", "And to the newest pilots of the Third: the whole city's proud of you. The Frame stands—" },
+			{ "S01_04", "E", "—humanity stands." },
+		}),
+	},
 	DLG_CH1_THOUGHTS = {
 		mode = "radio",
 		nodes = {
