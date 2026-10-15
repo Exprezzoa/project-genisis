@@ -40,6 +40,20 @@ Locomotion.Strider = {
 	bladeArm = "Right",
 }
 
+-- Elias's Titan form (D-095): the same 80-stud body as the Watcher, walking and running like a giant person
+-- (speeds = FrameConfig.Shifter). Not in the docs yet: a long human stride, then a run that leans and pumps.
+Locomotion.Shifter = {
+	walk = {
+		speed = 28, stepLength = 24, hipSwing = 24, kneeBend = -40, ankle = -0.5, rootBob = 1.4, rootRoll = 2,
+		waistYaw = 5, armSwing = { other = 14, blade = 14 }, lean = -4, headStabilized = true,
+	},
+	stride = {
+		speed = 50, stepLength = 34, hipSwing = 34, kneeBend = -70, ankle = -0.5, rootBob = 2.4, rootRoll = 3,
+		waistYaw = 9, armSwing = { other = 32, blade = 32 }, lean = -12, headStabilized = true,
+	},
+	bladeArm = "Right",
+}
+
 -- docs/08 §4.5 "Watcher careful walk" (D-091): its lengths x 80/68 for the 80-stud body (D-047); speed 10 is the
 -- careful walk of docs/10 §3. Feet lift high: swingLift bends hip, knee and ankle of the swinging leg like a
 -- crouch (a degrees lifts the foot about 31 x (1 - cos a) studs: 32 gives the doc's 4 studs x 80/68). Above

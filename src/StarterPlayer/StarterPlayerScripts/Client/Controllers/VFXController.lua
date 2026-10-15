@@ -271,10 +271,11 @@ local function watch(frame)
 		watchConnection = nil
 	end
 	watchedFrame = frame
-	-- Through the cockpit glass the world is warm; on foot it isn't.
+	-- Through the cockpit glass the world is warm; on foot it isn't, nor in the Titan form (no Unit, no cockpit).
 	local tint = CameraFeel.Frame.tint
+	local glass = frame ~= nil and frame:GetAttribute("Unit") ~= nil
 	TweenService:Create(cockpit, TweenInfo.new(tint.time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		TintColor = if frame then Color3.new(1, 1, 1):Lerp(tint.color, tint.amount) else Color3.new(1, 1, 1),
+		TintColor = if glass then Color3.new(1, 1, 1):Lerp(tint.color, tint.amount) else Color3.new(1, 1, 1),
 	}):Play()
 	if frame then
 		watchConnection = frame:GetAttributeChangedSignal("Action"):Connect(function()

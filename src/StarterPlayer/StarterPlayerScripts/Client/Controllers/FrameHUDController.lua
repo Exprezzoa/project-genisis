@@ -514,8 +514,8 @@ end
 
 -- A first boarding (the Frame plays Boot) runs the cockpit boot overlay before the HUD comes up (docs/05 S08).
 local function onPiloting(model)
-	if not model then
-		show(nil)
+	if not model or model:GetAttribute("Unit") == nil then
+		show(nil) -- on foot, or riding the Titan form (no Unit: ShifterController has its own HUD)
 		return
 	end
 	task.spawn(function()

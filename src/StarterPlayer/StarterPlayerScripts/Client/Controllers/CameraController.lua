@@ -87,7 +87,7 @@ end
 
 -- The player looks around only while piloting with nothing (menu, dialogue, cinematic) in the way.
 local function active(): boolean
-	return frame ~= nil and InputController.getContext() == "Frame"
+	return frame ~= nil and InputController.isGameplay() -- the Frame context, or riding the Titan form (D-095)
 end
 
 local function refreshMouse()

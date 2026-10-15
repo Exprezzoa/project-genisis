@@ -38,6 +38,7 @@ local FrameService = require(script.Parent.FrameService)
 local InteractionService = require(script.Parent.InteractionService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local RetryService = require(script.Parent.RetryService)
+local ShifterService = require(script.Parent.ShifterService)
 local TitanService = require(script.Parent.TitanService)
 local TriggerService = require(script.Parent.TriggerService)
 
@@ -251,6 +252,7 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 		end
 		DialogueService.stop(player)
 		Net.fireClient(player, "UI_Card", { show = false, dismiss = true }) -- a card still up (one waiting for Continue too)
+		ShifterService.reset(player) -- out of a Titan form at once; a step's leave to shift ends with it (D-095)
 	end
 	enter(runner, index, restoring == true)
 	return true, sequence.steps[index].id

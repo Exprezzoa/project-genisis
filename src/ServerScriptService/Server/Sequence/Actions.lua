@@ -14,7 +14,7 @@
 -- now), toast, zoneState, checkpoint, frame (forceBoard, park, repair,
 -- autoWalk, stopWalk), door, card, spawnTitan, despawnTitan, titanCommand (with the Watcher's: WatcherPath,
 -- WatcherAnim, WatcherLook, WatcherFace, WatcherTurn, PeelRover, TakeCanister), unlock (a case's lock light, S32),
--- ally (Mara's Unit 01),
+-- ally (Mara's Unit 01), shifting (where Elias may shift),
 -- cinematic, npcs, npc, sit (the player on a seat mark), paLoop (the Central Command PA), controls, barks.
 
 local CollectionService = game:GetService("CollectionService")
@@ -35,6 +35,7 @@ local FlagService = require(Services.FlagService)
 local FrameService = require(Services.FrameService)
 local InteractionService = require(Services.InteractionService)
 local NPCService = require(Services.NPCService)
+local ShifterService = require(Services.ShifterService)
 local TitanService = require(Services.TitanService)
 local Doors = require(script.Parent.Doors)
 local SceneActions = require(script.Parent.SceneActions)
@@ -411,6 +412,12 @@ end
 -- { "controls", locked = true | false }: the player's movement (S01 keeps it still while the screen is black).
 function actions.controls(runner, a)
 	CharacterService.setControlLocked(runner.player, a.locked == true)
+end
+
+-- { "shifting", allowed = true | false }: whether Elias may shift into his Titan form here, besides the Training
+-- Yard (D-095). A load takes it back. No Chapter 1 step allows it.
+function actions.shifting(runner, a)
+	ShifterService.setAllowed(runner.player, a.allowed ~= false)
 end
 
 -- Cinematics (CinematicService): { "cinematic", id, block = true, once = "FLAG", titan = id? } plays it (skipped when the flag is

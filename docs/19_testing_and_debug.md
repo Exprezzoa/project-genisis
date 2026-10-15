@@ -29,6 +29,7 @@ Opened with **F2** (a debug panel with a command box) or typed as chat-like comm
 | `/flags` | Print all flags and relationships |
 | `/flag <name> [on/off]` | Set or clear a flag |
 | `/rel <var> <value>` | Set a relationship |
+| `/shifter [on\|off]` | The ability to shift into Elias's Titan form by holding Z (profile flag `CAN_SHIFT`; toggles without an argument). Works in the Training Yard (`/zone training`) or where a story step allows it (D-095) |
 | `/give xp <n>` / `/give credits <n>` | Progression testing |
 | `/save` / `/wipe` | Force save / reset the profile (with confirmation) |
 | `/dsfail on/off` | Simulate DataStore failures |

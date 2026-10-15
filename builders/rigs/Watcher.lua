@@ -3,6 +3,8 @@
 -- docs/10_titans.md §3, docs/08_rigs_and_animation.md §5.3; D-047 (the Watcher is the user's AttackTitan), D-091.
 --
 --   Build({ BK = BK })  -> stats     builds ServerStorage.Templates.Titans.Watcher
+--   copy(BK, { name, leaveOut? }) -> model, info      the rigged copy alone (unparented), for builders/rigs/Shifter;
+--                                    leaveOut(part) -> true drops a part as well; info = { main, jointAt, hrp, top, low }
 --
 -- The Watcher is the user's own Titan model (ServerStorage.Reference.AttackTitan, 80 studs), used as it is: its
 -- hair, ears, eyes and wrist bands stay (Q-015). The reference is never changed; this builds a copy the Pose
@@ -37,9 +39,7 @@ local function abs(v)
 	return V(math.abs(v.X), math.abs(v.Y), math.abs(v.Z))
 end
 
-function Builder.Build(opts)
-	local BK = opts.BK
-	local startClock = os.clock()
+function Builder.copy(BK, opts)
 	local ServerStorage = game:GetService("ServerStorage")
 	local reference = ServerStorage:FindFirstChild("Reference") and ServerStorage.Reference:FindFirstChild("AttackTitan")
 	if not reference then
@@ -107,11 +107,11 @@ function Builder.Build(opts)
 		end
 	end
 
-	-- 3. Leave out the hit parts and the old root; everything visible stays.
+	-- 3. Leave out the hit parts and the old root (and whatever opts.leaveOut names); everything visible stays.
 	local kept = {}
 	for _, part in ipairs(parts) do
 		local isMain = main[owner[part] or ""] == part
-		if (part.Transparency >= 1 and not isMain) or part == main.HumanoidRootPart then
+		if (part.Transparency >= 1 and not isMain) or part == main.HumanoidRootPart or (not isMain and opts.leaveOut and opts.leaveOut(part)) then
 			part.Parent = nil
 		else
 			if not owner[part] then -- nothing held it: give it to the nearest main part
@@ -144,13 +144,8 @@ function Builder.Build(opts)
 	end
 
 	-- 5. A clean rig: main parts in the model, everything else welded inside its main part, named joints.
-	local templates = BK.folder(BK.folder(ServerStorage, "Templates"), "Titans")
-	local old = templates:FindFirstChild("Watcher")
-	if old then
-		old:Destroy()
-	end
 	local model = Instance.new("Model")
-	model.Name = "Watcher"
+	model.Name = opts.name
 	for _, part in ipairs(parts) do
 		for _, child in ipairs(part:GetChildren()) do
 			if child:IsA("JointInstance") or child:IsA("WeldConstraint") or child:IsA("LuaSourceContainer") or child:IsA("ValueBase") then
@@ -187,15 +182,27 @@ function Builder.Build(opts)
 		motor.C1 = part1.CFrame:ToObjectSpace(CFrame.new(position))
 		motor.Parent = part1
 	end
+	source:Destroy()
+	return model, { main = main, jointAt = jointAt, hrp = hrp, top = top, low = low }
+end
+
+function Builder.Build(opts)
+	local BK = opts.BK
+	local startClock = os.clock()
+	local templates = BK.folder(BK.folder(game:GetService("ServerStorage"), "Templates"), "Titans")
+	local old = templates:FindFirstChild("Watcher")
+	if old then
+		old:Destroy()
+	end
+	local model, info = Builder.copy(BK, { name = "Watcher" })
 	-- Class = its pose set (Shared/Poses/Watcher); PivotToFeet = the root's height above its feet, so the server
 	-- can stand it on a ground point. No TitanType: it isn't a fighting Titan (lock-on, barks and the Titan HUD
 	-- and effects pass it by).
-	BK.attr(model, { Class = "Watcher", PivotToFeet = hrp.Position.Y, Height = top - low })
+	BK.attr(model, { Class = "Watcher", PivotToFeet = info.hrp.Position.Y, Height = info.top - info.low })
 	model.Parent = templates
-	source:Destroy()
 	local stats = BK.report(model, startClock)
-	stats.height = top - low
-	stats.hipHeight = hrp.Position.Y
+	stats.height = info.top - info.low
+	stats.hipHeight = info.hrp.Position.Y
 	return stats
 end
 

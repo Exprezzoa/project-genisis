@@ -52,6 +52,7 @@ return {
 		step = { side = "server", phase = 4, usage = "/step <stepId>" },
 		checkpoint = { side = "server", phase = 4, usage = "/checkpoint <id> [save]" },
 		rel = { side = "server", phase = 5, usage = "/rel <var> <value>" },
+		shifter = { side = "server", phase = 5, usage = "/shifter [on|off]" }, -- the ability to shift (hold Z), D-095
 		give = { side = "server", phase = 6, usage = "/give xp|credits <n>" },
 	},
 

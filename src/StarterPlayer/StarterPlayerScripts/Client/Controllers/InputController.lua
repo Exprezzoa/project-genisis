@@ -2,7 +2,7 @@
 -- Client/Controllers/InputController.lua  (docs/11_controls_and_camera.md)
 --
 -- Input contexts and bindings (Config/Bindings) through ContextActionService, plus the device in use.
--- Exactly one context is bound at a time: a gameplay context (OnFoot, Frame) or one that suspends it
+-- Exactly one context is bound at a time: a gameplay context (OnFoot, Frame, Shifter) or one that suspends it
 -- (Dialogue, Cinematic, Menu). restoreGameplay() goes back to the last gameplay context, or to the held
 -- context: hold("Cinematic") keeps a playing cinematic under the dialogue or menu opened over it.
 --
@@ -20,7 +20,7 @@ local Bindings = require(Shared.Config.Bindings)
 local Signal = require(Shared.Modules.Signal)
 
 local ACTION_PREFIX = "PG_"
-local GAMEPLAY = { OnFoot = true, Frame = true }
+local GAMEPLAY = { OnFoot = true, Frame = true, Shifter = true }
 
 local InputController = {}
 

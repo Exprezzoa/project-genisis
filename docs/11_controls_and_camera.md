@@ -16,6 +16,10 @@ All bindings live in `Shared/Config/Bindings.lua` and are bound through **Contex
 | Interact (ProximityPrompt) | E | X | Tap the prompt |
 | Mission Log | Tab | View/Back (`ButtonSelect`) | `LOG` button (top-left) |
 | Menu (pause/settings) | P or M | D-pad Up | `≡` button (top-right) |
+| Shift into the Titan form (user request 2026-10-15, D-095): only with the ability, in the Training Yard or where a story step allows it | Hold Z (1.0 s) | Hold Y | not built yet |
+
+### In the Titan form (D-095)
+Ridden like a Frame (Move, Camera and Menu as below); Stride = run. **Hold Z / Y (1.0 s)** returns to human form.
 
 ### Piloting a Frame
 | Action | Keyboard / mouse | Gamepad | Touch |

@@ -16,6 +16,14 @@ local MENU_KEYS = {
 return {
 	OnFoot = {
 		Sprint = { K.LeftShift, K.ButtonL3 },
+		Shift = { K.Z, K.ButtonY }, -- hold: Elias shifts into his Titan form where it is allowed (D-095)
+		MissionLog = MENU_KEYS.MissionLog,
+		Menu = MENU_KEYS.Menu,
+	},
+	-- Elias in his Titan form (D-095): walked like a Frame; hold Shift again to come back.
+	Shifter = {
+		Stride = { K.LeftShift, K.ButtonL3 },
+		Shift = { K.Z, K.ButtonY },
 		MissionLog = MENU_KEYS.MissionLog,
 		Menu = MENU_KEYS.Menu,
 	},
@@ -55,8 +63,8 @@ return {
 
 	-- Glyph text per device for the UI (docs/11 §1 "Device glyphs").
 	Glyphs = {
-		KeyboardMouse = { Interact = "E", Sprint = "SHIFT", Stride = "SHIFT", ShiftLock = "CTRL", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", LockOn = "R", CycleZone = "C", MissionLog = "TAB", Menu = "P", Skip = "SPACE" },
-		Gamepad = { Interact = "X", Sprint = "L3", Stride = "L3", ShiftLock = "D-PAD DOWN", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", LockOn = "R3", CycleZone = "D-PAD RIGHT", MissionLog = "VIEW", Menu = "D-PAD", Skip = "A" },
-		Touch = { Interact = "TAP", Sprint = "SPRINT", Stride = "STRIDE", ShiftLock = "AIM", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", LockOn = "LOCK", CycleZone = "LOCK", MissionLog = "LOG", Menu = "≡", Skip = "SKIP" },
+		KeyboardMouse = { Interact = "E", Shift = "Z", Sprint = "SHIFT", Stride = "SHIFT", ShiftLock = "CTRL", Light = "LMB", Heavy = "RMB", Dodge = "SPACE", Special = "Q", CoreStrike = "F", LockOn = "R", CycleZone = "C", MissionLog = "TAB", Menu = "P", Skip = "SPACE" },
+		Gamepad = { Interact = "X", Shift = "Y", Sprint = "L3", Stride = "L3", ShiftLock = "D-PAD DOWN", Light = "RB", Heavy = "RT", Dodge = "B", Special = "LB", CoreStrike = "Y", LockOn = "R3", CycleZone = "D-PAD RIGHT", MissionLog = "VIEW", Menu = "D-PAD", Skip = "A" },
+		Touch = { Interact = "TAP", Shift = "SHIFT", Sprint = "SPRINT", Stride = "STRIDE", ShiftLock = "AIM", Light = "LIGHT", Heavy = "HEAVY", Dodge = "DODGE", Special = "SPECIAL", CoreStrike = "CORE", LockOn = "LOCK", CycleZone = "LOCK", MissionLog = "LOG", Menu = "≡", Skip = "SKIP" },
 	},
 }

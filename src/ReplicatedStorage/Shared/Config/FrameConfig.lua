@@ -41,6 +41,24 @@ FrameConfig.Vanguard = {
 	hatch = { openAngle = -100, time = 0.6 },
 }
 
+-- Not a Frame: Elias's Titan form (D-095) is ridden on the Frame's controls and camera (FrameController,
+-- CameraController), so it has an entry here for how it moves. It has no Unit, integrity, energy or weapons;
+-- context = the input context while riding it (Config/Bindings.Shifter). Speeds are a giant on foot: a walk and
+-- a run.
+FrameConfig.Shifter = {
+	rig = "Shifter", -- ServerStorage.Templates.Titans.Shifter_<who>, Shared.Poses.Shifter
+	scale = 1,
+	height = 80,
+	hipHeight = 24,
+	walkSpeed = 28,
+	strideSpeed = 50,
+	acceleration = 60,
+	deceleration = 90,
+	turnRate = { free = 120, locked = 160, stride = 90 },
+	limp = { threshold = 0, walkScale = 1 },
+	context = "Shifter",
+}
+
 -- Units of the Vertical Slice (docs/09 §3). spawn = registry id of the bay marker (map_02 §2).
 FrameConfig.Units = {
 	["01"] = { class = "Vanguard", pilot = "Mara", accent = "VG_ACCENT_MARA", spawn = "FRAME_BAY1", playable = false },

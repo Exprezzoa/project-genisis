@@ -4,6 +4,7 @@
 -- Piloting on the pilot's own machine, which owns the Frame's physics: camera-relative movement with
 -- acceleration and deceleration, stride, the turn-rate limited facing, and the switch between the on-foot
 -- and Frame input contexts and cameras. The server decides who pilots what (the Frame's Pilot attribute).
+-- Elias's Titan form (workspace.Shifters, D-095) is ridden the same way, in its own input context (FrameConfig.Shifter).
 --
 -- The move input is the seated pilot's own Humanoid.MoveDirection: Roblox's control script keeps filling it
 -- from the keyboard, gamepad or touch stick, already turned by the camera, and a seated Humanoid doesn't act
@@ -142,7 +143,7 @@ local function update(dt: number)
 	if not (model and pilotHumanoid and rootPart and rootPart.Parent) then
 		return
 	end
-	local canMove = moveScale > 0 and MOVING_STATES[model:GetAttribute("State")] == true and InputController.getContext() == "Frame"
+	local canMove = moveScale > 0 and MOVING_STATES[model:GetAttribute("State")] == true and InputController.getContext() == (config.context or "Frame")
 
 	-- Where the pilot steers. Locked on, the stick is read against the line to the target (forward = toward it),
 	-- not against the camera, which then stands off to one side.
@@ -258,11 +259,12 @@ local function stop()
 		oldHumanoid.WalkSpeed = 0
 		oldHumanoid:Move(Vector3.zero, false)
 	end
+	local riding = config and config.context or "Frame"
 	frame, humanoid, root, facing, config = nil, nil, nil, nil, nil
 	speed, target, striding = 0, 0, false
 	setPilotHidden(false)
 	CameraController.setFrame(nil)
-	if InputController.getContext() == "Frame" then
+	if InputController.getContext() == riding then
 		InputController.setContext("OnFoot")
 	end
 	FrameController.Piloting:Fire(nil)
@@ -309,7 +311,7 @@ local function start(model: Model)
 		end
 	end)
 	setPilotHidden(true)
-	InputController.setContext("Frame")
+	InputController.setContext(classConfig.context or "Frame")
 	CameraController.setFrame(model)
 	-- Before the camera, so the camera follows this frame's movement input.
 	RunService:BindToRenderStep("PG_FrameMove", Enum.RenderPriority.Input.Value + 1, update)
@@ -331,7 +333,20 @@ local function watch(model: Instance)
 	watched[model] = model:GetAttributeChangedSignal("Pilot"):Connect(function()
 		refresh(model)
 	end)
-	refresh(model)
+	-- A rig added during play (the Titan form) can arrive before its parts: look once its root and Humanoid are in.
+	local rig = model :: Model
+	if rig.PrimaryPart and rig:FindFirstChildOfClass("Humanoid") then
+		refresh(rig)
+	else
+		task.spawn(function()
+			rig:WaitForChild("HumanoidRootPart", 10)
+			rig:WaitForChild("Humanoid", 10)
+			task.wait()
+			if watched[rig] then
+				refresh(rig)
+			end
+		end)
+	end
 end
 
 function FrameController.getFrame(): Model?
@@ -388,23 +403,26 @@ function FrameController.Start()
 		end
 	end)
 
-	task.spawn(function()
-		local folder = workspace:WaitForChild("Frames")
-		folder.ChildAdded:Connect(watch)
-		folder.ChildRemoved:Connect(function(model)
-			local connection = watched[model :: Model]
-			if connection then
-				connection:Disconnect()
-				watched[model :: Model] = nil
-			end
-			if frame == model then
-				stop()
+	-- The Frames, and Elias's Titan form, which is ridden the same way (workspace.Shifters, D-095).
+	for _, folderName in ipairs({ "Frames", "Shifters" }) do
+		task.spawn(function()
+			local folder = workspace:WaitForChild(folderName)
+			folder.ChildAdded:Connect(watch)
+			folder.ChildRemoved:Connect(function(model)
+				local connection = watched[model :: Model]
+				if connection then
+					connection:Disconnect()
+					watched[model :: Model] = nil
+				end
+				if frame == model then
+					stop()
+				end
+			end)
+			for _, model in ipairs(folder:GetChildren()) do
+				watch(model)
 			end
 		end)
-		for _, model in ipairs(folder:GetChildren()) do
-			watch(model)
-		end
-	end)
+	end
 end
 
 return FrameController

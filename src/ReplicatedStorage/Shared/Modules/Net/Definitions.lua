@@ -52,6 +52,7 @@ local Definitions: { [string]: Definition } = {
 	Cinematic_Skip = c2s({ cinematicId = ID }, 2),
 	Tutorial_Seen = c2s({ id = ID }, 2), -- the card is up: the server sets TUT_<id> if it sent it (D-085)
 	UI_CardDone = c2s({ kind = ID }, 2), -- a card that waits for Continue was closed (Mission Complete, Chapter End)
+	Shift_Request = c2s({}, 1, 2), -- the Shift hold was completed: shift into the Titan form, or back (D-095)
 	Settings_Update = c2s(settingsFields, 1, 1, { minKeys = 1 }),
 	Checkpoint_Restart = c2s({}, 1 / 5, 1), -- 1 per 5 s
 	Upgrade_Buy = c2s({ upgradeId = ID }, 2),
@@ -74,6 +75,7 @@ local Definitions: { [string]: Definition } = {
 	UI_Card = S2C,
 	Tutorial_Show = S2C,
 	Bark_Play = S2C,
+	Shift_Effect = S2C, -- { kind = "Shift" | "Revert" | "Denied", position?, userId?, reason? } (D-095)
 	Lighting_Set = S2C,
 	Fade = S2C,
 	Music_Set = S2C,

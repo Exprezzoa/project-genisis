@@ -26,6 +26,8 @@ local FlagService = require(script.Parent.FlagService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 local RelationshipService = require(script.Parent.RelationshipService)
 local SequenceService = require(script.Parent.SequenceService)
+local ShifterConfig = require(Shared.Config.ShifterConfig)
+local ShifterService = require(script.Parent.ShifterService)
 local Doors = require(script.Parent.Parent.Sequence.Doors)
 
 local TAG = "DebugService"
@@ -320,6 +322,25 @@ function handlers.rel(player, args)
 	end
 	local now = RelationshipService.add(player, var, value - RelationshipService.get(player, var), "debug")
 	return ("%s = %d"):format(var, now)
+end
+
+-- /shifter [on|off]: the ability to shift into the Titan form by holding Z, where it is allowed (the Training
+-- Yard, or a story step that allows it). Without an argument it toggles. It is a profile flag, so it is saved.
+function handlers.shifter(player, args)
+	local mode = string.lower(args[1] or "")
+	if mode == "" then
+		mode = if FlagService.has(player, ShifterConfig.FLAG) then "off" else "on"
+	end
+	if mode ~= "on" and mode ~= "off" then
+		return "usage: " .. Debug.Commands.shifter.usage
+	end
+	if mode == "off" then
+		FlagService.clear(player, ShifterConfig.FLAG)
+		return "shifter off"
+	end
+	FlagService.set(player, ShifterConfig.FLAG)
+	local ok, reason = ShifterService.canShift(player)
+	return "shifter on: hold Z to shift" .. (if ok then " (allowed here)" elseif reason == "NotHere" then " (only in the Training Yard: /zone training)" else "")
 end
 
 function handlers.timescale()

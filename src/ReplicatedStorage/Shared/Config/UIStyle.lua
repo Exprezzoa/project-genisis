@@ -25,7 +25,7 @@ local UIStyle = {
 	TitanPoise = hex("#E8B923"),
 	FrameIntegrity = hex("#E8A33D"),
 	FrameEnergy = hex("#FFD38A"),
-	Resonance = hex("#7FE3F0"), -- anomaly only
+	Resonance = hex("#7FE3F0"), -- LATTICE_CYAN: the anomaly and Shifters only (the shift charge, D-095)
 
 	-- Angular look (2026-10-10, user direction; D-031): slabs are parallelograms cut with a UIGradient, titles and
 	-- key boxes are tilted, highlighted controls flip to amber over an offset paper-white shadow slab.
