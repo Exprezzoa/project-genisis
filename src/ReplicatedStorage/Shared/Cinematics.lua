@@ -10,6 +10,7 @@
 --   events          the server's timeline: { at = seconds, dialogue = id } starts that dialogue
 --   skippable       may be skipped the first time too (a seen one always can: docs/11 §1)
 --   screen          the briefing screen shows the lines' `action.slide`
+--   dim             { tag, to }: map lights with the tag ease to `to` × their brightness while it plays (AmbientController)
 -- Positions written for the 40-stud Frame are scaled × 1.6 (D-044), as the cam points already are.
 
 export type Shot = {
@@ -109,5 +110,7 @@ return {
 		start = "CAM_BRF_WIDE",
 		fov = 60,
 		screen = true,
+		-- 06 §5: the room's strips dim from 1.0 to 0.35 while it plays (AmbientController eases lights with the tag).
+		dim = { tag = "BriefingLight", to = 0.35 },
 	},
 }

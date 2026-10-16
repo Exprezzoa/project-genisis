@@ -351,16 +351,8 @@ function Builder.valeOffice(ctx, Lib)
 		end
 	end
 
-	-- The Directorate flag on a stand in the north-west corner (the Division insignia on slate).
-	local flag = Lib.kit(F, "Vale_Flag", CFrame.new(-16.5, 16, -37.6) * SOUTH)
-	flag.cyl("Base", "Y", V(1.2, 0.3, 1.2), V(0, 0.15, 0), { Color = P.STEEL_DARK, Material = "Metal" })
-	flag.cyl("Pole", "Y", V(0.22, 8.4, 0.22), V(0, 4.3, 0), with({ Color = P.STEEL_LIGHT, Material = "Metal" }))
-	flag.ball("Finial", 0.4, V(0, 8.6, 0), with({ Color = P.AMBER, Material = "Metal" }))
-	flag.box("Crossbar", V(3.2, 0.12, 0.12), V(-1.6, 8.2, 0), with({ Color = P.STEEL_LIGHT, Material = "Metal" }))
-	flag.box("Cloth", V(3.0, 4.2, 0.08), V(-1.65, 6.0, 0), with({ Color = P.SLATE, Material = "Fabric" }))
-	flag.box("ClothBand", V(3.0, 0.2, 0.1), V(-1.65, 4.0, 0), with({ Color = P.AMBER }))
-	Lib.insignia(flag, CFrame.new(-1.65, 6.3, -0.065), 1.8)
-	flag.finish()
+	-- The Directorate flag on a stand in the north-west corner.
+	Lib.Flag(F, CFrame.new(-16.5, 16, -37.6) * SOUTH, { name = "Vale_Flag" })
 end
 
 function Builder.sideOffice(ctx, Lib, name, x)

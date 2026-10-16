@@ -386,7 +386,8 @@ return function(BK)
 	-- A door for a width x height doorway: leaf (or two), a Neon status strip above the frame on both wall
 	-- faces (amber = open, drawn with BK.GLOW.amber; DANGER_RED = locked; docs/maps/map_01 section 2) and an
 	-- optional sign.
-	-- Extra opts: leaf = false (open passage: strips and sign only), locked, wallThickness (default 1).
+	-- Extra opts: leaf = false (open passage: strips and sign only), locked, wallThickness (default 1),
+	-- signLight = false (a painted sign; by default the sign is self-lit with a soft glow).
 	-- The model is tagged "Door" and carries attributes Locked, Width, Height.
 	function BK.door(parent, name, cframe, width, height, opts)
 		opts = opts or {}
@@ -451,7 +452,8 @@ return function(BK)
 
 		if opts.sign then
 			local signCFrame = cframe * CFrame.new(0, height + TRIM_WIDTH + 1.6, -(wallThickness / 2 + 0.06))
-			BK.sign(model, name .. "_Sign", signCFrame, Vector2.new(math.max(width + 2, 6), 1.2), opts.sign)
+			-- Self-lit by default: a painted sign over a door in a dim corridor didn't read (signLight = false: painted).
+			BK.sign(model, name .. "_Sign", signCFrame, Vector2.new(math.max(width + 2, 6), 1.2), opts.sign, { light = opts.signLight ~= false })
 		end
 
 		model.PrimaryPart = firstLeaf or model:FindFirstChildWhichIsA("BasePart")

@@ -356,7 +356,7 @@ end
 
 -- A ceiling or wall light fixture: a STEEL_DARK housing and a Neon face (`size`, its thickness along Y) centered at
 -- `center`, with a SurfaceLight on the face's Bottom. light: Color (LIGHT_NEUTRAL), Brightness, Range, Angle,
--- Shadows, Face (default Bottom). Lights are tagged HubLight (dimmed at NIGHT, map_01 §14).
+-- Shadows, Face (default Bottom), Tags (extra). Lights are tagged HubLight (dimmed at NIGHT, map_01 §14).
 function Common.fixture(ctx, name, center, size, light)
 	local BK, P = ctx.BK, ctx.P
 	local color = light.Color or P.LIGHT_NEUTRAL
@@ -387,7 +387,7 @@ function Common.fixture(ctx, name, center, size, light)
 		Angle = light.Angle,
 		Face = light.Face or Enum.NormalId.Bottom,
 		Shadows = light.Shadows == true,
-		Tags = { "HubLight" },
+		Tags = { "HubLight", table.unpack(light.Tags or {}) },
 	})
 	return face
 end

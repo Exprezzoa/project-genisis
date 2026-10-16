@@ -1,5 +1,5 @@
 --!nonstrict
--- Props/Display: Console, HoloTable, HoloPanel, Banner, Poster, Vent, CableRun.
+-- Props/Display: Console, HoloTable, HoloPanel, Banner, Flag, Poster, Vent, CableRun.
 -- Recipes: docs/07_building_with_parts.md §6. Holograms are amber AMBER_LAMP Neon; parts tagged `Hologram` shimmer
 -- on clients, `HoloBlink` parts blink at their BlinkHz, `HoloSweep` parts turn around their PivotCenter
 -- (Client/Controllers/AmbientController).
@@ -209,6 +209,22 @@ return function(Props, BK)
 			k.ball("Finial", 0.35, V(x * 1.17, 6.15, -0.35), with({ Color = P.AMBER, Material = "Metal" }, soft))
 		end
 		return k.finish(cloth)
+	end
+
+	-- Flag (new, docs/07 §6) 3.2 x 8.8 x 1.2: the Directorate's flag on a stand — a weighted base, a pole with an amber
+	-- finial, a crossbar, a SLATE cloth with the Division insignia and an amber band. Faces -Z; the cloth hangs to -X.
+	function Props.Flag(parent, cframe, opts)
+		opts = opts or {}
+		local k = Props.kit(parent, opts.name or "Flag", cframe)
+		local metal = with({ Color = P.STEEL_LIGHT, Material = "Metal" }, soft)
+		local base = k.cyl("Base", "Y", V(1.2, 0.3, 1.2), V(0, 0.15, 0), { Color = P.STEEL_DARK, Material = "Metal" })
+		k.cyl("Pole", "Y", V(0.22, 8.4, 0.22), V(0, 4.3, 0), metal)
+		k.ball("Finial", 0.4, V(0, 8.6, 0), with({ Color = P.AMBER, Material = "Metal" }, soft))
+		k.box("Crossbar", V(3.2, 0.12, 0.12), V(-1.6, 8.2, 0), metal)
+		k.box("Cloth", V(3.0, 4.2, 0.08), V(-1.65, 6.0, 0), with({ Color = P.SLATE, Material = "Fabric" }, soft))
+		k.box("ClothBand", V(3.0, 0.2, 0.1), V(-1.65, 4.0, 0), with({ Color = P.AMBER }, soft))
+		Props.insignia(k, CFrame.new(-1.65, 6.3, -0.065), 1.8)
+		return k.finish(base)
 	end
 
 	-- Poster 3 x 4 x 0.05: a SurfaceGui with a propaganda line and a blocky Frame silhouette made of UI Frames.

@@ -10,7 +10,8 @@
 --     parts turn about PivotCenter (Radius, Period), HoloClock panels show the lighting's clock;
 --   * the Ops Hall's status wall and kiosk (tag StatusWall; map_01 §3, §14): Outpost 07 "REPORT OVERDUE" blinking
 --     1 Hz while the hub is in its MORNING, "COMMS RESTORED / UNDER REVIEW" after; the ticker scrolls; the clock;
---   * the hub's lights (tag HubLight) dim 30% at NIGHT (map_01 §14).
+--   * the hub's lights (tag HubLight) dim 30% at NIGHT (map_01 §14), and those with a playing cinematic's `dim` tag
+--     ease to its fraction (the briefing room's strips to 0.35 in CIN_BRIEFING, 06 §5).
 -- (The ambient movers of Phase 7 — crane, forklift, beacons — come here too.)
 
 local CollectionService = game:GetService("CollectionService")
@@ -23,6 +24,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Modules.Net)
 local UIStyle = require(Shared.Config.UIStyle)
 local LightingController = require(script.Parent.LightingController)
+local CinematicController = require(script.Parent.CinematicController)
+local Cinematics = require(Shared.Cinematics)
 
 local AmbientController = {}
 
@@ -249,10 +252,12 @@ local function startStatusWalls()
 	end)
 
 	local baseBrightness = {}
-	local dimmedFor = nil
+	local last = os.clock()
 	task.spawn(function()
 		while true do
 			local now = os.clock()
+			local dt = now - last
+			last = now
 			local hub = LightingController.getHub()
 			local morning = hub == "MORNING"
 			local clock = clockText()
@@ -271,12 +276,23 @@ local function startStatusWalls()
 					label.Text = clock
 				end
 			end
-			if hub ~= dimmedFor then
-				dimmedFor = hub
-				for _, light in ipairs(CollectionService:GetTagged("HubLight")) do
-					if light:IsA("Light") then
-						baseBrightness[light] = baseBrightness[light] or light.Brightness
-						light.Brightness = baseBrightness[light] * (if hub == "NIGHT" then NIGHT_DIM else 1)
+			-- Hub lights ease (0.5 s) toward base × night dim × the playing cinematic's dim.
+			local playing = CinematicController.isPlaying()
+			local spec = playing and (Cinematics :: any)[playing]
+			local dim = spec and spec.dim
+			local night = if hub == "NIGHT" then NIGHT_DIM else 1
+			local ease = math.min(1, dt / 0.5)
+			for _, light in ipairs(CollectionService:GetTagged("HubLight")) do
+				if light:IsA("Light") then
+					local base = baseBrightness[light]
+					if not base then
+						base = light.Brightness
+						baseBrightness[light] = base
+					end
+					local target = base * night * (if dim and light:HasTag(dim.tag) then dim.to else 1)
+					local current = light.Brightness
+					if math.abs(current - target) > 0.003 then
+						light.Brightness = current + (target - current) * ease
 					end
 				end
 			end
