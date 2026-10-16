@@ -64,7 +64,7 @@ local V = Vector3.new
 local BOUNDS = {
 	{ "CentralCommand", "OpsHall", V(-61, -1, -41), V(61, 38, 41) },
 	{ "CentralCommand", "WestCorridor", V(-80.5, -1, -41), V(-60, 17, 41) },
-	{ "CentralCommand", "Quarters", V(-131, -1, 0), V(-80, 13, 41) },
+	{ "CentralCommand", "Quarters", V(-132, -1, 0), V(-80, 13, 42) }, -- exterior pilasters stand 1 proud (structure pass)
 	{ "CentralCommand", "Briefing", V(-131, -1, -41), V(-80, 17, 0.5) },
 	{ "CentralCommand", "EastCorridor", V(59, -1, -61), V(81, 31, 63) }, -- stairwell 2 deeper than the doc (Q-009)
 	{ "CentralCommand", "Equipment", V(80, -1, -41), V(131, 22, 0.5) },

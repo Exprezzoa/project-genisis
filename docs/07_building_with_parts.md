@@ -10,7 +10,7 @@
 builders/
   lib/BuildKit/              -- primitives and helpers (§3): init.lua + Core, Structure, Detail, Fx, Gameplay (D-009)
   lib/Palette.lua            -- every hex from 06_art_direction.md as Color3 constants
-  lib/Props.lua              -- prop factory functions (§6)
+  lib/Props/                 -- prop factory functions (§6): init.lua + Furniture, Display (D-100)
   checks/<Name>              -- spec checks and self-tests (§8); mirrored as DevTools.Checks.<Name> (D-013)
   characters/CharacterKit.lua, characters/<Name>.lua
   rigs/Vanguard.lua, rigs/Strider.lua, rigs/Watcher.lua
@@ -21,7 +21,7 @@ builders/
   maps/memory_set.lua
 ```
 
-- In Studio, mirror these as **ModuleScripts** under `ServerStorage.DevTools` (`DevTools.BuildKit`, `DevTools.Palette`, `DevTools.Props`, `DevTools.Builders.<Folder>.<Name>`). Push them from the local files the same way as game code.
+- In Studio, mirror these as **ModuleScripts** under `ServerStorage.DevTools` (`DevTools.BuildKit`, `DevTools.Palette`, `DevTools.Props`, `DevTools.Builders.<Folder>.<Name>`). Push them from the local files the same way as game code. `DevTools.Props` returns a function of BuildKit: `local Props = require(DT.Props:Clone())(BK)`; area builders get it injected as `opts.Props` (structure pass and up).
 - **Run a builder** through the MCP run-code tool:
   ```lua
   local DT = game:GetService("ServerStorage").DevTools
@@ -162,6 +162,8 @@ BK.breathe(force: boolean?)                  -- yields one frame when BK.yieldBu
 BK.emitterPresets                            -- list of preset names for BK.emitter
 ```
 
+**Glow calibration (D-099).** `BK.GLOW.amber` (`WARNING_ORANGE`, Neon, transparency 0.4) and `BK.GLOW.holo` (the same at 0.6; hologram planes 0.8, edges 0.45) are how a part that should *glow amber* is drawn: Neon brightens colors, and `AMBER` in Neon shows on screen as lemon yellow, while these show as the doc's amber. Door status strips and dismount-pad lamps use it. Light objects keep `AMBER`; amber paint, text and UI stay `AMBER`.
+
 `BK.stats` also returns `shadowLights`. Colors from `BK.darken` and `BK.vary` are snapped to 8 bits per channel, because parts truncate anything finer.
 
 **Large builds.** Studio freezes while edit-mode code runs. BuildKit yields automatically for one frame whenever it has been creating parts for longer than `BK.yieldBudget` seconds (set it to 0 to never yield). Measured: 4,000 parts build in about 60 ms.
@@ -187,7 +189,7 @@ BK.emitterPresets                            -- list of preset names for BK.emit
 | `BK.sign` | Text is forced to ALL CAPS unless `opts.upper = false`. Defaults: amber Michroma on `SLATE_DEEP`. Extra opts: `textTransparency`, `pixelsPerStud` |
 | `BK.screen` | `opts.color` is the base color (default `#1B2A33`, transparency 0.3). Extra opts: `textColor`, `font` (default RobotoMono), `transparency`, `pixelsPerStud` |
 | `BK.emitter` | Presets from `06` §6: `Sparks`, `Smoke`, `DustPuffOutdoor`, `DustPuffHangar`, `AshFlakes`, `TitanRegen`. Burst presets are created disabled with an `EmitCount` attribute. To be unified with `Shared/Modules/VFX` when that module is written (Phase 2) |
-| `BK.prompt` | `Style = Custom`. `frameOnly` prompts default to distance 30 and no line-of-sight check. Extra opts: `once`, `enabled`, `lineOfSight`, `objectText`. The part also gets the `Once` attribute (`13` §4) |
+| `BK.prompt` | `Style = Custom`. `frameOnly` prompts default to distance 70 (D-068: measured from the seated pilot, 48.6 studs up) and no line-of-sight check. Extra opts: `once`, `enabled`, `lineOfSight`, `objectText`. The part also gets the `Once` attribute (`13` §4) |
 | `BK.camPoint` | Also sets the attribute `LookAt` |
 | `BK.navNode` | Attributes `NavId` and `Links` (comma-separated ids) |
 | `BK.dismountPad` | Model named after the id, tagged `DismountPad`, attributes `PadId`, `Radius`, `Center`. Children: `Ring`, `Disc`, `Label` (floor text made from the id), `EdgeLight1..4`, `ExitPoint`. The visuals never collide |
@@ -259,7 +261,7 @@ Workspace
 
 ## 6. Props catalog (exact recipes)
 
-Each prop is a function in `Props.lua`: `Props.<Name>(parent, cframe, opts) -> Model`. The CFrame is the prop's **bottom-center** on the floor, facing −Z. Sizes in studs (W × H × D).
+Each prop is a function in `lib/Props/`: `Props.<Name>(parent, cframe, opts) -> Model` (PrimaryPart set). The CFrame is the prop's **bottom-center** on the floor, facing −Z: a prop's front is the side its user stands or sits at, or the side its screen or sign shows (`Props.FACE["+Z"]` turns a prop to face south). **Wall props** (Banner, Poster, Vent, a wall-mounted HoloPanel) take the center of their back on the wall surface, −Z pointing out of the wall. One-off room dressing (a rug, a shelf, a jacket on a hook) is built inline by the area's builder and isn't catalogued (D-100). Detail parts of a prop never collide, cast shadows or answer queries (a queryable detail in front of a prompt's part blocks the prompt's line of sight). Sizes in studs (W × H × D).
 
 | Prop | Size | Recipe |
 |---|---|---|
@@ -268,7 +270,7 @@ Each prop is a function in `Props.lua`: `Props.<Name>(parent, cframe, opts) -> M
 | **MetalCase** | 4×2×2.5 | Body Metal `STEEL_MID`, lid seam 0.1 dark, 2 clasps Neon `AMBER` tiny, handle bar |
 | **Barrel** | Ø2.6 × 3.6 | Cylinder `#5B6770` or `RUST`; 2 rings 0.2 `STEEL_DARK`; lid disc |
 | **ToolCart** | 4×3.2×2.5 | Frame `STEEL_DARK`, 3 shelves `HAZARD_YELLOW` (top) / `STEEL_MID`, 4 Ø0.8 wheels, 3–5 tool blocks on top (wrench = 2 parts, box = 1) |
-| **Console** | 6×3×2.5 | Base `STEEL_DARK` (6×2.6×2.5); top slanted wedge `STEEL_MID`; screen Neon `#1B2A33` 4.6×1.6 at a 25° tilt with a SurfaceGui of 3 lines of amber text plus 1 bar graph; keyboard strip 3.8×0.15×0.6 `KICKPLATE` |
+| **Console** | 6×3×2.5 | Base `STEEL_DARK` (6×2.6×2.5); top slanted wedge `STEEL_MID`; screen Neon `#1B2A33` 4.6×1.6 at a 25° tilt with a SurfaceGui of 3 lines of amber text plus 1 bar graph; keyboard strip 3.8×0.15×0.6 `KICKPLATE`. As built (D-100): the tilt is read from the horizontal, so the slope wedge makes it 3.3 tall; the screen lies on the slope; 4 lamps on the ledge; `opts.holo` adds a small amber projection over the back |
 | **Chair** | 2×3.6×2 | Seat `FABRIC_DARK`, back, 1 central post, 5-star base (5 thin parts) |
 | **Bench** | 8×1.8×1.6 | Seat slab `FABRIC_DARK` over 2 legs `STEEL_DARK` |
 | **Bunk** | 7×2×3.5 | Frame `STEEL_DARK`, mattress `FABRIC_DARK` 6.6×0.6×3.2, pillow `#B7BCC2`, folded blanket `#4A5A6A` |
@@ -304,6 +306,8 @@ Each prop is a function in `Props.lua`: `Props.<Name>(parent, cframe, opts) -> M
 | **Banner** | 4×12×0.2 | Fabric `SLATE_DEEP`, amber chevron emblem (3 wedges plus a bar), hanging rod |
 | **Poster** | 3×4×0.05 | SurfaceGui: propaganda line plus a simple blocky Frame silhouette made of colored Frames in the UI |
 | **Mug / datapad / clipboard** | small | 2–4 parts each; used to dress tables |
+| **DeskLamp** (D-100) | 0.6×1.3×0.6 | Weighted base, two-part arm, shade `STEEL_MID` over a Neon `AMBER_LAMP` bulb with a PointLight (default Quarters' lamp: `AMBER_LAMP` 0.8 / 14 / shadows) |
+| **HoloPanel** (D-100) | W×H | A floating amber projection: a `BK.GLOW.holo` Neon plane at 0.8, edge lines at 0.45, a SurfaceGui title and lines (or a bar graph), optional back face; with `opts.emitter` a puck below and a faint beam. Tag `Hologram` (clients shimmer it); `HoloClock` makes its title the time of day |
 | **Mess table set** | 10×2.8×3 | Table plus 2 benches, 2–4 trays (thin parts) with "food" (small colored blocks), 1–2 cups |
 | **Frame-scale Breaker** | housing 10×16×8, lever arm 2×12×2 | Housing Concrete plus steel door; lever pivot at the top front; arm `HAZARD_YELLOW` with a black grip band; Model `BreakerLever` with a pivot attachment |
 | **Training dummy (Frame-scale)** | 14×36×10 | "Scrap mannequin": stacked armor plates on an I-beam spine, 2 arm stubs, a target disc painted on the chest |

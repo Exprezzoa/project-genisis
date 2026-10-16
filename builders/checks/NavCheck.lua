@@ -3,7 +3,9 @@
 --
 --   return game:GetService("HttpService"):JSONEncode(require(DT.Checks.NavCheck:Clone()).Run())
 --
--- Checks every part tagged NavNode under Workspace.Map:
+-- Checks every part tagged NavNode in the hub's zones (Workspace.Map.CentralCommand and .Hangar; `Run(zones)` takes
+-- another list). The outpost's nodes are Frame- and Titan-scale routes (the trail, the Watcher's W0-W5), which a
+-- human-sized walk test doesn't fit; they are tested in play.
 --   * ids are unique, every link points to an existing node and is listed on both ends;
 --   * each node has floor beneath it and headroom above (5.5 + 1);
 --   * each link can be walked: the check moves along it in 0.5-stud steps, follows the floor with a ray
@@ -24,8 +26,23 @@ local MAX_STEP_UP = 1.1
 local FLOOR_REACH = 2.6
 local NODE_FLOOR_TOLERANCE = 0.75
 
-function Check.Run()
+function Check.Run(zones)
 	local map = workspace:FindFirstChild("Map")
+	local scope = {}
+	for _, zone in ipairs(zones or { "CentralCommand", "Hangar" }) do
+		local folder = map:FindFirstChild(zone)
+		if folder then
+			table.insert(scope, folder)
+		end
+	end
+	local function inScope(part)
+		for _, folder in ipairs(scope) do
+			if part:IsDescendantOf(folder) then
+				return true
+			end
+		end
+		return false
+	end
 	local errors = {}
 	local function fail(message)
 		table.insert(errors, message)
@@ -44,7 +61,7 @@ function Check.Run()
 
 	local nodes, count = {}, 0
 	for _, part in ipairs(CollectionService:GetTagged("NavNode")) do
-		if part:IsDescendantOf(map) then
+		if inScope(part) then
 			local id = part:GetAttribute("NavId")
 			if nodes[id] then
 				fail("duplicate node " .. tostring(id))

@@ -149,7 +149,7 @@ function Message.run(ctx)
 	local character = Players.LocalPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local map = workspace:FindFirstChild("Map")
-	local photo = map and map:FindFirstChild("Q3_Photo_StandIn", true)
+	local photo = map and (map:FindFirstChild("Q3_Photo", true) or map:FindFirstChild("Q3_Photo_StandIn", true))
 	finally()
 	if root and photo then
 		ctx.takeCamera()

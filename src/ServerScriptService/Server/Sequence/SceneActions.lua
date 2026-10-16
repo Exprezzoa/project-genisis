@@ -200,7 +200,7 @@ end
 
 -- The Q-3 terminal's screen: "1 NEW MESSAGE" blinking (S43) while the attribute NewMessage is set on its part.
 function actions.terminalMessage(_, a)
-	local terminal = mapPart("Q3_Terminal_StandIn")
+	local terminal = mapPart("Q3_Terminal") or mapPart("Q3_Terminal_StandIn") -- the dressed prop's screen, or the blockout's
 	if terminal then
 		terminal:SetAttribute("NewMessage", a.on ~= false)
 	end

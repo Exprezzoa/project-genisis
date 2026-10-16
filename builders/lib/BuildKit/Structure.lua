@@ -384,7 +384,8 @@ return function(BK)
 	end
 
 	-- A door for a width x height doorway: leaf (or two), a Neon status strip above the frame on both wall
-	-- faces (amber = open, DANGER_RED = locked; docs/maps/map_01 section 2) and an optional sign.
+	-- faces (amber = open, drawn with BK.GLOW.amber; DANGER_RED = locked; docs/maps/map_01 section 2) and an
+	-- optional sign.
 	-- Extra opts: leaf = false (open passage: strips and sign only), locked, wallThickness (default 1).
 	-- The model is tagged "Door" and carries attributes Locked, Width, Height.
 	function BK.door(parent, name, cframe, width, height, opts)
@@ -439,7 +440,8 @@ return function(BK)
 				Name = ("%s_StatusStrip_%s"):format(name, side[1]),
 				Size = Vector3.new(math.max(width - 1, 1), 0.3, 0.1),
 				CFrame = cframe * CFrame.new(0, stripY, side[2]),
-				Color = if locked then P.DANGER_RED else P.AMBER,
+				Color = if locked then P.DANGER_RED else BK.GLOW.amber.Color,
+				Transparency = if locked then 0 else BK.GLOW.amber.Transparency,
 				Material = Enum.Material.Neon,
 				CanCollide = false,
 				CanQuery = false,

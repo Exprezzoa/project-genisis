@@ -77,6 +77,14 @@ return function(BK)
 		return snap(color.R * f, color.G * f, color.B * f)
 	end
 
+	-- Glow calibration (D-099): Neon brightens a color, and AMBER in Neon shows on screen as lemon yellow. Parts meant
+	-- to glow amber use WARNING_ORANGE in Neon at these transparencies, which shows as the doc's amber (#E8A33D).
+	-- Light objects keep AMBER (a light's color isn't brightened); amber paint, text and UI stay AMBER.
+	BK.GLOW = {
+		amber = { Color = P.WARNING_ORANGE, Transparency = 0.4 }, -- strips, lamps, indicators
+		holo = { Color = P.WARNING_ORANGE, Transparency = 0.6 }, -- hologram solids (planes 0.8, edges 0.45)
+	}
+
 	---------------------------------------------------------------------------
 	-- The props applier (docs/07 section 3, "props table keys" and automatic defaults)
 	---------------------------------------------------------------------------

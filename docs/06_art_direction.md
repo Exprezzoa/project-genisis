@@ -17,6 +17,8 @@ Three words: **Heavy. Worn. Warm-under-grey.**
 - Big flat untextured walls. Random rainbow colors. Neon everywhere (Neon only for lights, screens, glows, indicators). Floating parts. Z-fighting (overlapping coplanar faces: offset decals and seams by 0.02–0.05).
 - **Cyan anywhere except Lattice resonance moments.** This is a storytelling color.
 
+**Glows (D-099):** Roblox's Neon brightens a color, so a Neon part in `AMBER` shows as lemon yellow. A part meant to *glow amber* (status strips, lamps, indicators, holograms) is drawn with BuildKit's `BK.GLOW` (`WARNING_ORANGE` in Neon at 0.4, holograms 0.6), which shows on screen as `AMBER`. Lights, paint, text and UI keep `AMBER` itself.
+
 ## 2. Scale chart (canon)
 
 | Thing | Studs | Notes |

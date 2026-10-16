@@ -176,6 +176,218 @@ Common.NAV = {
 	{ "NAV_ARR", "Arrival", 0, 0, 100, { "NAV_ARR_IN" } },
 }
 
+---------------------------------------------------------------------------------------------------
+-- Finishes for the structure and dressed passes (docs/06 §1 and §4, docs/07 §2 and §7, map_01 §2).
+---------------------------------------------------------------------------------------------------
+
+-- Rectangles { s1, s2, y1, y2 } covering s1..s2 x y1..y2 minus the gaps (same units; gaps don't overlap).
+local function cover(s1, s2, y1, y2, gaps)
+	local cuts = { s1, s2 }
+	for _, g in ipairs(gaps) do
+		if g[3] < y2 and g[4] > y1 then
+			for _, s in ipairs({ g[1], g[2] }) do
+				if s > s1 and s < s2 then
+					table.insert(cuts, s)
+				end
+			end
+		end
+	end
+	table.sort(cuts)
+	local out = {}
+	for i = 1, #cuts - 1 do
+		local a, b = cuts[i], cuts[i + 1]
+		if b - a > 0.01 then
+			local mid, hit = (a + b) / 2, nil
+			for _, g in ipairs(gaps) do
+				if mid > g[1] and mid < g[2] and g[3] < y2 and g[4] > y1 then
+					hit = g
+				end
+			end
+			if not hit then
+				table.insert(out, { a, b, y1, y2 })
+			else
+				if hit[3] > y1 + 0.01 then
+					table.insert(out, { a, b, y1, hit[3] })
+				end
+				if hit[4] < y2 - 0.01 then
+					table.insert(out, { a, b, hit[4], y2 })
+				end
+			end
+		end
+	end
+	return out
+end
+
+-- Dresses one flat wall face. `a` and `b` are the face's ends at floor level, `normal` points away from the face
+-- (into the room, or outdoors). opts:
+--   kind   "interior": wainscot WALL_INTERIOR_LOW (0-3), kickplate, SLATE band at Y 3, STEEL_DARK ceiling trim;
+--                      lining = true covers an exterior wall's inner face above the wainscot in WALL_INTERIOR.
+--          "exterior": kickplate CONCRETE_DARK, pilasters 2 x h x 1 every 24 (world-aligned) with a chamfer.
+--   top    the face's height above a.Y (the ceiling's underside, or the wall top outdoors)
+--   gaps   { { from, to, y1, y2 } } openings: world coordinates along the wall, heights above a.Y (include the
+--          0.4 door-frame trim BK.wallWithOpenings adds)
+-- Dressed pass: panel seams (vertical every 16, world-aligned; horizontal at 10 indoors, 3 and 10 outdoors).
+function Common.face(ctx, name, a, b, normal, opts)
+	local BK, P = ctx.BK, ctx.P
+	if ctx.level < 2 then
+		return
+	end
+	local length = (b - a).Magnitude
+	local u = (b - a).Unit
+	local key = if math.abs(u.X) > 0.5 then "X" else "Z"
+	local base = CFrame.fromMatrix(a, u, Vector3.yAxis)
+	local nz = math.sign(base:VectorToObjectSpace(normal).Z)
+	local top = opts.top
+	local gaps = {}
+	for _, g in ipairs(opts.gaps or {}) do
+		local p1, p2 = (g.from - a[key]) * u[key], (g.to - a[key]) * u[key]
+		table.insert(gaps, { math.min(p1, p2), math.max(p1, p2), g.y1, g.y2 })
+	end
+	local function slab(folder, partName, r, d1, d2, props)
+		local p = table.clone(props)
+		p.Name = partName
+		p.Size = Vector3.new(r[2] - r[1], r[4] - r[3], d2 - d1)
+		p.CFrame = base * CFrame.new((r[1] + r[2]) / 2, (r[3] + r[4]) / 2, nz * (d1 + d2) / 2)
+		return BK.part(folder, p)
+	end
+	local function band(folder, partName, y1, y2, d1, d2, props)
+		for i, r in ipairs(cover(0, length, y1, y2, gaps)) do
+			slab(folder, ("%s%d"):format(partName, i), r, d1, d2, props)
+		end
+	end
+	-- Positions along the face of the world multiples of `step` (at least `margin` from both ends).
+	local function multiples(step, margin)
+		local list = {}
+		local w1, w2 = a[key], b[key]
+		for w = math.ceil(math.min(w1, w2) / step) * step, math.max(w1, w2), step do
+			local s = (w - w1) * u[key]
+			if s > margin and s < length - margin then
+				table.insert(list, s)
+			end
+		end
+		return list
+	end
+	local function detail(color, material)
+		return { Color = color, Material = material or "SmoothPlastic", CastShadow = false, Tags = { "Detail" } }
+	end
+
+	if opts.kind == "interior" then
+		local lining = opts.lining == true
+		if lining then
+			band(ctx.Structure, name .. "_Lining", 3, top, 0, 0.04, { Color = P.WALL_INTERIOR, CastShadow = false })
+		end
+		band(ctx.Structure, name .. "_Wainscot", 0, 3, 0, 0.06, { Color = P.WALL_INTERIOR_LOW, CastShadow = false })
+		band(ctx.Detail, name .. "_Kick", 0, 1, 0, 0.1, detail(P.KICKPLATE))
+		band(ctx.Detail, name .. "_Band", 2.85, 3.15, 0, 0.14, detail(P.SLATE))
+		band(ctx.Detail, name .. "_CeilTrim", top - 0.35, top, 0, 0.16, detail(P.STEEL_DARK, "Metal"))
+		if ctx.level >= 3 then
+			local d0 = if lining then 0.04 else 0
+			local seam = detail(BK.darken(P.WALL_INTERIOR, 0.08))
+			local lowSeam = detail(BK.darken(P.WALL_INTERIOR_LOW, 0.08))
+			for i, s in ipairs(multiples(16, 0.6)) do
+				for j, r in ipairs(cover(s - 0.1, s + 0.1, 3.15, top - 0.35, gaps)) do
+					slab(ctx.Detail, ("%s_SeamV%d_%d"):format(name, i, j), r, d0, d0 + 0.05, seam)
+				end
+				for j, r in ipairs(cover(s - 0.1, s + 0.1, 1, 2.85, gaps)) do
+					slab(ctx.Detail, ("%s_SeamW%d_%d"):format(name, i, j), r, 0.06, 0.09, lowSeam)
+				end
+			end
+			if top > 10.6 then
+				for j, r in ipairs(cover(0, length, 9.9, 10.1, gaps)) do
+					slab(ctx.Detail, ("%s_SeamH%d"):format(name, j), r, d0, d0 + 0.05, seam)
+				end
+			end
+		end
+	elseif opts.kind == "exterior" then
+		band(ctx.Detail, name .. "_Kick", 0, 1, 0, 0.1, detail(P.CONCRETE_DARK, "Concrete"))
+		local concrete = { Color = P.CONCRETE_DARK, Material = "Concrete" }
+		local pilasters = {}
+		for i, s in ipairs(multiples(24, 1.5)) do
+			local clear = #cover(s - 1, s + 1, 0, top, gaps) == 1
+			if clear then
+				table.insert(pilasters, s)
+				slab(ctx.Structure, ("%s_Pilaster%d"):format(name, i), { s - 1, s + 1, 0, top - 1 }, 0, 1, concrete)
+				local pos = base * Vector3.new(s, top - 0.5, nz * 0.5)
+				local p = table.clone(concrete)
+				p.Name = ("%s_PilasterCap%d"):format(name, i)
+				p.Size = Vector3.new(2, 1, 1)
+				p.CFrame = CFrame.lookAt(pos, pos + normal)
+				BK.wedge(ctx.Structure, p)
+			end
+		end
+		if ctx.level >= 3 then
+			local seam = detail(BK.darken(P.CONCRETE_MID, 0.08), "Concrete")
+			for i, s in ipairs(multiples(16, 0.6)) do
+				for j, r in ipairs(cover(s - 0.1, s + 0.1, 1, top, gaps)) do
+					slab(ctx.Detail, ("%s_SeamV%d_%d"):format(name, i, j), r, 0, 0.05, seam)
+				end
+			end
+			for _, y in ipairs({ 3, 10 }) do
+				if top > y + 0.6 then
+					for j, r in ipairs(cover(0, length, y - 0.1, y + 0.1, gaps)) do
+						slab(ctx.Detail, ("%s_SeamH%d_%d"):format(name, y, j), r, 0, 0.05, seam)
+					end
+				end
+			end
+		end
+	else
+		error("Common.face: kind must be 'interior' or 'exterior'", 2)
+	end
+end
+
+-- Floor tile seams every 8 (docs/06 §4: 0.1-high KICKPLATE strips) and ceiling panel seams every 8 (8% darker),
+-- dressed pass only.
+function Common.tileSeams(ctx, floorPart, ceilingPart)
+	if ctx.level < 3 then
+		return
+	end
+	local BK, P = ctx.BK, ctx.P
+	if floorPart then
+		BK.seams(floorPart, Enum.NormalId.Top, 8, { width = 0.15, color = P.KICKPLATE, parent = ctx.Detail, name = floorPart.Name .. "_Tiles" })
+	end
+	if ceilingPart then
+		BK.seams(ceilingPart, Enum.NormalId.Bottom, 8, { width = 0.15, parent = ctx.Detail, name = ceilingPart.Name .. "_Panels" })
+	end
+end
+
+-- A ceiling or wall light fixture: a STEEL_DARK housing and a Neon face (`size`, its thickness along Y) centered at
+-- `center`, with a SurfaceLight on the face's Bottom. light: Color (LIGHT_NEUTRAL), Brightness, Range, Angle,
+-- Shadows, Face (default Bottom). Lights are tagged HubLight (dimmed at NIGHT, map_01 §14).
+function Common.fixture(ctx, name, center, size, light)
+	local BK, P = ctx.BK, ctx.P
+	local color = light.Color or P.LIGHT_NEUTRAL
+	BK.part(ctx.Lighting, {
+		Name = name .. "_Housing",
+		Size = size + Vector3.new(0.3, 0.1, 0.3),
+		CFrame = CFrame.new(center + Vector3.new(0, size.Y / 2 + 0.04, 0)),
+		Color = P.STEEL_DARK,
+		Material = "Metal",
+		CanCollide = false,
+		CanQuery = false,
+		CastShadow = false,
+	})
+	local face = BK.part(ctx.Lighting, {
+		Name = name,
+		Size = size,
+		CFrame = CFrame.new(center),
+		Color = color,
+		Material = "Neon",
+		CanCollide = false,
+		CanQuery = false,
+		CastShadow = false,
+	})
+	BK.light(face, light.Kind or "Surface", {
+		Color = color,
+		Brightness = light.Brightness,
+		Range = light.Range,
+		Angle = light.Angle,
+		Face = light.Face or Enum.NormalId.Bottom,
+		Shadows = light.Shadows == true,
+		Tags = { "HubLight" },
+	})
+	return face
+end
+
 -- Places the markers and nav nodes that belong to this area (or to the listed areas) into ctx.Gameplay.
 function Common.placeRegistry(ctx, areas)
 	local BK = ctx.BK
