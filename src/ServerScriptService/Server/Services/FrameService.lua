@@ -39,10 +39,11 @@ local InteractionService = require(script.Parent.InteractionService)
 local TriggerService = require(script.Parent.TriggerService)
 local ZoneService = require(script.Parent.ZoneService)
 
+local FrameEnergy = require(script.Parent.Parent.Frames.FrameEnergy)
+
 local TAG = "FrameService"
 local FOLDER = "Frames"
 local DISABLED_STATES = FrameConfig.DisabledStates
-local ENERGY_PUBLISH = 0.1 -- seconds between Energy attribute updates while it regenerates
 -- Where the "Board Frame" prompt of a kneeling Frame sits, relative to the root: on the ground under the hand
 -- the Kneel pose holds out. (Poses only exist on clients, so on the server the hand itself is still at rest.)
 -- (14, -16, -18) on the 40-stud rig; the 64-stud rig's root is 30.4 up, so -27.4 is 3 studs above the ground.
@@ -55,7 +56,6 @@ FrameService.Dismounted = Signal.new()
 
 local frames = {} -- [unitId] = Model
 local piloted = {} -- [Player] = Model
-local energy = {} -- [Model] = { value, lastSpend, published }
 local busy = {} -- [Player] = true while a board or dismount transition runs
 local adopted = {} -- [Model] = Player: a rig ridden by its own service's rules (adopt)
 local registered = {} -- [unitId] = true once the unit's board prompts have a handler
@@ -67,6 +67,10 @@ end
 local function configOf(frame)
 	return FrameConfig[frame:GetAttribute("Class")]
 end
+
+FrameEnergy.bind(function(frame)
+	return configOf(frame).energy
+end)
 
 function FrameService.playAnim(frame, clip, speed)
 	frame:SetAttribute("AnimSpeed", speed or 1)
@@ -138,25 +142,14 @@ function FrameService.getPiloted(player)
 	return piloted[player]
 end
 
+-- Energy is kept by Server/Frames/FrameEnergy.
 function FrameService.setEnergy(frame, value)
-	local entry = energy[frame]
-	entry.value = math.clamp(value, 0, configOf(frame).energy.max)
-	entry.published = now()
-	frame:SetAttribute("Energy", entry.value)
+	FrameEnergy.set(frame, value)
 end
 
 -- Takes amount from the Frame's energy. Returns false (and takes nothing) when there isn't enough.
 function FrameService.spendEnergy(frame, amount)
-	local entry = energy[frame]
-	if amount <= 0 or frame:GetAttribute("InfiniteEnergy") then
-		return true
-	end
-	if entry.value < amount then
-		return false
-	end
-	entry.lastSpend = now()
-	FrameService.setEnergy(frame, entry.value - amount)
-	return true
+	return FrameEnergy.spend(frame, amount)
 end
 
 local function addPrompt(part, id, actionText, objectText, opts)
@@ -194,9 +187,7 @@ function FrameService.adopt(player, rig)
 	local config = configOf(rig)
 	piloted[player] = rig
 	adopted[rig] = player
-	energy[rig] = { value = config.energy.max, lastSpend = 0, published = now() }
-	rig:SetAttribute("EnergyMax", config.energy.max)
-	rig:SetAttribute("Energy", config.energy.max)
+	FrameEnergy.track(rig)
 	rig:SetAttribute("IntegrityMax", config.integrity)
 	FrameService.setIntegrity(rig, config.integrity)
 	rig:SetAttribute("WeaponsLocked", true)
@@ -208,7 +199,7 @@ function FrameService.unadopt(player)
 	if rig and adopted[rig] then
 		piloted[player] = nil
 		adopted[rig] = nil
-		energy[rig] = nil
+		FrameEnergy.forget(rig)
 	end
 end
 
@@ -251,14 +242,12 @@ function FrameService.spawnFrame(unitId, spawnId)
 	frame:SetAttribute("Integrity", config.integrity)
 	frame:SetAttribute("PlatesDetached", 0)
 	frame:SetAttribute("DamageState", config.damageStates[1].name)
-	frame:SetAttribute("EnergyMax", config.energy.max)
-	frame:SetAttribute("Energy", config.energy.max)
 	frame:SetAttribute("Anim", "")
 	frame:SetAttribute("AnimT0", 0)
 	frame:SetAttribute("AnimSpeed", 1)
 	frame:SetAttribute("HatchOpen", false)
 	frame:SetAttribute("Booted", false)
-	energy[frame] = { value = config.energy.max, lastSpend = 0, published = 0 }
+	FrameEnergy.track(frame)
 
 	local folder = workspace:FindFirstChild(FOLDER)
 	if not folder then
@@ -533,25 +522,6 @@ function FrameService.dismount(player, padId)
 	return true
 end
 
--- Energy comes back at the class's regen rate once regenDelay has passed since the last spend.
-local function regenerate(dt)
-	local t = now()
-	for frame, entry in pairs(energy) do
-		if not frame.Parent then
-			energy[frame] = nil
-			continue
-		end
-		local config = configOf(frame).energy
-		if entry.value < config.max and t - entry.lastSpend >= config.regenDelay then
-			entry.value = math.min(config.max, entry.value + config.regen * dt)
-			if entry.value >= config.max or t - entry.published >= ENERGY_PUBLISH then
-				entry.published = t
-				frame:SetAttribute("Energy", entry.value)
-			end
-		end
-	end
-end
-
 function FrameService.Start()
 	-- Park every unit in its bay. This runs in Start because the spawn markers are registered by
 	-- CharacterService.Start and the prompts by InteractionService.Start, both earlier in the load order.
@@ -561,7 +531,7 @@ function FrameService.Start()
 			Log.warn(TAG, "Unit %s wasn't parked: %s", unitId, tostring(problem))
 		end
 	end
-	RunService.Heartbeat:Connect(regenerate)
+	RunService.Heartbeat:Connect(FrameEnergy.step)
 	-- Triggers with who = "frame" test the root of the Frame the player pilots (docs/13 §5).
 	TriggerService.setPointProvider("frame", function(player)
 		local frame = piloted[player]

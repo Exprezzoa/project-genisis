@@ -2,7 +2,8 @@
 -- Server/Services/CombatService.lua  (docs/12_combat_system.md; numbers in Config/CombatConfig)
 --
 -- The server side of Frame combat: validates Frame_Action requests, runs each action's timeline on server
--- time, samples the attack boxes against hurtboxes, works out zones and damage, and checks Frame speed.
+-- time, samples the attack boxes against hurtboxes and works out zones and damage (Server/Combat/SpeedCheck checks
+-- Frame speed).
 -- Clients only ask and show: they never send damage, positions for hit tests or timestamps.
 --
 -- Published on the Frame: Action (move name, "HitReact" or ""), ActionT0 (server time), ActionSeq (the request
@@ -39,12 +40,11 @@ local Net = require(Shared.Modules.Net)
 local Signal = require(Shared.Modules.Signal)
 
 local FrameService = require(script.Parent.FrameService)
+local SpeedCheck = require(script.Parent.Parent.Combat.SpeedCheck)
 
 local TAG = "CombatService"
 local SAMPLE_INTERVAL = 1 / CombatConfig.SAMPLE_RATE
 local PAD = Vector3.one * CombatConfig.LAG_PAD
-local ROOT_MOTION_SLACK = 0.5 -- seconds a root-motion allowance outlasts its window (the pilot's updates arrive late and in bursts)
-local ROOT_MOTION_MARGIN = 1.2 -- share of an action's distance the speed check lets through
 local KNOCKBACK_TIME = 0.25 -- the pilot's client carries a knockback out over this long (docs/12 §7)
 local ACTION_STATES = { Attack = true, Dodge = true, CoreStrike = true, HitStunLight = true, HitStunHeavy = true }
 
@@ -60,8 +60,6 @@ local actions = {} -- [frame] = { name, kind, move, t0, seq, player, hit, nextSa
 local cooldowns = {} -- [frame] = { Special = readyAt, Dodge = readyAt }
 local locks = {} -- [player] = { targetId, zone }
 local targets = {} -- [targetId] = handler
-local speed = {} -- [frame] = { position, time, valid, violations }
-local rootBudget = {} -- [frame] = { distance, expires }: extra studs the running action may move the Frame
 local lastHit = {} -- [frame] = server time of the last hit it took (mercy)
 local pendingHits = {} -- { frame, hit, at, resolveAt }: hits waiting out the dodge grace
 
@@ -103,13 +101,13 @@ local function begin(frame, player, name, seq, direction, target)
 		action.kind, action.move, action.target = "core", strike, target
 		clip = strike.clip
 		-- The pilot's client steps the Frame into place (docs/11 §5.6); it may cover the strike's whole reach.
-		rootBudget[frame] = { distance = (strike.range + CombatConfig.Tolerance.coreStrikeRange) * ROOT_MOTION_MARGIN, expires = t0 + strike.stepTime + ROOT_MOTION_SLACK }
+		SpeedCheck.allow(frame, strike.range + CombatConfig.Tolerance.coreStrikeRange, strike.stepTime)
 		frame:SetAttribute("ActionTarget", target)
 	elseif name == "Dodge" then
 		local dodge = CombatConfig.Dodge[class]
 		action.kind, action.move, action.direction = "dodge", dodge, direction
 		clip = CombatConfig.dodgeClip(frame.PrimaryPart.CFrame:VectorToObjectSpace(direction))
-		rootBudget[frame] = { distance = dodge.distance * ROOT_MOTION_MARGIN, expires = t0 + dodge.duration + ROOT_MOTION_SLACK }
+		SpeedCheck.allow(frame, dodge.distance, dodge.duration)
 		cooldowns[frame].Dodge = t0 + dodge.cooldown
 		frame:SetAttribute("DodgeReadyAt", cooldowns[frame].Dodge)
 	else
@@ -117,7 +115,7 @@ local function begin(frame, player, name, seq, direction, target)
 		action.kind, action.move = "attack", move
 		clip = move.clip
 		if move.lunge then
-			rootBudget[frame] = { distance = move.lunge.distance * ROOT_MOTION_MARGIN, expires = t0 + move.lunge.to + ROOT_MOTION_SLACK }
+			SpeedCheck.allow(frame, move.lunge.distance, move.lunge.to)
 		end
 		if move.cooldown then
 			cooldowns[frame][name] = t0 + move.cooldown
@@ -468,7 +466,7 @@ local function applyHit(frame, hit)
 			publish(frame, "HitReact", t, 0)
 			FrameService.playAnim(frame, react.clip)
 		end
-		rootBudget[frame] = { distance = hit.knockback.Magnitude * ROOT_MOTION_MARGIN, expires = t + KNOCKBACK_TIME + ROOT_MOTION_SLACK }
+		SpeedCheck.allow(frame, hit.knockback.Magnitude, KNOCKBACK_TIME)
 		feedback(player, {
 			kind = "HitTaken", damage = damage, knockback = hit.knockback, time = KNOCKBACK_TIME, heavy = heavy, stun = stun,
 			attack = hit.attack, disabled = disabled,
@@ -535,53 +533,6 @@ function CombatService.repair(frame)
 	end
 end
 
--- docs/12 §10: a piloted Frame that moves further than its state allows for too long is put back.
--- The check works on distance per interval, not on speed: the pilot's position updates reach the server in
--- bursts, so a dodge's 88 studs can show up inside one interval. While an action's root motion is (or was just)
--- running, the interval may hold that action's whole distance on top of normal movement (D-054).
-local function allowedDistance(frame, dt, t)
-	local budget = rootBudget[frame]
-	local extra = if budget and t <= budget.expires then budget.distance else 0
-	return CombatConfig.SpeedCheck.normal * dt + extra
-end
-
-local function checkSpeed(frame, player)
-	local root = frame.PrimaryPart
-	local t = now()
-	local entry = speed[frame]
-	local movedAt = frame:GetAttribute("MovedAt")
-	-- A new pilot, or the server moved the Frame itself (FrameService.moveTo): start measuring afresh.
-	if not entry or entry.player ~= player or entry.movedAt ~= movedAt then
-		speed[frame] = { player = player, position = root.Position, time = t, valid = root.CFrame, violations = {}, movedAt = movedAt }
-		return
-	end
-	local dt = t - entry.time
-	local moved = (root.Position - entry.position) * Vector3.new(1, 0, 1)
-	local over = moved.Magnitude > allowedDistance(frame, dt, t)
-	entry.position, entry.time = root.Position, t
-	local check = CombatConfig.SpeedCheck
-	for index = #entry.violations, 1, -1 do
-		if t - entry.violations[index].time > check.window then
-			table.remove(entry.violations, index)
-		end
-	end
-	if not over then
-		entry.valid = root.CFrame
-		return
-	end
-	table.insert(entry.violations, { time = t, length = dt })
-	local total = 0
-	for _, violation in ipairs(entry.violations) do
-		total += violation.length
-	end
-	if total > check.violationTime then
-		Log.warn(TAG, "%s moved Unit %s too fast for %.2f s; set back", player.Name, tostring(frame:GetAttribute("Unit")), total)
-		frame:PivotTo(entry.valid)
-		entry.position = entry.valid.Position
-		table.clear(entry.violations)
-	end
-end
-
 -- A hit by the ally Frame (AllyFrameService decides it): straight to the target; there is no pilot to tell.
 function CombatService.allyHit(hit)
 	deliver(hit)
@@ -608,17 +559,7 @@ function CombatService.Start()
 	game:GetService("Players").PlayerRemoving:Connect(function(player)
 		locks[player] = nil
 	end)
-	task.spawn(function()
-		while true do
-			task.wait(CombatConfig.SpeedCheck.interval)
-			for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-				local frame = FrameService.getPiloted(player)
-				if frame and frame.PrimaryPart and not frame.PrimaryPart.Anchored then
-					checkSpeed(frame, player)
-				end
-			end
-		end
-	end)
+	SpeedCheck.start(FrameService.getPiloted)
 end
 
 return CombatService
