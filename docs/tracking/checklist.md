@@ -1,6 +1,6 @@
 # Implementation Checklist
 
-**Current phase: 5 — Story introduction.** Phase 4 complete (journal Session 7). Phases 0–3 are built; their open acceptance tests need the user (touch and gamepad in Phases 1–2, timed fights in Phase 3). See the journal.
+**Current phase: 7 — Presentation pass** (started in journal Session 10). Phases 0–6 are built; their open acceptance tests need the user (touch and gamepad in Phases 1–2, timed fights in Phase 3, the phone layout and alt-tab in Phase 5). See the journal.
 
 Tick an item only after it was **tested** and the journal records how. Full task lists and acceptance tests: `docs/18_roadmap.md`.
 
@@ -64,8 +64,8 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [x] Phase 6 acceptance tests all PASS — 1 rewards once on a replay, 2 dodge cooldown 0.80 → 0.65 s and cost 25 → 20 after Thruster Baffles, 3 rejoin keeps XP, credits and upgrades, 4 failed load → read-only and the store untouched, 5 shutdown() writes and releases the lock (journal Session 9)
 
 ## Phase 7 — Presentation
-- [ ] Dressed pass on all areas
-- [ ] Final lighting, VFX, ambient movers and NPCs
+- [ ] Dressed pass on all areas — done and play-tested (D-100, D-101; journal Session 10): Quarters, Ops Hall, West Corridor, Briefing, East Corridor + stairwell, Equipment, Medical, Observation Deck; the hangar (shell, lighting, floor, crane, bays, gate corridor), launch platform, causeway, Bulwark. Left: Arrival, Research, Exterior, Training Yard, city and wilderness backdrops, Outpost 07, MemorySet
+- [ ] Final lighting, VFX, ambient movers and NPCs — done for the areas above (hub fixtures, hangar lighting, holograms, beacons, forklift, crane, T3 in the booth, evening lamps; night dimming built but not yet seen in play); the rest follows the areas
 - [ ] Audio hookup (IDs from user)
 - [ ] UI polish + mobile check
 - [ ] Performance budgets met

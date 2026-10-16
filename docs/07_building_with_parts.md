@@ -10,7 +10,7 @@
 builders/
   lib/BuildKit/              -- primitives and helpers (§3): init.lua + Core, Structure, Detail, Fx, Gameplay (D-009)
   lib/Palette.lua            -- every hex from 06_art_direction.md as Color3 constants
-  lib/Props/                 -- prop factory functions (§6): init.lua + Furniture, Display (D-100)
+  lib/Props/                 -- prop factory functions (§6): init.lua + Furniture, Display, Industrial (D-100, D-101)
   checks/<Name>              -- spec checks and self-tests (§8); mirrored as DevTools.Checks.<Name> (D-013)
   characters/CharacterKit.lua, characters/<Name>.lua
   rigs/Vanguard.lua, rigs/Strider.lua, rigs/Watcher.lua
@@ -209,7 +209,8 @@ Workspace
         Lighting    -- fixture parts with lights
         Gameplay    -- Triggers, Prompts, Pads, Spawns, CamPoints, NavNodes, Barriers
     Hangar
-      Shell / Bays / Catwalks / Crane / Door / LaunchPlatform / Causeway / Props / Lighting / Gameplay
+      Shell (with both big doors) / Bays / Catwalks / Crane / Floor (markings, booth, props) / Lighting / Unit03
+      GateCorridor / LaunchPlatform / Causeway / Gameplay
     Backdrops
       City / Bulwark / Wilderness
     Outpost07
@@ -307,6 +308,14 @@ Each prop is a function in `lib/Props/`: `Props.<Name>(parent, cframe, opts) -> 
 | **Poster** | 3×4×0.05 | SurfaceGui: propaganda line plus a simple blocky Frame silhouette made of colored Frames in the UI |
 | **Mug / datapad / clipboard** | small | 2–4 parts each; used to dress tables |
 | **DeskLamp** (D-100) | 0.6×1.3×0.6 | Weighted base, two-part arm, shade `STEEL_MID` over a Neon `AMBER_LAMP` bulb with a PointLight (default Quarters' lamp: `AMBER_LAMP` 0.8 / 14 / shadows) |
+| **MedCabinet** (D-101) | 3×7×1.4 | `MEDICAL_WHITE` cabinet, two glass doors, four shelves of bottles and boxes, a "MEDICAL SUPPLIES" label |
+| **Flag** (D-101) | 3.2×8.8×1.2 | The Directorate's flag on a stand: weighted base, pole with an amber finial, crossbar, `SLATE` cloth with the Division insignia and an amber band |
+| **PowerCabinet** (D-101) | 6×9×3 | `STEEL_MID` with door seams, vents, four amber-glow indicators and one red, handles, a "HIGH VOLTAGE" placard |
+| **PlateRack** (D-101) | 8×9×4 | Steel base and uprights holding 2–3 leaning armor plates (`VG_PRIMER` / `VG_ARMOR`) |
+| **MobileStair** (D-101) | 5×18×16 | Rolling stair to a 14-tall platform: `HAZARD_YELLOW` chassis on wheels, 12 DiamondPlate steps, railings |
+| **Bollard** (D-101) | 1.2×3.5 | `HAZARD_YELLOW` post with two black bands and a cap |
+| **ExtinguisherStation** (D-101) | 1.4×2.4×0.6 | Wall prop: a `DANGER_RED` cabinet with a glass front, the extinguisher inside, a "FIRE" label |
+| **CoolantTank** (D-101) | Ø4×10 | Standing `#7B848C` cylinder on a base ring, a dome, two bands, a valve, a "COOLANT" label |
 | **HoloPanel** (D-100) | W×H | A floating amber projection: a `BK.GLOW.holo` Neon plane at 0.8, edge lines at 0.45, a SurfaceGui title and lines (or a bar graph), optional back face; with `opts.emitter` a puck below and a faint beam. Tag `Hologram` (clients shimmer it); `HoloClock` makes its title the time of day |
 | **Mess table set** | 10×2.8×3 | Table plus 2 benches, 2–4 trays (thin parts) with "food" (small colored blocks), 1–2 cups |
 | **Frame-scale Breaker** | housing 10×16×8, lever arm 2×12×2 | Housing Concrete plus steel door; lever pivot at the top front; arm `HAZARD_YELLOW` with a black grip band; Model `BreakerLever` with a pivot attachment |

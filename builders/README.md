@@ -10,7 +10,7 @@ Builders are mirrored as ModuleScripts under `ServerStorage.DevTools`. DevTools 
 |---|---|
 | `lib/Palette.lua` | `DevTools.Palette` |
 | `lib/BuildKit/` (`init.lua` + `Core`, `Structure`, `Detail`, `Fx`, `Gameplay`) | `DevTools.BuildKit` (ModuleScript with 5 child modules) |
-| `lib/Props/` (`init.lua` + `Furniture`, `Display`) | `DevTools.Props` (ModuleScript with child modules; returns a function of BuildKit) |
+| `lib/Props/` (`init.lua` + `Furniture`, `Display`, `Industrial`) | `DevTools.Props` (ModuleScript with child modules; returns a function of BuildKit) |
 | `maps/central_command/<Area>.lua` | `DevTools.Builders.CentralCommand.<Area>` |
 | `maps/hangar/<Area>.lua` | `DevTools.Builders.Hangar.<Area>` |
 | `maps/outpost07/<Area>.lua` | `DevTools.Builders.Outpost07.<Area>` |
