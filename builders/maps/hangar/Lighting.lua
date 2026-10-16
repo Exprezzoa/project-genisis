@@ -71,10 +71,11 @@ function Builder.Build(opts)
 	end
 	-- Two per bay on the side catwalks (deck top 45), aimed at each Frame's chest (Y 50); the gap catwalks carry one
 	-- for each neighbouring bay, side by side.
-	local bays = { { -70, -114, -37 }, { 0, -33, 33 }, { 70, 37, 114 } }
+	-- The outer catwalks' floods stand on their wall side (X +-117, Z -200), off the walking line from the stair.
+	local bays = { { -70, { -117, -200 }, { -37, -188 } }, { 0, { -33, -188 }, { 33, -188 } }, { 70, { 37, -188 }, { 117, -200 } } }
 	for i, b in ipairs(bays) do
-		for j, x in ipairs({ b[2], b[3] }) do
-			flood(("BayFlood%d_%d"):format(i, j), V(x, 47.2, -188), V(b[1], 50, -205), true)
+		for j, at in ipairs({ b[2], b[3] }) do
+			flood(("BayFlood%d_%d"):format(i, j), V(at[1], 47.2, at[2]), V(b[1], 50, -205), true)
 		end
 	end
 	-- Bay 2's two extra floods on floor stands outside its front corners (clear of Unit 02's path out), looking up.

@@ -12,7 +12,7 @@
 --     1 Hz while the hub is in its MORNING, "COMMS RESTORED / UNDER REVIEW" after; the ticker scrolls; the clock;
 --   * the hub's lights (tag HubLight) dim 30% at NIGHT (map_01 §14), and those with a playing cinematic's `dim` tag
 --     ease to its fraction (the briefing room's strips to 0.35 in CIN_BRIEFING, 06 §5).
--- (The ambient movers of Phase 7 — crane, forklift, beacons — come here too.)
+--   * beacons spin while their door is open; ambient movers (the hangar's forklift) drive their loops.
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -341,6 +341,58 @@ local function startBeacons()
 	end)
 end
 
+---------------------------------------------------------------------------------------------------
+-- Ambient movers (docs/07 §5, map_02 §7): a model tagged AmbientMover with a Path "x,z;x,z;..." drives that loop on
+-- this client at Speed studs/s, turning into each leg (0.8 s) and pausing Pause s at each corner.
+---------------------------------------------------------------------------------------------------
+local function drive(model)
+	local points = {}
+	for pair in string.gmatch(model:GetAttribute("Path") or "", "[^;]+") do
+		local x, z = string.match(pair, "([%-%d%.]+),([%-%d%.]+)")
+		if x then
+			table.insert(points, Vector3.new(tonumber(x), 0, tonumber(z)))
+		end
+	end
+	if #points < 2 then
+		return
+	end
+	local speed = model:GetAttribute("Speed") or 6
+	local pause = model:GetAttribute("Pause") or 0
+	local y = model:GetPivot().Position.Y
+	task.spawn(function()
+		local i = 1
+		while model.Parent do
+			local a, b = points[i], points[i % #points + 1]
+			local from, to = Vector3.new(a.X, y, a.Z), Vector3.new(b.X, y, b.Z)
+			local dir = (to - from).Unit
+			local start, goal = model:GetPivot(), CFrame.lookAt(from, from + dir)
+			local t0 = os.clock()
+			while os.clock() - t0 < 0.8 and model.Parent do
+				model:PivotTo(start:Lerp(goal, (os.clock() - t0) / 0.8))
+				RunService.Heartbeat:Wait()
+			end
+			local duration = (to - from).Magnitude / speed
+			t0 = os.clock()
+			while os.clock() - t0 < duration and model.Parent do
+				local at = from:Lerp(to, (os.clock() - t0) / duration)
+				model:PivotTo(CFrame.lookAt(at, at + dir))
+				RunService.Heartbeat:Wait()
+			end
+			model:PivotTo(CFrame.lookAt(to, to + dir))
+			task.wait(pause)
+			i = i % #points + 1
+		end
+	end)
+end
+
+local function startMovers()
+	for _, model in ipairs(CollectionService:GetTagged("AmbientMover")) do
+		if model:IsA("Model") and model:GetAttribute("Path") then
+			drive(model)
+		end
+	end
+end
+
 function AmbientController.Init() end
 
 function AmbientController.Start()
@@ -365,6 +417,7 @@ function AmbientController.Start()
 		startHolograms()
 		startStatusWalls()
 		startBeacons()
+		startMovers()
 	end)
 end
 
