@@ -7,6 +7,7 @@
 --   getProfile(player) -> profile?            waitForProfile(player, timeout) -> profile?
 --   update(player, fn)                        -- fn(profile) changes the data; marks it dirty
 --   saveNow(player, reason) -> boolean        -- yields; false = nothing was written
+--   shutdown() -> pending                     -- the BindToClose save of every profile (yields)
 --   Loaded(player, profile)                   -- fires once per player, also for read-only profiles
 --
 -- Never overwrites stored data after a failed load: such a profile is readOnly for the session.
@@ -32,7 +33,9 @@ local TableUtil = require(Shared.Modules.TableUtil)
 local Types = require(Shared.Modules.Types)
 
 local TAG = "PlayerDataService"
-local CURRENT_VERSION = 1
+local Migrations = require(script.Parent.Parent.Data.Migrations)
+
+local CURRENT_VERSION = Migrations.CURRENT_VERSION
 local Config = GameConfig.Data
 local IS_STUDIO = RunService:IsStudio()
 local LOAD_FAILED_TOAST = "Couldn't load your save. Progress this session won't be saved."
@@ -55,9 +58,6 @@ local PlayerDataService = {}
 PlayerDataService.Loaded = Signal.new() :: Signal.Signal<Player, Profile>
 -- Fires (player, written, reason) after every save attempt.
 PlayerDataService.Saved = Signal.new() :: Signal.Signal<Player, boolean, string>
-
--- migrations[fromVersion](data) upgrades data by one version. None yet (schema v1).
-local migrations: { [number]: (data: any) -> () } = {}
 
 -- Studio play sessions have an empty JobId, so each one gets its own id for the session lock.
 local sessionId = if game.JobId ~= "" then game.JobId else "studio-" .. HttpService:GenerateGUID(false)
@@ -118,25 +118,6 @@ local function withRetries(what: string, player: Player, call: () -> any): (bool
 	return false, lastError
 end
 
--- Brings stored data up to the current schema. False = the data can't be used (unknown or newer version).
-local function migrate(data: any): boolean
-	local version = data.schemaVersion
-	if type(version) ~= "number" or version > CURRENT_VERSION then
-		return false
-	end
-	while version < CURRENT_VERSION do
-		local step = migrations[version]
-		if not step then
-			return false
-		end
-		step(data)
-		version += 1
-		data.schemaVersion = version
-	end
-	TableUtil.reconcile(data, defaultProfile())
-	return true
-end
-
 local function newEntry(): Entry
 	local now = os.clock()
 	return {
@@ -183,7 +164,7 @@ local function load(player: Player): Entry
 			return entry
 		end
 		if not lockedBy then
-			if type(result) == "table" and migrate(result) then
+			if type(result) == "table" and Migrations.run(result, defaultProfile()) then
 				entry.data = result
 			else
 				entry.readOnly = true
@@ -383,6 +364,24 @@ function PlayerDataService.setSimulateFailure(enabled: boolean)
 	end
 end
 
+-- The shutdown save (BindToClose, docs/17 §4): every profile saved and released at once, waiting up to CLOSE_TIMEOUT.
+-- Returns how many saves were still running at the deadline. Also called by the Phase 6 shutdown test.
+function PlayerDataService.shutdown(): number
+	local pending = 0
+	for player in pairs(entries) do
+		pending += 1
+		task.spawn(function()
+			PlayerDataService.saveNow(player, "shutdown", true)
+			pending -= 1
+		end)
+	end
+	local deadline = os.clock() + Config.CLOSE_TIMEOUT
+	while pending > 0 and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	return pending
+end
+
 function PlayerDataService.Init()
 	local serverFolder = script.Parent.Parent
 	if IS_STUDIO then
@@ -431,20 +430,7 @@ function PlayerDataService.Start()
 		entries[player] = nil
 	end)
 
-	game:BindToClose(function()
-		local pending = 0
-		for player in pairs(entries) do
-			pending += 1
-			task.spawn(function()
-				PlayerDataService.saveNow(player, "shutdown", true)
-				pending -= 1
-			end)
-		end
-		local deadline = os.clock() + Config.CLOSE_TIMEOUT
-		while pending > 0 and os.clock() < deadline do
-			task.wait(0.1)
-		end
-	end)
+	game:BindToClose(PlayerDataService.shutdown)
 
 	-- Autosave: checked once per second; deferred while the request budget is low.
 	local elapsed = 0

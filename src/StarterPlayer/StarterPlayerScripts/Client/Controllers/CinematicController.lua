@@ -96,15 +96,9 @@ end
 ----------------------------------------------------------------------------------------------------------------
 local function save()
 	local camera = workspace.CurrentCamera
-	local layers = {}
-	for _, name in ipairs(HIDDEN_LAYERS) do
-		local layer = UIController.getLayer(name)
-		layers[name] = layer.Enabled
-	end
-	local waypoints = localPlayer.PlayerGui:FindFirstChild("PG_Waypoints")
 	return {
 		cameraType = camera.CameraType, subject = camera.CameraSubject, fov = camera.FieldOfView,
-		mouse = UserInputService.MouseBehavior, layers = layers, waypoints = waypoints and waypoints.Enabled,
+		mouse = UserInputService.MouseBehavior,
 	}
 end
 
@@ -144,12 +138,12 @@ function CinematicController.finish(id: string?, send: string?)
 		UserInputService.MouseBehavior = saved.mouse
 	end)
 	step("layers", function()
-		for name, enabled in pairs(saved.layers) do
-			UIController.getLayer(name).Enabled = enabled
+		for _, name in ipairs(HIDDEN_LAYERS) do
+			UIController.hide(UIController.getLayer(name), "Cinematic", false)
 		end
 		local waypoints = localPlayer.PlayerGui:FindFirstChild("PG_Waypoints")
-		if waypoints and saved.waypoints ~= nil then
-			waypoints.Enabled = saved.waypoints
+		if waypoints then
+			UIController.hide(waypoints, "Cinematic", false)
 		end
 	end)
 	step("letterbox", function()
@@ -411,11 +405,11 @@ function CinematicController.play(id: string, params)
 	InputController.hold("Cinematic")
 	if not data.keepHud then
 		for _, name in ipairs(HIDDEN_LAYERS) do
-			UIController.getLayer(name).Enabled = false
+			UIController.hide(UIController.getLayer(name), "Cinematic", true)
 		end
 		local waypoints = localPlayer.PlayerGui:FindFirstChild("PG_Waypoints")
 		if waypoints then
-			waypoints.Enabled = false
+			UIController.hide(waypoints, "Cinematic", true)
 		end
 	end
 	if data.letterbox then

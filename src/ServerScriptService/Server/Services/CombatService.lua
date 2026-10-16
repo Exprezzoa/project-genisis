@@ -40,6 +40,7 @@ local Net = require(Shared.Modules.Net)
 local Signal = require(Shared.Modules.Signal)
 
 local FrameService = require(script.Parent.FrameService)
+local ProgressionService = require(script.Parent.ProgressionService)
 local SpeedCheck = require(script.Parent.Parent.Combat.SpeedCheck)
 
 local TAG = "CombatService"
@@ -67,8 +68,13 @@ local function now()
 	return workspace:GetServerTimeNow()
 end
 
+-- The rules a Frame plays by: its pilot's effective CombatConfig (base plus upgrades, docs/12 §12).
+local function rulesOf(frame)
+	return ProgressionService.configForFrame(frame).combat
+end
+
 local function movesOf(frame)
-	return CombatConfig.Frames[frame:GetAttribute("Class")]
+	return rulesOf(frame).Frames[frame:GetAttribute("Class")]
 end
 
 local function feedback(player, payload)
@@ -104,7 +110,7 @@ local function begin(frame, player, name, seq, direction, target)
 		SpeedCheck.allow(frame, strike.range + CombatConfig.Tolerance.coreStrikeRange, strike.stepTime)
 		frame:SetAttribute("ActionTarget", target)
 	elseif name == "Dodge" then
-		local dodge = CombatConfig.Dodge[class]
+		local dodge = rulesOf(frame).Dodge[class]
 		action.kind, action.move, action.direction = "dodge", dodge, direction
 		clip = CombatConfig.dodgeClip(frame.PrimaryPart.CFrame:VectorToObjectSpace(direction))
 		SpeedCheck.allow(frame, dodge.distance, dodge.duration)
@@ -206,7 +212,7 @@ local function onRequest(player, payload)
 		end
 		begin(frame, player, moveName, seq)
 	elseif name == "Dodge" then
-		local dodge = CombatConfig.Dodge[class]
+		local dodge = rulesOf(frame).Dodge[class]
 		if not (idle or (current and dodgeCancels(current, t - current.t0))) then
 			return reject("Busy")
 		elseif (cooldowns[frame].Dodge or 0) > t then

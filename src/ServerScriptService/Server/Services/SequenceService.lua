@@ -107,6 +107,7 @@ local function save(runner, checkpoint)
 		profile.story.sequenceId = sequenceId
 		profile.story.checkpoint = checkpoint
 	end)
+	task.spawn(PlayerDataService.saveNow, runner.player, "checkpoint") -- docs/17 §4: saved at every checkpoint
 	Log.info(TAG, "%s reached checkpoint %s", runner.player.Name, checkpoint)
 end
 

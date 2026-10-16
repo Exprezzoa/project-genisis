@@ -3,7 +3,8 @@
 --
 -- Evidence the player has read: profile.evidence[id] = when, the flag EV_<id>, and the toast "Evidence added to
 -- Mission Log." the first time. Each entry of Shared/Evidence registers its prompt. The first-read reward
--- (+50 XP, docs/05 §10) comes with ProgressionService in Phase 6; the Log Reader UI with the Mission Log.
+-- (+50 XP, docs/05 §10) is granted by the flag with the mission's rewards at M01_COMPLETE (ProgressionService);
+-- the Log Reader UI comes with the Mission Log.
 --
 --   collect(player, id) -> boolean (true the first time)      has(player, id) -> boolean
 --   Collected: Signal(player, id)

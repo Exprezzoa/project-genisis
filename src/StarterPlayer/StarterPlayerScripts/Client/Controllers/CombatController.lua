@@ -25,6 +25,7 @@ local AnimationController = require(script.Parent.AnimationController)
 local CameraController = require(script.Parent.CameraController)
 local FrameController = require(script.Parent.FrameController)
 local InputController = require(script.Parent.InputController)
+local ProgressionController = require(script.Parent.ProgressionController)
 
 local REQUESTS = { Light = true, Heavy = true, Dodge = true, Special = true, CoreStrike = true }
 local PREDICTED_SLACK = 0.3 -- a predicted action nobody confirmed or refused is dropped this long after its end
@@ -54,13 +55,13 @@ end
 local function describe(model: Model, name: string): (string, any)
 	local class = model:GetAttribute("Class") :: string
 	if name == "Dodge" then
-		return "dodge", (CombatConfig.Dodge :: any)[class]
+		return "dodge", (ProgressionController.combat() :: any).Dodge[class]
 	elseif name == "CoreStrike" then
 		return "core", (CombatConfig.CoreStrike :: any)[class]
 	elseif name == "HitReact" then
 		return "stun", HIT_REACT
 	end
-	return "attack", (CombatConfig.Frames :: any)[class][name]
+	return "attack", (ProgressionController.combat() :: any).Frames[class][name]
 end
 
 -- Is there a Titan with its core open? (The server checks range and facing.)
@@ -142,7 +143,7 @@ local function tryBuffered(model: Model)
 		end
 	elseif name == "Heavy" or name == "Special" then
 		local moveName = (CombatConfig.Requests :: any)[name]
-		local move = (CombatConfig.Frames :: any)[class][moveName]
+		local move = (ProgressionController.combat() :: any).Frames[class][moveName]
 		if not move then
 			return drop("Rejected") -- this class has no such move (the Titan form's specials are ShifterController's)
 		elseif not idle then
@@ -154,7 +155,7 @@ local function tryBuffered(model: Model)
 		end
 		predict(model, name, moveName)
 	elseif name == "Dodge" then
-		local dodge = (CombatConfig.Dodge :: any)[class]
+		local dodge = (ProgressionController.combat() :: any).Dodge[class]
 		local current = action
 		local cancels = false
 		if current and current.kind == "attack" then

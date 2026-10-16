@@ -21,7 +21,8 @@ function Builder.Build(opts)
 	-- Counter X 112..116, Z -34..-6, 2.8 tall; the Equipment Terminal behind it at (126, 0, -20), facing west.
 	C.standIn(ctx, "Counter_StandIn", V(112, 0, -34), V(116, 2.8, -6))
 	local terminal = C.standIn(ctx, "EquipTerminal_StandIn", V(124.75, 0, -23), V(127.25, 3, -17), { Color = P.STEEL_DARK })
-	BK.prompt(terminal, "INT_EQUIP_TERMINAL", "Use", { enabled = false }) -- Phase 6
+	-- Enabled since Phase 6 (upgrades). The console stands behind the counter, so it reaches across it (D-097).
+	BK.prompt(terminal, "INT_EQUIP_TERMINAL", "Use", { dist = 18, lineOfSight = false })
 
 	C.placeRegistry(ctx)
 	return C.finish(ctx)

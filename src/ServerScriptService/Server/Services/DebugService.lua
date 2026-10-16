@@ -24,6 +24,7 @@ local TitanService = require(script.Parent.TitanService)
 local TitanConfig = require(Shared.Config.TitanConfig)
 local FlagService = require(script.Parent.FlagService)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local ProgressionService = require(script.Parent.ProgressionService)
 local RelationshipService = require(script.Parent.RelationshipService)
 local SequenceService = require(script.Parent.SequenceService)
 local ShifterConfig = require(Shared.Config.ShifterConfig)
@@ -371,6 +372,22 @@ function handlers.shifter(player, args)
 	FlagService.set(player, ShifterConfig.FLAG)
 	local ok, reason = ShifterService.canShift(player)
 	return "shifter on: hold Z to shift" .. (if ok then " (allowed here)" elseif reason == "NotHere" then " (only in the Training Yard: /zone training)" else "")
+end
+
+-- /give xp|credits <n>: progression testing (docs/19 §2); a negative n takes away. The rank follows the XP.
+function handlers.give(player, args)
+	local what, amount = string.lower(args[1] or ""), tonumber(args[2] or "")
+	if (what ~= "xp" and what ~= "credits") or not amount or amount ~= math.floor(amount) then
+		return "usage: " .. Debug.Commands.give.usage
+	end
+	local profile = PlayerDataService.getProfile(player)
+	if not profile then
+		return "no profile yet"
+	end
+	local current = if what == "xp" then profile.progression.xp else profile.progression.credits
+	amount = math.max(amount, -current) -- never below 0
+	ProgressionService.give(player, if what == "xp" then amount else 0, if what == "credits" then amount else 0)
+	return ("%s %+d: %d XP (rank %d), %d credits"):format(what, amount, profile.progression.xp, profile.progression.rank, profile.progression.credits)
 end
 
 function handlers.timescale()

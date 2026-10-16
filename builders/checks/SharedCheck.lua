@@ -15,11 +15,13 @@ local Check = {}
 
 local C2S = {
 	"Client_Ready", "Frame_Action", "Frame_Lock", "Dialogue_Advance", "Dialogue_Choose", "Cinematic_Done",
-	"Cinematic_Skip", "Settings_Update", "Checkpoint_Restart", "Upgrade_Buy", "Debug_Command",
+	"Cinematic_Skip", "Tutorial_Seen", "UI_CardDone", "Shift_Request", "Shift_Special", "Settings_Update",
+	"Checkpoint_Restart", "Upgrade_Buy", "Debug_Command",
 }
 local S2C = {
 	"Server_Ready", "Seq_State", "Dialogue_Node", "Dialogue_End", "Cinematic_Play", "Combat_Feedback", "UI_Toast",
-	"UI_Card", "Tutorial_Show", "Bark_Play", "Lighting_Set", "Fade", "Music_Set", "Profile_Snapshot",
+	"UI_Card", "Tutorial_Show", "Bark_Play", "Shift_Effect", "Lighting_Set", "Fade", "Music_Set", "Profile_Snapshot",
+	"UI_Open", "Upgrade_Result",
 }
 
 function Check.Full()
@@ -310,7 +312,7 @@ function Check.Full()
 		for _ in pairs(Net.Definitions) do
 			count += 1
 		end
-		expect(count == #C2S + #S2C, "25 remotes (docs/16 §5), got " .. count)
+		expect(count == #C2S + #S2C, ("%d remotes (docs/16 §5 and later additions), got %d"):format(#C2S + #S2C, count))
 		for _, name in ipairs(C2S) do
 			local d = Net.Definitions[name]
 			expect(d and d.direction == "C2S" and d.validate and d.rate and d.burst, name .. " is a complete C2S definition")

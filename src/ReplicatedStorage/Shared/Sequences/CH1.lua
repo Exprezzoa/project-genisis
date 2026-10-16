@@ -439,6 +439,13 @@ return {
 				{ "fade", to = 1, duration = 0 },
 				{ "dialogue", id = "DLG_M01_DARK", block = true },
 				{ "wait", seconds = 2 },
+				-- The mission's rewards, granted with the checkpoint (docs/05 §10; each once per profile).
+				{ "grant", key = "CH1_M01_COMPLETE" },
+				{ "grant", key = "CH1_STRIDER_DEFEATED" },
+				{ "grant", key = "EV_OP07_LOG1", ifFlag = "EV_OP07_LOG1" },
+				{ "grant", key = "EV_OP07_LOG2", ifFlag = "EV_OP07_LOG2" },
+				{ "grant", key = "EV_OP07_LOG3", ifFlag = "EV_OP07_LOG3" },
+				{ "grant", key = "CH1_CLEAN_KILL", ifFlag = "CH1_CLEAN_KILL" },
 				{ "checkpoint", id = "M01_COMPLETE" }, -- the evening (S40) sets itself up behind the black
 			},
 		},
@@ -469,6 +476,13 @@ return {
 				{ "wait", seconds = 1.0 },
 				{ "dialogue", id = "DLG_CH1_RETURN_2", block = true },
 				{ "cinematic", id = "CIN_RETURN", stop = true },
+				-- Granted at M01_COMPLETE already; again here for a profile saved past it before rewards existed (nothing twice).
+				{ "grant", key = "CH1_M01_COMPLETE" },
+				{ "grant", key = "CH1_STRIDER_DEFEATED" },
+				{ "grant", key = "EV_OP07_LOG1", ifFlag = "EV_OP07_LOG1" },
+				{ "grant", key = "EV_OP07_LOG2", ifFlag = "EV_OP07_LOG2" },
+				{ "grant", key = "EV_OP07_LOG3", ifFlag = "EV_OP07_LOG3" },
+				{ "grant", key = "CH1_CLEAN_KILL", ifFlag = "CH1_CLEAN_KILL" },
 				{ "card", kind = "MissionComplete" },
 				{ "objective", id = "OBJ_CH1_MEDICAL" },
 				{ "paLoop", lines = PA_EVENING, every = 45, zones = CENTRAL_COMMAND, untilStep = "S50_FREE_ROAM" },

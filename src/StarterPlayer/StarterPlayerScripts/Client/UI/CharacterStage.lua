@@ -82,7 +82,19 @@ Stage.SHOTS = {
 		motion = { { "RightWrist", "X", 18, 0.4, 0 }, { "RightElbow", "X", 8, 0.2, 0.5 }, { "RightShoulder", "X", 4, 0.1, 0 }, { "Neck", "X", 5, 0.2, 0 } },
 		word = "LOG",
 	},
-	-- Equipment (Phase 6): a shot of the raised forearm, to be tuned the same way when the screen exists.
+	-- From his left front, chest up: the left forearm raised across the chest like a wrist display, the right hand
+	-- tapping through it while he looks down at it (the refit list).
+	Equipment = {
+		from = V(-6.4, 4.5, -8.8), at = V(0.6, 3.8, 0.4), fov = 36, field = hex("#9AA1A6"), stripe = hex("#E8B923"),
+		pose = {
+			Waist = V(-2, 8, 0), Neck = V(-18, 12, 0),
+			LeftShoulder = V(62, 0, -10), LeftElbow = V(82, 0, 0), LeftWrist = V(0, 0, 8),
+			RightShoulder = V(46, 0, -16), RightElbow = V(72, 0, 0),
+			RightHip = V(6, 0, 0), LeftHip = V(-6, 0, 0),
+		},
+		motion = { { "RightElbow", "X", 7, 0.9, 0 }, { "RightShoulder", "X", 3, 0.9, 0.1 }, { "LeftWrist", "Z", 6, 0.25, 0 }, { "Neck", "X", 4, 0.2, 0.3 } },
+		word = "GEAR",
+	},
 }
 Stage.DEFAULT = "Pause"
 Stage.DIM = 0.35 -- transparency of the ink layer over the game view

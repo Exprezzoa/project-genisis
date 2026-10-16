@@ -81,6 +81,8 @@ local Definitions: { [string]: Definition } = {
 	Fade = S2C,
 	Music_Set = S2C,
 	Profile_Snapshot = S2C,
+	UI_Open = S2C, -- { screen }: a screen the world opens (the Equipment Terminal, D-097)
+	Upgrade_Result = S2C, -- { upgradeId, ok, reason?, credits, upgrades }: the answer to Upgrade_Buy (D-097)
 }
 
 return Definitions

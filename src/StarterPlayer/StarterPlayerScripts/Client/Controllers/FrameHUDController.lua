@@ -22,6 +22,7 @@ local Components = require(script.Parent.Parent.UI.Components)
 local CombatController = require(script.Parent.CombatController)
 local FrameController = require(script.Parent.FrameController)
 local InputController = require(script.Parent.InputController)
+local ProgressionController = require(script.Parent.ProgressionController)
 local SettingsController = require(script.Parent.SettingsController)
 local UIController = require(script.Parent.UIController)
 
@@ -377,8 +378,9 @@ local function update()
 	end
 
 	local action = model:GetAttribute("Action")
-	local moves = CombatConfig.Frames[class]
-	local dodge = CombatConfig.Dodge[class]
+	local rules = ProgressionController.combat() -- the pilot's upgrades count (docs/12 §12)
+	local moves = rules.Frames[class]
+	local dodge = rules.Dodge[class]
 	local t = now()
 	for _, slot in pairs(slots) do
 		local spec = slot.spec

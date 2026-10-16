@@ -19,6 +19,7 @@ local TAG = "Main"
 local ORDER = {
 	"InputController",
 	"SettingsController",
+	"ProgressionController",
 	"UIController",
 	"LightingController",
 	"AudioController",
@@ -31,6 +32,7 @@ local ORDER = {
 	"MobileControlsController",
 	"MenuController",
 	"MissionLogController",
+	"EquipmentController",
 	"DialogueController",
 	"CinematicController",
 	"ConversationCameraController",

@@ -56,5 +56,5 @@ return {
 		give = { side = "server", phase = 6, usage = "/give xp|credits <n>" },
 	},
 
-	CURRENT_PHASE = 5,
+	CURRENT_PHASE = 6,
 }

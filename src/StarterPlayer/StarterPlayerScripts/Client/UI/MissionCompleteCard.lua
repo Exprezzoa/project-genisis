@@ -6,7 +6,8 @@
 -- filling with the rank's name, and Continue. It stays until Continue (click, Enter / Space, or A).
 --
 --   MissionCompleteCard.show(parent, data, onContinue) -> close()
---   data = { mission, rows = { { label, xp, credits } }, xp, credits, rank = { name, rank, from, to, fill } }
+--   data = { mission, rows = { { label, xp, credits } }, xp, credits,
+--            rank = { name, rank, fill, fromName, fromRank, fromFill } }   (from* = before this mission's rewards)
 
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
@@ -119,21 +120,48 @@ function MissionCompleteCard.show(parent, data, onContinue)
 		end
 	end)
 
-	-- The rank bar fills to where this chapter leaves the pilot.
+	-- The rank bar fills from where the pilot stood before this mission to where it leaves them. Crossing into a new
+	-- rank fills the old one to the end, flashes, renames the bar and stamps RANK UP, then fills the new one.
 	local rank = data.rank or {}
-	local rankName = Components.label(panel, ("%s — RANK %d"):format(string.upper(rank.name or ""), rank.rank or 1), { font = "Header", size = 14, color = UIStyle.TextPrimary }, {
+	local function rankText(name, number)
+		return ("%s — RANK %d"):format(string.upper(name or ""), number or 1)
+	end
+	local rankedUp = rank.fromRank ~= nil and rank.fromRank < (rank.rank or 1)
+	local rankName = Components.label(panel, if rankedUp then rankText(rank.fromName, rank.fromRank) else rankText(rank.name, rank.rank), { font = "Header", size = 14, color = UIStyle.TextPrimary }, {
 		Position = UDim2.fromOffset(0, SIZE.Y - 128), Size = UDim2.new(1, 0, 0, 20), ZIndex = 22,
 	})
 	local track = Components.slab(panel, { color = UIStyle.Paper, transparency = 0.85, slant = false }, {
 		Position = UDim2.fromOffset(0, SIZE.Y - 102), Size = UDim2.new(1, 0, 0, 8), ZIndex = 22,
 	})
-	local fill = Components.slab(track, { color = UIStyle.Accent, slant = false }, { Size = UDim2.fromScale(0, 1), ZIndex = 23 })
+	local fill = Components.slab(track, { color = UIStyle.Accent, slant = false }, { Size = UDim2.fromScale(math.clamp(rank.fromFill or 0, 0, 1), 1), ZIndex = 23 })
+	local stamp = Components.title(panel, "RANK UP", {
+		Position = UDim2.fromOffset(300, SIZE.Y - 150), Size = UDim2.fromOffset(170, 40), Visible = false, ZIndex = 24,
+	}, { size = 16, width = 170 })
+	local stampScale = Instance.new("UIScale")
+	stampScale.Parent = stamp
 	rankName.TextTransparency = 1
 	task.delay(totalsAt + 0.5, function()
-		if fill.Parent then
-			rankName.TextTransparency = 0
-			TweenService:Create(fill, TweenInfo.new(0.9, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.fromScale(math.clamp(rank.fill or 0, 0, 1), 1) }):Play()
+		if not fill.Parent then
+			return
 		end
+		rankName.TextTransparency = 0
+		if rankedUp then
+			local toEnd = TweenService:Create(fill, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.fromScale(1, 1) })
+			toEnd:Play()
+			toEnd.Completed:Wait()
+			if not fill.Parent then
+				return
+			end
+			Components.paint(fill, UIStyle.Paper)
+			Components.tweenPaint(fill, TweenInfo.new(0.35), UIStyle.Accent)
+			rankName.Text = rankText(rank.name, rank.rank)
+			stamp.Visible = true
+			stamp.Rotation = -6
+			stampScale.Scale = 1.8
+			TweenService:Create(stampScale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+			fill.Size = UDim2.fromScale(0, 1)
+		end
+		TweenService:Create(fill, TweenInfo.new(0.9, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Size = UDim2.fromScale(math.clamp(rank.fill or 0, 0, 1), 1) }):Play()
 	end)
 
 	local closed = false
@@ -160,7 +188,7 @@ function MissionCompleteCard.show(parent, data, onContinue)
 	})
 	-- Continue is offered once the numbers are in; Enter, Space or A press it, and a gamepad has it selected.
 	button.Visible = false
-	task.delay(totalsAt + 0.9, function()
+	task.delay(totalsAt + (if rankedUp then 1.6 else 0.9), function()
 		if closed then
 			return
 		end

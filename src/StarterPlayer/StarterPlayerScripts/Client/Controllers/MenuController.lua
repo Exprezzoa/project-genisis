@@ -34,6 +34,17 @@ local screens = {}
 local openName = nil
 local blur
 
+-- The HUD, prompts and waypoints step aside while a screen is open (the screens use the same corners).
+local function hideGameUI(hidden)
+	for _, name in ipairs({ "HUD", "Prompts" }) do
+		UIController.hide(UIController.getLayer(name), "Menu", hidden)
+	end
+	local waypoints = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("PG_Waypoints")
+	if waypoints then
+		UIController.hide(waypoints, "Menu", hidden)
+	end
+end
+
 local function percent(value)
 	return ("%d%%"):format(math.floor(value * 100 + 0.5))
 end
@@ -76,6 +87,7 @@ function MenuController.close()
 	end
 	GuiService.SelectedObject = nil
 	CharacterStage.hide()
+	hideGameUI(false)
 	InputController.restoreGameplay()
 end
 
@@ -93,6 +105,7 @@ function MenuController.open(name)
 		blur.Enabled = screen.blur
 	end
 	InputController.setContext("Menu")
+	hideGameUI(true)
 	GuiService.SelectedObject = if InputController.getDevice() == "Gamepad" then screen.first else nil
 	CharacterStage.show(name, false)
 	-- The content arrives piece by piece: big surfaces slide up, then the titles and buttons run in.

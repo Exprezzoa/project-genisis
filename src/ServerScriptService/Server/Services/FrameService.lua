@@ -36,6 +36,7 @@ local CharacterService = require(script.Parent.CharacterService)
 local CinematicService = require(script.Parent.CinematicService)
 local CollisionService = require(script.Parent.CollisionService)
 local InteractionService = require(script.Parent.InteractionService)
+local ProgressionService = require(script.Parent.ProgressionService)
 local TriggerService = require(script.Parent.TriggerService)
 local ZoneService = require(script.Parent.ZoneService)
 
@@ -68,8 +69,9 @@ local function configOf(frame)
 	return FrameConfig[frame:GetAttribute("Class")]
 end
 
+-- Energy follows the pilot's effective config (Capacitor Bank I, docs/12 §12).
 FrameEnergy.bind(function(frame)
-	return configOf(frame).energy
+	return ProgressionService.configForFrame(frame).frame[frame:GetAttribute("Class")].energy
 end)
 
 function FrameService.playAnim(frame, clip, speed)

@@ -4,6 +4,7 @@
 -- The Sequence Runner's actions for the hub's story scenes, installed into Actions.handlers:
 --   sit (the player on a seat mark, S07)   paLoop (the Central Command PA, S03 / S40)
 --   scanBeam (Medical's scanner, S41)      terminalMessage (the Q-3 terminal's "1 NEW MESSAGE", S43)
+--   grant (a reward, once per profile: ProgressionService)
 -- and missionCompleteData(player) / chapterEndData(player), what the Mission Complete (S40) and Chapter End (S43)
 -- cards show.
 
@@ -18,6 +19,8 @@ local Services = script.Parent.Parent.Services
 local CharacterService = require(Services.CharacterService)
 local DialogueService = require(Services.DialogueService)
 local FlagService = require(Services.FlagService)
+local PlayerDataService = require(Services.PlayerDataService)
+local ProgressionService = require(Services.ProgressionService)
 local ZoneService = require(Services.ZoneService)
 
 local TAG = "SequenceService"
@@ -30,34 +33,53 @@ local function mapPart(name)
 	return map and map:FindFirstChild(name, true)
 end
 
--- Mission Complete (docs/05 S40, §10): what the chapter earned, from the flags (ProgressionService grants it in
--- Phase 6: D-090), with the rank the XP reaches.
+-- Mission Complete (docs/05 S40, §10): the rewards this mission granted (ProgressionService, at M01_COMPLETE), and
+-- the rank bar from where the pilot stood before them to where they leave the pilot. The same on every replay.
+local MISSION_ROWS = {
+	{ label = "MISSION COMPLETE", keys = { "CH1_M01_COMPLETE" } },
+	{ label = "STRIDER DEFEATED", keys = { "CH1_STRIDER_DEFEATED" } },
+	{ label = "EVIDENCE LOGS (%d/3)", keys = { "EV_OP07_LOG1", "EV_OP07_LOG2", "EV_OP07_LOG3" } },
+	{ label = "CLEAN KILL", keys = { "CH1_CLEAN_KILL" } },
+}
+
+local function rankFill(xp)
+	local held, nextRank = Progression.rankAt(xp)
+	return held, if nextRank then (xp - held.xp) / (nextRank.xp - held.xp) else 1
+end
+
 local function missionCompleteData(player)
-	local rewards = Progression.Rewards
-	local rows = {
-		{ label = "MISSION COMPLETE", xp = rewards.CH1_M01_COMPLETE.xp, credits = rewards.CH1_M01_COMPLETE.credits },
-		{ label = "STRIDER DEFEATED", xp = rewards.CH1_STRIDER_DEFEATED.xp, credits = rewards.CH1_STRIDER_DEFEATED.credits },
-	}
-	local logs = 0
-	for _, id in ipairs({ "EV_OP07_LOG1", "EV_OP07_LOG2", "EV_OP07_LOG3" }) do
-		if FlagService.has(player, id) then
-			logs += 1
+	local profile = PlayerDataService.getProfile(player)
+	local progression = profile and profile.progression or { xp = 0, grants = {} }
+	local rows, xp, credits = {}, 0, 0
+	for _, spec in ipairs(MISSION_ROWS) do
+		local count, rowXp, rowCredits = 0, 0, 0
+		for _, key in ipairs(spec.keys) do
+			if progression.grants[key] then
+				local reward = Progression.Rewards[key]
+				count += 1
+				rowXp += reward.xp
+				rowCredits += reward.credits
+			end
+		end
+		if count > 0 then
+			table.insert(rows, { label = spec.label:format(count), xp = rowXp, credits = rowCredits })
+			xp += rowXp
+			credits += rowCredits
 		end
 	end
-	if logs > 0 then
-		table.insert(rows, { label = ("EVIDENCE LOGS (%d/3)"):format(logs), xp = rewards.EV_OP07_LOG1.xp * logs, credits = 0 })
-	end
-	if FlagService.has(player, "CH1_CLEAN_KILL") then
-		table.insert(rows, { label = "CLEAN KILL", xp = rewards.CH1_CLEAN_KILL.xp, credits = rewards.CH1_CLEAN_KILL.credits })
-	end
-	local xp, credits = 0, 0
-	for _, row in ipairs(rows) do
-		xp += row.xp
-		credits += row.credits
-	end
-	local held, nextRank = Progression.rankAt(xp)
-	local fill = if nextRank then (xp - held.xp) / (nextRank.xp - held.xp) else 1
-	return { mission = "THE SILENT OUTPOST", rows = rows, xp = xp, credits = credits, rank = { name = held.name, rank = held.rank, fill = fill } }
+	local before = math.max(0, progression.xp - xp)
+	local held, fill = rankFill(progression.xp)
+	local was, fromFill = rankFill(before)
+	return {
+		mission = "THE SILENT OUTPOST", rows = rows, xp = xp, credits = credits,
+		rank = { name = held.name, rank = held.rank, fill = fill, fromFill = fromFill, fromName = was.name, fromRank = was.rank },
+	}
+end
+
+-- Rewards (docs/17 §6): { "grant", key = "CH1_M01_COMPLETE" }. Each key pays out once per profile, so a replayed step
+-- grants nothing more.
+function actions.grant(runner, a)
+	ProgressionService.grant(runner.player, a.key)
 end
 
 -- The player sits at a seat mark (S07): { "sit", at = "SEAT_BRF_ELIAS", height = "BENCH" }; { "sit", stand = true,

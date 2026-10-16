@@ -5,6 +5,7 @@
 -- keeps their UIScale in step with the viewport, and owns the one global fade.
 --
 --   getLayer(name) -> ScreenGui    getScale() -> number
+--   hide(gui, owner, hidden)       -- a ScreenGui stays off while any owner hides it (cinematics, menus)
 --   fade(to, duration)             -- to: 1 = black, 0 = clear; yields until done. Also driven by the Fade remote.
 
 local Players = game:GetService("Players")
@@ -57,6 +58,19 @@ function UIController.getLayer(name: string): ScreenGui
 		error("UIController: unknown layer " .. tostring(name), 2)
 	end
 	return layer
+end
+
+local hiders: { [ScreenGui]: { [string]: boolean } } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Several systems hide the same layers (a cinematic, an open menu): the gui is on only when nobody hides it.
+function UIController.hide(gui: ScreenGui, owner: string, hidden: boolean)
+	local owners = hiders[gui]
+	if not owners then
+		owners = {}
+		hiders[gui] = owners
+	end
+	owners[owner] = if hidden then true else nil
+	gui.Enabled = next(owners) == nil
 end
 
 function UIController.getScale(): number
