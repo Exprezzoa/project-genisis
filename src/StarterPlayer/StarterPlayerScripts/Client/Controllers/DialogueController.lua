@@ -43,8 +43,17 @@ local BOX = { width = 900, share = 0.7, minHeight = 140, bottom = 40 }
 local CHOICE = { width = 520, height = 44, gap = 6 }
 local LETTERBOX = 0.11 -- of the viewport's height, each bar
 
+local GuiService = game:GetService("GuiService")
+
 local dialogues = {}
 local layer, box, boxFill, nameTab, nameLabel, lineLabel, more, choicesHolder, timerBar, timerFill
+
+-- The top bar inset this layer keeps (Roblox's top bar), in the layer's own units (its UIScale shrinks offsets).
+local function topInset(): number
+	local topLeft = GuiService:GetGuiInset()
+	local scale = layer and layer:FindFirstChildOfClass("UIScale")
+	return topLeft.Y / (if scale and scale.Scale > 0 then scale.Scale else 1)
+end
 local barTop, barBottom, cineLabel
 local state = { open = false, mode = nil, dialogueId = nil, nodeId = nil, text = "", typed = true, choices = nil }
 local token = 0
@@ -64,11 +73,13 @@ end
 ----------------------------------------------------------------------------------------------------------------
 local function build()
 	layer = UIController.getLayer("Dialogue")
-	-- Letterbox (cinematic mode).
+	-- Letterbox (cinematic mode). The layer keeps the top bar inset, so the top bar reaches up under it (it started
+	-- 58 points down, with the scene showing above it).
 	barTop = Instance.new("Frame")
 	barTop.Name = "LetterboxTop"
 	barTop.BackgroundColor3 = Color3.new(0, 0, 0)
 	barTop.BorderSizePixel = 0
+	barTop.Position = UDim2.fromOffset(0, -topInset())
 	barTop.Size = UDim2.fromScale(1, 0)
 	barTop.Parent = layer
 	barBottom = barTop:Clone()
@@ -210,11 +221,14 @@ local function setLetterbox(on, owner)
 	end
 	on = next(letterboxOwners) ~= nil
 	local goal = if on then LETTERBOX else 0
+	local inset = topInset()
+	barTop.Position = UDim2.fromOffset(0, -inset)
+	local topGoal = UDim2.new(1, 0, goal, if on then inset else 0)
 	if animated then
-		tween(barTop, 0.4, { Size = UDim2.fromScale(1, goal) }, Enum.EasingStyle.Quad)
+		tween(barTop, 0.4, { Size = topGoal }, Enum.EasingStyle.Quad)
 		tween(barBottom, 0.4, { Size = UDim2.fromScale(1, goal) }, Enum.EasingStyle.Quad)
 	else
-		barTop.Size, barBottom.Size = UDim2.fromScale(1, goal), UDim2.fromScale(1, goal)
+		barTop.Size, barBottom.Size = topGoal, UDim2.fromScale(1, goal)
 	end
 end
 
