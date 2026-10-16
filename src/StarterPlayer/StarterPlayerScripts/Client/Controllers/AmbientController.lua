@@ -11,7 +11,8 @@
 --   * the Ops Hall's status wall and kiosk (tag StatusWall; map_01 §3, §14): Outpost 07 "REPORT OVERDUE" blinking
 --     1 Hz while the hub is in its MORNING, "COMMS RESTORED / UNDER REVIEW" after; the ticker scrolls; the clock;
 --   * the hub's lights (tag HubLight) dim 30% at NIGHT (map_01 §14), and those with a playing cinematic's `dim` tag
---     ease to its fraction (the briefing room's strips to 0.35 in CIN_BRIEFING, 06 §5).
+--     ease to its fraction (the briefing room's strips to 0.35 in CIN_BRIEFING, 06 §5); street lamps (EveningLamp)
+--     light at EVENING and NIGHT (map_01 §13.1).
 --   * beacons spin while their door is open; ambient movers (the hangar's forklift) drive their loops; shuttles (the
 --     gantry crane) travel to and fro with their load swaying.
 
@@ -254,6 +255,21 @@ local function startStatusWalls()
 
 	local baseBrightness = {}
 	local last = os.clock()
+	local lampsFor = nil
+	-- Street lamps (tag EveningLamp) are lit at EVENING and NIGHT; their face (the light's part) turns to its OnColor.
+	local function setLamps(hub)
+		local on = hub == "EVENING" or hub == "NIGHT"
+		for _, light in ipairs(CollectionService:GetTagged("EveningLamp")) do
+			if light:IsA("Light") then
+				light.Enabled = on
+				local face = light.Parent
+				if face and face:IsA("BasePart") and face:GetAttribute("OnColor") then
+					face.Color = if on then face:GetAttribute("OnColor") else face:GetAttribute("OffColor")
+					face.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+				end
+			end
+		end
+	end
 	task.spawn(function()
 		while true do
 			local now = os.clock()
@@ -276,6 +292,10 @@ local function startStatusWalls()
 				for _, label in ipairs(entry.clocks) do
 					label.Text = clock
 				end
+			end
+			if hub ~= lampsFor then
+				lampsFor = hub
+				setLamps(hub)
 			end
 			-- Hub lights ease (0.5 s) toward base × night dim × the playing cinematic's dim.
 			local playing = CinematicController.isPlaying()

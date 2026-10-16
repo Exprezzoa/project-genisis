@@ -211,6 +211,29 @@ return function(Props, BK)
 		return k.finish(cloth)
 	end
 
+	-- Scanner arch 7 x 9 x 2 (docs/07 §6): two MEDICAL_WHITE pillars and a top beam, LIGHT_COOL Neon strips on their
+	-- inner faces, a floor plate. One walks through it along local Z. (S41's moving ring is a runtime effect.)
+	function Props.ScannerArch(parent, cframe, opts)
+		opts = opts or {}
+		local k = Props.kit(parent, opts.name or "ScannerArch", cframe)
+		local white = { Color = P.MEDICAL_WHITE, Material = "SmoothPlastic" }
+		local cool = with({ Color = P.LIGHT_COOL, Material = "Neon" }, soft)
+		local left = k.box("PillarL", V(1.2, 9, 2), V(-2.9, 4.5, 0), white)
+		k.box("PillarR", V(1.2, 9, 2), V(2.9, 4.5, 0), white)
+		k.box("Beam", V(7, 1.2, 2), V(0, 8.4, 0), white)
+		k.box("StripL", V(0.1, 7.4, 0.5), V(-2.28, 4.2, 0), cool)
+		k.box("StripR", V(0.1, 7.4, 0.5), V(2.28, 4.2, 0), cool)
+		k.box("StripTop", V(4.5, 0.1, 0.5), V(0, 7.78, 0), cool)
+		k.box("FloorPlate", V(4.6, 0.05, 2.4), V(0, 0.025, 0), with({ Color = P.STEEL_LIGHT, Material = "DiamondPlate" }, soft))
+		for _, z in ipairs({ -1.15, 1.15 }) do
+			k.box("FloorLine", V(4.4, 0.06, 0.12), V(0, 0.03, z), cool)
+		end
+		local screen = k.box("Screen", V(0.9, 0.6, 0.05), V(-2.9, 6.2, -1.03), with({ Color = Props.SCREEN_BASE, Material = "Neon", Transparency = 0.3 }, soft))
+		local gui = Props.gui(screen, Enum.NormalId.Front, 0, 120)
+		Props.label(gui, "SCAN · READY", 0.05, 0.2, 0.9, 0.6, { color = P.LIGHT_COOL, xAlign = "Center" })
+		return k.finish(left)
+	end
+
 	-- Flag (new, docs/07 §6) 3.2 x 8.8 x 1.2: the Directorate's flag on a stand — a weighted base, a pole with an amber
 	-- finial, a crossbar, a SLATE cloth with the Division insignia and an amber band. Faces -Z; the cloth hangs to -X.
 	function Props.Flag(parent, cframe, opts)

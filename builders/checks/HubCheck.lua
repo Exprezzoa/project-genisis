@@ -66,9 +66,9 @@ local BOUNDS = {
 	{ "CentralCommand", "WestCorridor", V(-80.5, -1, -42), V(-60, 17, 42) }, -- pilasters 1 proud (structure pass)
 	{ "CentralCommand", "Quarters", V(-132, -1, 0), V(-80, 13, 42) }, -- exterior pilasters stand 1 proud (structure pass)
 	{ "CentralCommand", "Briefing", V(-132, -1, -42), V(-80, 17, 0.5) }, -- pilasters 1 proud (structure pass)
-	{ "CentralCommand", "EastCorridor", V(59, -1, -61), V(81, 31, 63) }, -- stairwell 2 deeper than the doc (Q-009)
-	{ "CentralCommand", "Equipment", V(80, -1, -41), V(131, 22, 0.5) },
-	{ "CentralCommand", "Medical", V(80, -1, 0), V(131, 22, 41) },
+	{ "CentralCommand", "EastCorridor", V(59, -1, -62), V(82, 31, 64) }, -- stairwell 2 deeper than the doc (Q-009); pilasters 1 proud
+	{ "CentralCommand", "Equipment", V(80, -1, -42), V(132, 22, 0.5) }, -- pilasters 1 proud (structure pass)
+	{ "CentralCommand", "Medical", V(80, -1, 0), V(132, 22, 42) }, -- pilasters 1 proud (structure pass)
 	{ "CentralCommand", "Research", V(80, -1, -81), V(251, 17, -19) },
 	{ "CentralCommand", "Arrival", V(-80, -1, 40), V(80, 19, 130) },
 	{ "CentralCommand", "Exterior", V(-421, -4.1, -321), V(421, 60, 421) },

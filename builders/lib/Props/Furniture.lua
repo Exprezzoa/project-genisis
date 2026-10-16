@@ -200,6 +200,77 @@ return function(Props, BK)
 		return k.finish(base)
 	end
 
+	-- Bed (medical) 3.4 x 2.6 x 7 (long along local Z, the head at +Z): a MEDICAL_WHITE frame on wheels, a #C9D2DA
+	-- mattress and pillow, side rails, a headboard, and a monitor on an arm with a heart-rate line (SUCCESS_GREEN is the
+	-- UI's success color; a monitor is a screen). opts.name.
+	function Props.MedBed(parent, cframe, opts)
+		opts = opts or {}
+		local k = Props.kit(parent, opts.name or "MedBed", cframe)
+		local white = { Color = P.MEDICAL_WHITE, Material = "SmoothPlastic" }
+		local frame = k.box("Frame", V(3.2, 0.5, 6.8), V(0, 1.55, 0), white)
+		for _, c in ipairs({ { -1.4, -3.1 }, { 1.4, -3.1 }, { -1.4, 3.1 }, { 1.4, 3.1 } }) do
+			k.box("Leg", V(0.2, 1.1, 0.2), V(c[1], 0.75, c[2]), with({ Color = P.STEEL_LIGHT, Material = "Metal" }, soft))
+			k.cyl("Wheel", "X", V(0.2, 0.4, 0.4), V(c[1], 0.2, c[2]), with({ Color = P.KICKPLATE }, soft))
+		end
+		k.box("Mattress", V(3.1, 0.5, 6.6), V(0, 2.05, -0.05), { Color = "#C9D2DA", Material = "Fabric" })
+		k.box("Pillow", V(2.2, 0.3, 1.0), V(0, 2.45, 2.7), with({ Color = P.MEDICAL_WHITE, Material = "Fabric" }, soft))
+		k.box("Blanket", V(3.15, 0.12, 3.2), V(0, 2.34, -1.4), with({ Color = "#C9D2DA", Material = "Fabric" }, soft))
+		k.box("Headboard", V(3.4, 2.6, 0.2), V(0, 1.3 + 0.6, 3.4), white)
+		for _, x in ipairs({ -1.7, 1.7 }) do
+			k.box("Rail", V(0.08, 0.08, 3.2), V(x, 2.6, 0.6), with({ Color = P.STEEL_LIGHT, Material = "Metal" }, soft))
+			k.box("RailPost", V(0.08, 0.8, 0.08), V(x, 2.2, -0.9), with({ Color = P.STEEL_LIGHT, Material = "Metal" }, soft))
+		end
+		-- The monitor on an arm from the headboard's right side.
+		k.box("ArmPost", V(0.15, 2.4, 0.15), V(1.5, 4.2, 3.4), with({ Color = P.STEEL_LIGHT, Material = "Metal" }, soft))
+		k.box("ArmReach", V(0.12, 0.12, 0.9), V(1.5, 5.3, 2.95), with({ Color = P.STEEL_LIGHT, Material = "Metal" }, soft))
+		k.box("MonitorBody", V(1.3, 0.9, 0.2), V(1.5, 5.1, 2.4), with({ Color = P.STEEL_DARK, Material = "Metal" }, soft))
+		local screen = k.box("Monitor", V(1.15, 0.75, 0.04), V(1.5, 5.1, 2.29), with({ Color = Props.SCREEN_BASE, Material = "Neon", Transparency = 0.3 }, soft))
+		local gui = Props.gui(screen, Enum.NormalId.Front, 0, 120)
+		Props.rect(gui, 0, 0, 1, 1, Props.SCREEN_BASE, 0.1, "Back")
+		local pts = { 0.6, 0.6, 0.62, 0.3, 0.85, 0.55, 0.6, 0.6, 0.6, 0.58, 0.32, 0.82, 0.56, 0.6 }
+		for i = 1, #pts - 1 do
+			local x1, x2 = (i - 1) / (#pts - 1), i / (#pts - 1)
+			local line = Props.rect(gui, x1, math.min(pts[i], pts[i + 1]), x2 - x1 + 0.01, math.max(0.02, math.abs(pts[i + 1] - pts[i])), P.SUCCESS_GREEN, 0.1, "Trace" .. i)
+			line.Size = UDim2.fromScale(x2 - x1 + 0.01, math.max(0.025, math.abs(pts[i + 1] - pts[i])))
+		end
+		Props.label(gui, "HR 72", 0.05, 0.05, 0.4, 0.2, { color = P.SUCCESS_GREEN })
+		return k.finish(frame)
+	end
+
+	-- MedCabinet (new) 3 x 7 x 1.4: a MEDICAL_WHITE cabinet with two glass doors, shelves of bottles and boxes, a label.
+	function Props.MedCabinet(parent, cframe, opts)
+		opts = opts or {}
+		local rng = BK.rng(opts.seed or 5)
+		local k = Props.kit(parent, opts.name or "MedCabinet", cframe)
+		local white = { Color = P.MEDICAL_WHITE, Material = "SmoothPlastic" }
+		local body = k.box("Back", V(3, 7, 0.15), V(0, 3.5, 0.62), white)
+		for _, x in ipairs({ -1.45, 1.45 }) do
+			k.box("Side", V(0.1, 7, 1.4), V(x, 3.5, 0), white)
+		end
+		k.box("Top", V(3, 0.15, 1.4), V(0, 6.93, 0), white)
+		k.box("Base", V(3, 0.6, 1.4), V(0, 0.3, 0), white)
+		for s = 1, 4 do
+			local y = 0.6 + s * 1.3
+			k.box("Shelf" .. s, V(2.8, 0.08, 1.2), V(0, y - 0.04, 0), with(white, soft))
+			for b = 1, rng.int(3, 6) do
+				local x = rng.next(-1.2, 1.2)
+				if b % 3 == 0 then
+					k.box("Box", V(0.6, 0.45, 0.5), V(x, y + 0.23, rng.next(-0.2, 0.2)), with({ Color = rng.pick({ P.MEDICAL_WHITE, P.LIGHT_COOL, P.SLATE }) }, soft))
+				else
+					k.cyl("Bottle", "Y", V(0.28, rng.next(0.4, 0.8), 0.28), V(x, y + 0.3, rng.next(-0.25, 0.25)), with({ Color = rng.pick({ P.AMBER_LAMP, P.GLASS, P.MEDICAL_WHITE, P.RUST_DARK }), Material = "Glass", Transparency = 0.2 }, soft))
+				end
+			end
+		end
+		for _, x in ipairs({ -0.72, 0.72 }) do
+			k.box("Door", V(1.4, 6.2, 0.05), V(x, 3.75, -0.68), with({ Color = P.GLASS, Material = "Glass", Transparency = 0.6 }, soft))
+			k.box("DoorFrame", V(1.4, 0.12, 0.08), V(x, 0.7, -0.7), with(white, soft))
+		end
+		local label = k.box("Label", V(1.6, 0.35, 0.05), V(0, 6.6, -0.72), with({ Color = P.SLATE }, soft))
+		local gui = Props.gui(label, Enum.NormalId.Front, 0.6, 80)
+		Props.label(gui, "MEDICAL SUPPLIES", 0.05, 0.1, 0.9, 0.8, { font = Props.FONT.header, color = P.SIGN_WHITE, xAlign = "Center" })
+		return k.finish(body)
+	end
+
 	-- Mug: a cylinder 0.35 x 0.45 with a handle. Datapad: a slab with a dim screen. Clipboard: a board, paper, clip.
 	function Props.Mug(parent, cframe, opts)
 		opts = opts or {}
