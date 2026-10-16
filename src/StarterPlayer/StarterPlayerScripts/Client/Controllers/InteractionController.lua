@@ -27,6 +27,7 @@ local InteractionController = {}
 
 local player = Players.LocalPlayer
 local shown = {} -- [prompt] = { gui, glyph, id, connections }
+local visible = {} -- [prompt] = true while the engine shows it (drawn or not: allowed() may say no for now)
 
 local function isPiloting()
 	local character = player.Character
@@ -159,22 +160,52 @@ function InteractionController.getShown()
 	return ids
 end
 
+-- What the engine shows is drawn or not by allowed(), which changes when the player sits in or leaves a Frame or a
+-- prompt is switched off or on for them; the engine doesn't show a prompt again while it stays in range, so the
+-- drawn set is brought up to date here.
+local function refresh()
+	for prompt in pairs(visible) do
+		local part = prompt.Parent
+		if not part or not prompt:IsDescendantOf(workspace) then
+			visible[prompt] = nil
+			hide(prompt)
+		elseif shown[prompt] and not allowed(part, part:GetAttribute("InteractId") or prompt.Name) then
+			hide(prompt)
+		elseif not shown[prompt] then
+			show(prompt)
+		end
+	end
+end
+
 function InteractionController.Start()
-	ProximityPromptService.PromptShown:Connect(show)
-	ProximityPromptService.PromptHidden:Connect(hide)
+	ProximityPromptService.PromptShown:Connect(function(prompt)
+		visible[prompt] = true
+		show(prompt)
+	end)
+	ProximityPromptService.PromptHidden:Connect(function(prompt)
+		visible[prompt] = nil
+		hide(prompt)
+	end)
+	local function watchSeat(character)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if humanoid then
+			humanoid:GetPropertyChangedSignal("SeatPart"):Connect(refresh)
+		end
+	end
+	player.CharacterAdded:Connect(watchSeat)
+	if player.Character then
+		task.spawn(watchSeat, player.Character)
+	end
 	InputController.DeviceChanged:Connect(function()
 		for _, entry in pairs(shown) do
 			entry.glyph.Text = InputController.glyph("Interact")
 		end
 	end)
-	-- A prompt switched off for this player while it is on screen disappears at once.
+	-- A prompt switched off for this player while it is on screen disappears at once, and comes back when it is
+	-- switched on again while still in range.
 	player.AttributeChanged:Connect(function(attribute)
-		if string.sub(attribute, 1, 10) == "PromptOff_" and player:GetAttribute(attribute) == true then
-			for prompt, entry in pairs(shown) do
-				if "PromptOff_" .. entry.id == attribute then
-					hide(prompt)
-				end
-			end
+		if string.sub(attribute, 1, 10) == "PromptOff_" then
+			refresh()
 		end
 	end)
 end

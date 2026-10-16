@@ -125,6 +125,7 @@ Instances that aren't code (rigs, StarterCharacter, map, DevTools) are produced 
 | `UI_Toast` / `UI_Card` / `Tutorial_Show` / `Bark_Play` | S→C | `{text}` / `{kind, data}` / `{id}` / `{id}` | — |
 | `Lighting_Set` / `Fade` / `Music_Set` | S→C | `{preset, instant}` / `{to, duration}` / `{cue, fade}` | — |
 | `Profile_Snapshot` | S→C | `{settings, rank, xp, credits, upgrades, evidence, flags (UI-relevant subset)}` | on change, ≤ 2/s |
+| `UI_Open` / `Upgrade_Result` | S→C | `{screen}` (a screen the world opens: the Equipment Terminal) / `{upgradeId, ok, reason?, credits, upgrades}` (the answer to `Upgrade_Buy`) (D-097) | — |
 
 Large or continuous state (HP, energy, AI state, animation) goes through **Instance attributes**, not remotes.
 

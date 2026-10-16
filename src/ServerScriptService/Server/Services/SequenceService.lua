@@ -254,6 +254,7 @@ function SequenceService.start(player, sequenceId, stepId, restoring)
 		DialogueService.stop(player)
 		Net.fireClient(player, "UI_Card", { show = false, dismiss = true }) -- a card still up (one waiting for Continue too)
 		ShifterService.reset(player) -- out of a Titan form at once; a step's leave to shift ends with it (D-095)
+		CharacterService.setControlLocked(player, false) -- a lock the old step left on goes with it (S01 keeps still)
 	end
 	enter(runner, index, restoring == true)
 	return true, sequence.steps[index].id

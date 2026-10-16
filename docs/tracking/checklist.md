@@ -56,12 +56,12 @@ Tick an item only after it was **tested** and the journal records how. Full task
 - [x] Dialogue, relationships, evidence, barks, tutorials, NPC behaviors, cinematics, PA — D-080 – D-085, D-087, D-093; all play-tested, fight barks FB_M6/FB_E2 included
 - [x] All scenes S01–S43 wired exactly per script — S01–S43 and S50 (D-083 – D-090); every branch verified (C1 ×2, C2 ×3, C3 ×3, C4 ×2) and all six deck variants (journal Session 8, continued)
 - [x] Cards, terminal, boot, anomaly effects — Title, Transit, Frame Disabled, Mission Complete (display only until Phase 6), Chapter End; terminal message, cockpit boot, anomaly glitch and ping (D-083, D-086, D-089, D-090); the Watcher's glow is the user's own eye colors (Q-015)
-- [ ] Phase 5 acceptance tests all PASS — 1 (piecewise), 2, 3 (reset and Esc), 4, 6 PASS; left: test 5 on a phone layout (device emulator, user), alt-tab during a cinematic, one continuous S01→S43 run
+- [ ] Phase 5 acceptance tests all PASS — 1, 2, 3 (reset and Esc), 4, 6 PASS; test 1 now also as one continuous run S01 → the Chapter End card in a single session (Session 9, client autopilot; 5 on-foot walks at the outpost and 1 on the Bay 2 bridge fell back to a teleport, the Strider fight was won on the third retry). Left: test 5 on a phone layout (device emulator, user), alt-tab during a cinematic (user)
 
 ## Phase 6 — Progression and saving
-- [ ] ProgressionService, Mission Complete card, upgrades terminal
-- [ ] Saves at all checkpoints, BindToClose, migration scaffold
-- [ ] Phase 6 acceptance tests all PASS
+- [x] ProgressionService, Mission Complete card, upgrades terminal — grants once per key, ranks, credits, the four upgrades as data with an effective config used by the server and the client, Equipment Terminal and screen, the card from the real grants with a rank-up (D-097)
+- [x] Saves at all checkpoints, BindToClose, migration scaffold — checkpoints write (saveNow), BindToClose is `PlayerDataService.shutdown()`, `Server/Data/Migrations` with the v1 → v2 case in `builders/checks/SaveCheck` (D-097)
+- [x] Phase 6 acceptance tests all PASS — 1 rewards once on a replay, 2 dodge cooldown 0.80 → 0.65 s and cost 25 → 20 after Thruster Baffles, 3 rejoin keeps XP, credits and upgrades, 4 failed load → read-only and the store untouched, 5 shutdown() writes and releases the lock (journal Session 9)
 
 ## Phase 7 — Presentation
 - [ ] Dressed pass on all areas

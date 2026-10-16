@@ -53,7 +53,7 @@ Opened with **F2** (a debug panel with a command box) or typed as chat-like comm
 | `RigCheck_<Rig>` | Joint names, C0/C1 offsets vs the joint table (± 0.05), part count within budget, HRP and Humanoid settings |
 | `CombatTimingTest` | Play mode: perform each move on the simulacrum; server-logged phase timestamps within ±0.03 s |
 | `TitanFightSim` | Play mode with `/timescale 2` and an automated "bot pilot" (optional, Phase 3+): verifies state transitions occur (Engage → Telegraph → Active → Recover, Downed, Dead) |
-| `SaveLoadTest` | Profile round-trip; migration scaffold; readOnly on simulated failure |
+| `SaveLoadTest` | Profile round-trip; migration scaffold; readOnly on simulated failure. As built (D-097): the edit-mode half is `builders/checks/SaveCheck` (migrations with a test-only v1 → v2 step, EffectiveConfig against `Config/Upgrades`, ranks and reward totals); the play-mode half (rewards once, an upgrade changing behavior, rejoin, `/dsfail`, `PlayerDataService.shutdown()`) is run through DevBridge |
 
 ## 4. Manual test protocols (Claude asks the user when feel matters)
 - **Feel test, Frame:** "Board the Frame, walk to the door, stride, turn in place. Does it feel heavy but responsive? 1–5." Tune acceleration and turn rate from the feedback (log it).
