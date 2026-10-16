@@ -1,12 +1,13 @@
 --!nonstrict
 -- builders/maps/hangar/Lighting.lua  ->  DevTools.Builders.Hangar.Lighting
 -- docs/maps/map_02_frame_hangar.md §10 (and §2, §4): the hangar's fixtures, built from the structure pass.
---   * 15 pendant high-bays (rows Z -200, -150, -100 x X -96, -48, 0, 48, 96) on cables to Y 78 (D-044), a cone shade
+--   * 15 pendant high-bays (rows on the truss lines Z -200, -152, -104 x X -96, -48, 0, 48, 96) mounted under the
+--     trusses at Y 86 (above the crane's girder; map_02 says rows -150/-100 on cables to Y 78, D-044/D-101), a shade
 --     and a Neon disc; SpotLight down 2.5 / 60 / 90; shadows on the middle row only. Under the open-floor rows an
 --     invisible throw emitter at Y 52 (1.6 / 60 / 110) carries their light to the floor (D-101)
 --   * bay floodlights, 2 per bay on the side catwalks at Y 47, aimed at the Frames' chests (LIGHT_COOL 3 / 50 / 45,
 --     shadows); Bay 2's "2 extra floodlights" (§2) on floor stands at its front corners, no shadows
---   * wall washers: SurfaceLights on 8 pilasters (0.6 / 30 / 90); catwalk strips under the decks every 24 (0.8 / 18)
+--   * wall washers: SurfaceLights on 8 pilasters (0.6 / 30 / 90); catwalk strips under the decks (0.8 / 18), 9 of them
 --   * door warning lights: 3 amber boxes over each big door, one PointLight WARNING_ORANGE 1 / 20
 --   * beacons: 2 at the east door (Y 72) that spin while the door is open (tag Beacon; AmbientController)
 --   * 4 portable light towers on the floor (D-101): the pendants hang at Y 78 to clear the 64-stud Frames, and a
@@ -40,16 +41,15 @@ function Builder.Build(opts)
 		return BK.part(L, with({ Name = name, Size = size or V(0.4, 0.4, 0.4), CFrame = cf, Transparency = 1 }))
 	end
 
-	-- Pendant high-bays.
-	for row, z in ipairs({ -200, -150, -100 }) do
+	-- Pendant high-bays, mounted straight under the trusses' bottom chords (Y 88) on the truss lines Z -200, -152, -104:
+	-- the crane's girder (Y 80..84) sweeps the whole hall along X, so nothing may hang lower there (D-101).
+	for row, z in ipairs({ -200, -152, -104 }) do
 		for _, x in ipairs({ -96, -48, 0, 48, 96 }) do
 			local name = ("HighBay_%d_%d"):format(row, x)
-			local roof = 91 + 6 * (1 - math.abs(x) / 121.5) -- the sloped deck's underside (Shell)
-			BK.box(L, name .. "_Cable", V(x - 0.08, 80.4, z - 0.08), V(x + 0.08, roof, z + 0.08), with({ Color = P.HAZARD_BLACK }))
-			BK.cyl(L, with({ Name = name .. "_Cap", Axis = "Y", Size = V(1.6, 1.2, 1.6), Position = V(x, 80.4, z), Color = P.STEEL_DARK, Material = "Metal" }))
-			BK.cyl(L, with({ Name = name .. "_Shade", Axis = "Y", Size = V(4.6, 1.6, 4.6), Position = V(x, 79, z), Color = P.STEEL_MID, Material = "Metal" }))
-			BK.cyl(L, with({ Name = name .. "_Disc", Axis = "Y", Size = V(4, 0.1, 4), Position = V(x, 78.15, z), Color = P.LIGHT_NEUTRAL, Material = "Neon" }))
-			local e = emitter(name, CFrame.new(x, 77.9, z))
+			BK.cyl(L, with({ Name = name .. "_Cap", Axis = "Y", Size = V(1.6, 0.6, 1.6), Position = V(x, 87.7, z), Color = P.STEEL_DARK, Material = "Metal" }))
+			BK.cyl(L, with({ Name = name .. "_Shade", Axis = "Y", Size = V(4.6, 1.6, 4.6), Position = V(x, 86.6, z), Color = P.STEEL_MID, Material = "Metal" }))
+			BK.cyl(L, with({ Name = name .. "_Disc", Axis = "Y", Size = V(4, 0.1, 4), Position = V(x, 85.75, z), Color = P.LIGHT_NEUTRAL, Material = "Neon" }))
+			local e = emitter(name, CFrame.new(x, 85.5, z))
 			BK.light(e, "Spot", { Color = P.LIGHT_NEUTRAL, Brightness = 2.5, Range = 60, Angle = 90, Face = Enum.NormalId.Bottom, Shadows = row == 2, Tags = { "HubLight" } })
 			-- Over the open floor (rows -150 and -100) the pendant's light can't reach the floor from Y 78 (range 60):
 			-- an invisible "throw" emitter on the same axis at Y 52 carries it down (D-101).
@@ -98,15 +98,14 @@ function Builder.Build(opts)
 		BK.light(face, "Surface", { Color = P.LIGHT_NEUTRAL, Brightness = 0.6, Range = 30, Angle = 90, Face = Enum.NormalId.Front, Tags = { "HubLight" } })
 	end
 
-	-- Catwalk strips under the decks (deck underside Y 44), every 24.
+	-- Catwalk strips under the decks (deck underside Y 44): every 48 under the back walkway and one under each side
+	-- catwalk (the doc's "every 12" would spend about 40 of the hangar's 90 lights).
 	local strips = {}
-	for x = -108, 108, 24 do
+	for x = -96, 96, 48 do
 		table.insert(strips, { V(x, 43.85, -226), V(6, 0.15, 0.4) })
 	end
 	for _, x in ipairs({ -114, -35, 35, 114 }) do
-		for _, z in ipairs({ -214, -194 }) do
-			table.insert(strips, { V(x, 43.85, z), V(0.4, 0.15, 6) })
-		end
+		table.insert(strips, { V(x, 43.85, -204), V(0.4, 0.15, 6) })
 	end
 	for i, s in ipairs(strips) do
 		local face = BK.part(L, with({ Name = "CatwalkStrip" .. i, Size = s[2], CFrame = CFrame.new(s[1]), Color = P.LIGHT_NEUTRAL, Material = "Neon" }))

@@ -187,7 +187,7 @@ function Builder.dressQ3(ctx, C, Lib, window)
 	BK.prompt(photo.PrimaryPart, "INT_Q3_PHOTO", "Look")
 	local _, screen = Lib.Terminal(F, CFrame.new(-117.4, 2.8, 1.3) * SOUTH, {
 		name = "Q3_DeskTerminal", screenName = "Q3_Terminal",
-		lines = { "VEYNE, E. — PILOT OFFICER", "EMBER-2 · THIRD FRONTIER", "DEPLOYMENT 0800", "No new messages." },
+		lines = { "VEYNE, E. — PILOT OFFICER", "EMBER-2 · THIRD FRONTIER", "DEPLOYMENT 06:30", "No new messages." },
 	})
 	BK.prompt(screen, "INT_Q3_TERMINAL", "Read", { enabled = false }) -- S43 only
 	Lib.DeskLamp(F, CFrame.new(-115.95, 2.8, 1.05) * SOUTH * CFrame.Angles(0, math.rad(-25), 0), { name = "Q3_DeskLamp" })

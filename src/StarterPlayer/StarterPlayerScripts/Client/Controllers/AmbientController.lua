@@ -12,7 +12,8 @@
 --     1 Hz while the hub is in its MORNING, "COMMS RESTORED / UNDER REVIEW" after; the ticker scrolls; the clock;
 --   * the hub's lights (tag HubLight) dim 30% at NIGHT (map_01 §14), and those with a playing cinematic's `dim` tag
 --     ease to its fraction (the briefing room's strips to 0.35 in CIN_BRIEFING, 06 §5).
---   * beacons spin while their door is open; ambient movers (the hangar's forklift) drive their loops.
+--   * beacons spin while their door is open; ambient movers (the hangar's forklift) drive their loops; shuttles (the
+--     gantry crane) travel to and fro with their load swaying.
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -385,10 +386,46 @@ local function drive(model)
 	end)
 end
 
+-- Shuttles (the hangar's gantry crane, map_02 §5): a model tagged Shuttle travels along Axis from From to To and back,
+-- Time s each way (SineInOut); a Sway model inside swings +-Amplitude° about its Pivot with Period s.
+local function shuttle(model)
+	local rest = model:GetPivot()
+	local axis = model:GetAttribute("Axis") or Vector3.xAxis
+	local from, to, time = model:GetAttribute("From") or 0, model:GetAttribute("To") or 0, model:GetAttribute("Time") or 30
+	local swing = {}
+	for _, load in ipairs(model:GetDescendants()) do
+		if load:IsA("Model") and load:HasTag("Sway") then
+			local pivot = rest:PointToObjectSpace(load:GetAttribute("Pivot") or load:GetPivot().Position)
+			table.insert(swing, { load = load, rel = rest:ToObjectSpace(load:GetPivot()), pivot = pivot, amp = math.rad(load:GetAttribute("Amplitude") or 2), period = load:GetAttribute("Period") or 5 })
+		end
+	end
+	RunService.RenderStepped:Connect(function()
+		if not model.Parent then
+			return
+		end
+		local now = os.clock()
+		local phase = (now / time) % 2
+		local t = if phase < 1 then phase else 2 - phase
+		local offset = from + (to - from) * (1 - math.cos(math.pi * t)) / 2
+		local at = rest * CFrame.new(axis * offset)
+		model:PivotTo(at)
+		for _, s in ipairs(swing) do
+			local a = math.sin(now * 2 * math.pi / s.period) * s.amp
+			local b = math.sin(now * 2 * math.pi / (s.period * 1.37)) * s.amp * 0.5
+			s.load:PivotTo(at * CFrame.new(s.pivot) * CFrame.Angles(a, 0, b) * CFrame.new(-s.pivot) * s.rel)
+		end
+	end)
+end
+
 local function startMovers()
 	for _, model in ipairs(CollectionService:GetTagged("AmbientMover")) do
 		if model:IsA("Model") and model:GetAttribute("Path") then
 			drive(model)
+		end
+	end
+	for _, model in ipairs(CollectionService:GetTagged("Shuttle")) do
+		if model:IsA("Model") then
+			shuttle(model)
 		end
 	end
 end

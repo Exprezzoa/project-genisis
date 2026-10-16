@@ -177,7 +177,7 @@ function Builder.dress(ctx, C, Lib)
 		Lib.Vent(F, CFrame.new(x, 14, -39) * Lib.FACE["+Z"], { name = "Vent" .. i })
 	end
 	BK.screen(ctx.Detail, "DoorScreen", BK.lookAlong(V(-80.6, 5, -13.5), V(-1, 0, 0)), Vector2.new(2.6, 1.6), {
-		text = "BRIEFING ROOM ONE\n0800 EMBER SQUAD\nCMDR VALE",
+		text = "BRIEFING ROOM ONE\n06:30 EMBER SQUAD\nCMDR VALE",
 	})
 end
 

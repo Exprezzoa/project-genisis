@@ -313,7 +313,7 @@ function Builder.valeOffice(ctx, Lib)
 	Lib.Desk(F, CFrame.new(0, 16, -34.6), { name = "Vale_Desk" })
 	Lib.Chair(F, CFrame.new(0, 16, -37.1) * SOUTH, { name = "Vale_Chair" })
 	Lib.Chair(F, CFrame.new(1.2, 16, -31.9) * CFrame.Angles(0, math.rad(-10), 0), { name = "Vale_VisitorChair" })
-	Lib.Terminal(F, CFrame.new(1.0, 18.8, -34.95), { name = "Vale_Terminal", lines = { "VALE, H. — COMMANDER", "EMBER SQ · 0800", "OUTPOST 07 · NO REPORT" } })
+	Lib.Terminal(F, CFrame.new(1.0, 18.8, -34.95), { name = "Vale_Terminal", lines = { "VALE, A. — COMMANDER", "EMBER SQ · 06:30", "OUTPOST 07 · NO REPORT" } })
 	Lib.Clipboard(F, CFrame.new(-1.3, 18.8, -34.3) * CFrame.Angles(0, math.rad(20), 0), { name = "Vale_Clipboard" })
 	Lib.Mug(F, CFrame.new(-2.0, 18.8, -35.3), { name = "Vale_Mug", color = P.SLATE_DEEP })
 	Lib.HoloPanel(F, CFrame.new(-0.6, 20.6, -34.2), { name = "Vale_Holo", size = Vector2.new(2.4, 1.3), title = "OUTPOST 07", lines = { "COMMS · NONE 6H", "EMBER SQ · ASSIGNED" }, emitter = 1.15 })
@@ -436,7 +436,7 @@ function Builder.dress(ctx, C, Lib)
 		text = "FRAME BAYS\nBAY 01   UNIT 01 · SOLEN, M.   READY\nBAY 02   UNIT 02 · VEYNE, E.   READY\nBAY 03   UNIT 03 · —   MAINTENANCE",
 	})
 	BK.screen(ctx.Detail, "SortieBoard", CFrame.new(37, 8.2, -38.9) * SOUTH, Vector2.new(16, 6), {
-		text = "SORTIES TODAY\n0800   EMBER SQ   BRIEFING ROOM ONE\n0930   CORRIDOR 7   CONVOY ESCORT\n1200   BULWARK G2   PATROL ROTATION",
+		text = "SORTIES TODAY\n06:30   EMBER SQ   BRIEFING ROOM ONE\n09:30   CORRIDOR 7   CONVOY ESCORT\n12:00   BULWARK G2   PATROL ROTATION",
 	})
 	for _, x in ipairs({ -37, 37 }) do
 		BK.box(ctx.Detail, "BoardFrame", V(x - 8.3, 4.9, -39.0), V(x + 8.3, 11.5, -38.98), with({ Color = P.STEEL_DARK, Material = "Metal" }))
