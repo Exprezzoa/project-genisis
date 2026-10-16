@@ -6,6 +6,7 @@
 -- "HUB" for the current story preset, which the server changes with Lighting_Set {preset, instant}.
 --
 --   LightingController.apply(presetName, instant)   LightingController.getCurrent() -> presetName
+--   LightingController.getHub() -> the hub's story preset
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -45,6 +46,11 @@ end
 
 function LightingController.getCurrent(): string?
 	return current
+end
+
+-- The hub's story preset (map_01 §14: MORNING, EVENING, NIGHT), wherever the player is.
+function LightingController.getHub(): string
+	return hubPreset
 end
 
 function LightingController.apply(name: string, instant: boolean?)

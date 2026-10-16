@@ -119,8 +119,9 @@ return function(BK)
 		label.Size = UDim2.fromScale(w, h)
 		label.FontFace = opts.font or Props.FONT.mono
 		label.Text = text
-		label.TextScaled = true
+		-- TextWrapped first: setting it false after TextScaled turns the scaling off (the labels stayed at size 8).
 		label.TextWrapped = opts.wrap == true
+		label.TextScaled = true
 		label.TextColor3 = BK.toColor(opts.color or P.AMBER)
 		label.TextTransparency = opts.transparency or 0
 		label.TextXAlignment = Enum.TextXAlignment[opts.xAlign or "Left"]

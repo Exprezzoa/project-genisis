@@ -62,7 +62,7 @@ local DEFERRED = {
 -- { zone, area, min, max } with half the wall thickness included. Y: slab bottom to roof or parapet top.
 local V = Vector3.new
 local BOUNDS = {
-	{ "CentralCommand", "OpsHall", V(-61, -1, -41), V(61, 38, 41) },
+	{ "CentralCommand", "OpsHall", V(-61, -1, -42), V(61, 38, 42) }, -- exterior pilasters stand 1 proud (structure pass)
 	{ "CentralCommand", "WestCorridor", V(-80.5, -1, -41), V(-60, 17, 41) },
 	{ "CentralCommand", "Quarters", V(-132, -1, 0), V(-80, 13, 42) }, -- exterior pilasters stand 1 proud (structure pass)
 	{ "CentralCommand", "Briefing", V(-131, -1, -41), V(-80, 17, 0.5) },

@@ -224,6 +224,7 @@ end
 --                      lining = true covers an exterior wall's inner face above the wainscot in WALL_INTERIOR.
 --          "exterior": kickplate CONCRETE_DARK, pilasters 2 x h x 1 every 24 (world-aligned) with a chamfer.
 --   top    the face's height above a.Y (the ceiling's underside, or the wall top outdoors)
+--   ceilTrim = false, seams = false   leave those out (a mezzanine-level wainscot under a taller face)
 --   gaps   { { from, to, y1, y2 } } openings: world coordinates along the wall, heights above a.Y (include the
 --          0.4 door-frame trim BK.wallWithOpenings adds)
 -- Dressed pass: panel seams (vertical every 16, world-aligned; horizontal at 10 indoors, 3 and 10 outdoors).
@@ -279,8 +280,10 @@ function Common.face(ctx, name, a, b, normal, opts)
 		band(ctx.Structure, name .. "_Wainscot", 0, 3, 0, 0.06, { Color = P.WALL_INTERIOR_LOW, CastShadow = false })
 		band(ctx.Detail, name .. "_Kick", 0, 1, 0, 0.1, detail(P.KICKPLATE))
 		band(ctx.Detail, name .. "_Band", 2.85, 3.15, 0, 0.14, detail(P.SLATE))
-		band(ctx.Detail, name .. "_CeilTrim", top - 0.35, top, 0, 0.16, detail(P.STEEL_DARK, "Metal"))
-		if ctx.level >= 3 then
+		if opts.ceilTrim ~= false then
+			band(ctx.Detail, name .. "_CeilTrim", top - 0.35, top, 0, 0.16, detail(P.STEEL_DARK, "Metal"))
+		end
+		if ctx.level >= 3 and opts.seams ~= false then
 			local d0 = if lining then 0.04 else 0
 			local seam = detail(BK.darken(P.WALL_INTERIOR, 0.08))
 			local lowSeam = detail(BK.darken(P.WALL_INTERIOR_LOW, 0.08))
@@ -303,7 +306,8 @@ function Common.face(ctx, name, a, b, normal, opts)
 		local concrete = { Color = P.CONCRETE_DARK, Material = "Concrete" }
 		local pilasters = {}
 		for i, s in ipairs(multiples(24, 1.5)) do
-			local clear = #cover(s - 1, s + 1, 0, top, gaps) == 1
+			local pieces = cover(s - 1, s + 1, 0, top, gaps)
+			local clear = #pieces == 1 and pieces[1][3] == 0 and pieces[1][4] == top
 			if clear then
 				table.insert(pilasters, s)
 				slab(ctx.Structure, ("%s_Pilaster%d"):format(name, i), { s - 1, s + 1, 0, top - 1 }, 0, 1, concrete)

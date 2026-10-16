@@ -7,7 +7,10 @@
 --     "Q3_Terminal_StandIn" (Back face);
 --   * map models tagged HideOnFlag vanish for a player who has their HideFlag (the father's patch, CH1_TOOK_PATCH);
 --   * holograms: parts tagged Hologram shimmer and now and then glitch, HoloBlink parts blink at BlinkHz, HoloSweep
---     parts turn about PivotCenter (Radius, Period), HoloClock panels show the lighting's clock.
+--     parts turn about PivotCenter (Radius, Period), HoloClock panels show the lighting's clock;
+--   * the Ops Hall's status wall and kiosk (tag StatusWall; map_01 §3, §14): Outpost 07 "REPORT OVERDUE" blinking
+--     1 Hz while the hub is in its MORNING, "COMMS RESTORED / UNDER REVIEW" after; the ticker scrolls; the clock;
+--   * the hub's lights (tag HubLight) dim 30% at NIGHT (map_01 §14).
 -- (The ambient movers of Phase 7 — crane, forklift, beacons — come here too.)
 
 local CollectionService = game:GetService("CollectionService")
@@ -19,6 +22,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared.Modules.Net)
 local UIStyle = require(Shared.Config.UIStyle)
+local LightingController = require(script.Parent.LightingController)
 
 local AmbientController = {}
 
@@ -213,6 +217,74 @@ local function startHolograms()
 	end)
 end
 
+---------------------------------------------------------------------------------------------------
+-- The status wall, and the hub lights at night
+---------------------------------------------------------------------------------------------------
+local TICKER_SPEED = 0.025 -- band widths per second (the ticker label is 3 bands wide and says it all twice)
+local NIGHT_DIM = 0.7
+
+local function startStatusWalls()
+	local cache = {} -- [part] = { rows, alarms, tickers, clocks }
+	local function scan(part)
+		local entry = { rows = {}, alarms = {}, tickers = {}, clocks = {} }
+		for _, d in ipairs(part:GetDescendants()) do
+			if d.Name == "Row07Status" and d:IsA("TextLabel") then
+				table.insert(entry.rows, d)
+			elseif d.Name == "Alarm" and d:IsA("Frame") then
+				table.insert(entry.alarms, d)
+			elseif d.Name == "Ticker" and d:IsA("TextLabel") then
+				table.insert(entry.tickers, d)
+			elseif d.Name == "Clock" and d:IsA("TextLabel") then
+				table.insert(entry.clocks, d)
+			end
+		end
+		cache[part] = entry
+	end
+	for _, part in ipairs(CollectionService:GetTagged("StatusWall")) do
+		scan(part)
+	end
+	CollectionService:GetInstanceAddedSignal("StatusWall"):Connect(scan)
+	CollectionService:GetInstanceRemovedSignal("StatusWall"):Connect(function(part)
+		cache[part] = nil
+	end)
+
+	local baseBrightness = {}
+	local dimmedFor = nil
+	task.spawn(function()
+		while true do
+			local now = os.clock()
+			local hub = LightingController.getHub()
+			local morning = hub == "MORNING"
+			local clock = clockText()
+			for _, entry in pairs(cache) do
+				for _, row in ipairs(entry.rows) do
+					row.Text = if morning then "REPORT OVERDUE" else "COMMS RESTORED / UNDER REVIEW"
+					row.TextTransparency = if morning and now % 1 >= 0.5 then 0.85 else 0
+				end
+				for _, alarm in ipairs(entry.alarms) do
+					alarm.Visible = morning
+				end
+				for _, ticker in ipairs(entry.tickers) do
+					ticker.Position = UDim2.fromScale(-((now * TICKER_SPEED) % 1.5), ticker.Position.Y.Scale)
+				end
+				for _, label in ipairs(entry.clocks) do
+					label.Text = clock
+				end
+			end
+			if hub ~= dimmedFor then
+				dimmedFor = hub
+				for _, light in ipairs(CollectionService:GetTagged("HubLight")) do
+					if light:IsA("Light") then
+						baseBrightness[light] = baseBrightness[light] or light.Brightness
+						light.Brightness = baseBrightness[light] * (if hub == "NIGHT" then NIGHT_DIM else 1)
+					end
+				end
+			end
+			task.wait(0.05)
+		end
+	end)
+end
+
 function AmbientController.Init() end
 
 function AmbientController.Start()
@@ -235,6 +307,7 @@ function AmbientController.Start()
 		end
 		refreshHidden()
 		startHolograms()
+		startStatusWalls()
 	end)
 end
 
