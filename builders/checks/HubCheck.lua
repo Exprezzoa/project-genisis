@@ -75,8 +75,8 @@ local BOUNDS = {
 	{ "CentralCommand", "TrainingYard", V(-421, -1, -301), V(-122, 56, -39) }, -- the simulacrum is 56 tall
 	{ "Hangar", "Shell", V(-134.5, -1, -231.5), V(134.5, 98.6, -68.5) }, -- door housings at X +-134.5 (map_02 §4); the roof's ridge cap at 98.6
 	{ "Hangar", "GateCorridor", V(-16, -1, -70), V(16, 17, -40) },
-	{ "Hangar", "LaunchPlatform", V(123, -0.1, -190), V(200, 0.5, -110) },
-	{ "Hangar", "Causeway", V(200, -1.1, -177), V(420, 60, -123) }, -- deck and its FrameBarriers (map_02 §8)
+	{ "Hangar", "LaunchPlatform", V(122.8, -0.1, -191), V(201, 53.8, -109) }, -- chamfers 1 out, the masts 50 tall (structure pass)
+	{ "Hangar", "Causeway", V(200, -1.1, -178.3), V(420, 60, -121.7) }, -- deck, FrameBarriers, street lamps outside (dressed)
 }
 
 local BUDGETS = { CentralCommand = { parts = 9000, lights = 220 }, Hangar = { parts = 6000, lights = 90 } }
