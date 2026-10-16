@@ -301,6 +301,46 @@ local function startStatusWalls()
 	end)
 end
 
+---------------------------------------------------------------------------------------------------
+-- Beacons (06 §6, map_02 §4): a rotor tagged Beacon spins (Period s per turn) with its SpotLight on while the door
+-- named by its DoorId is open (the server's door mover sets the door model's Open attribute).
+---------------------------------------------------------------------------------------------------
+local function startBeacons()
+	local rest = {}
+	local doors = {}
+	local function doorOf(id)
+		local door = doors[id]
+		if door and door.Parent then
+			return door
+		end
+		for _, model in ipairs(CollectionService:GetTagged("Door")) do
+			if model:IsA("Model") and model:GetAttribute("DoorId") == id then
+				doors[id] = model
+				return model
+			end
+		end
+		return nil
+	end
+	RunService.RenderStepped:Connect(function()
+		local now = os.clock()
+		for _, rotor in ipairs(CollectionService:GetTagged("Beacon")) do
+			if rotor:IsA("BasePart") then
+				rest[rotor] = rest[rotor] or rotor.CFrame
+				local door = doorOf(rotor:GetAttribute("DoorId"))
+				local on = door ~= nil and door:GetAttribute("Open") == true
+				local light = rotor:FindFirstChildOfClass("SpotLight")
+				if light and light.Enabled ~= on then
+					light.Enabled = on
+				end
+				if on then
+					local period = rotor:GetAttribute("Period") or 1.2
+					rotor.CFrame = rest[rotor] * CFrame.Angles(0, (now / period % 1) * 2 * math.pi, 0)
+				end
+			end
+		end
+	end)
+end
+
 function AmbientController.Init() end
 
 function AmbientController.Start()
@@ -324,6 +364,7 @@ function AmbientController.Start()
 		refreshHidden()
 		startHolograms()
 		startStatusWalls()
+		startBeacons()
 	end)
 end
 

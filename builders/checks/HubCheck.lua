@@ -73,7 +73,7 @@ local BOUNDS = {
 	{ "CentralCommand", "Arrival", V(-80, -1, 40), V(80, 19, 130) },
 	{ "CentralCommand", "Exterior", V(-421, -4.1, -321), V(421, 60, 421) },
 	{ "CentralCommand", "TrainingYard", V(-421, -1, -301), V(-122, 56, -39) }, -- the simulacrum is 56 tall
-	{ "Hangar", "Shell", V(-121.5, -1, -231.5), V(134.5, 92, -68.5) }, -- the east door's housing reaches X 134.5 (map_02 §4)
+	{ "Hangar", "Shell", V(-134.5, -1, -231.5), V(134.5, 98.6, -68.5) }, -- door housings at X +-134.5 (map_02 §4); the roof's ridge cap at 98.6
 	{ "Hangar", "GateCorridor", V(-16, -1, -70), V(16, 17, -40) },
 	{ "Hangar", "LaunchPlatform", V(123, -0.1, -190), V(200, 0.5, -110) },
 	{ "Hangar", "Causeway", V(200, -1.1, -177), V(420, 60, -123) }, -- deck and its FrameBarriers (map_02 §8)

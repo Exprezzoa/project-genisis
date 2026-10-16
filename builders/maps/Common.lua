@@ -218,6 +218,8 @@ local function cover(s1, s2, y1, y2, gaps)
 	return out
 end
 
+Common.cover = cover
+
 -- Dresses one flat wall face. `a` and `b` are the face's ends at floor level, `normal` points away from the face
 -- (into the room, or outdoors). opts:
 --   kind   "interior": wainscot WALL_INTERIOR_LOW (0-3), kickplate, SLATE band at Y 3, STEEL_DARK ceiling trim;
