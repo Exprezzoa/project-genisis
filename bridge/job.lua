@@ -1,49 +1,52 @@
--- job: 0004-training-yard
--- Phase 7: the Training Yard's structure and dressed passes (map_01 §12, D-105). Pushes the new builder (only if
--- Studio still holds the version from the baseline), builds blockout -> structure -> dressed (each idempotent, so the
--- last one stands), then runs HubCheck, NavCheck and BuildKitCheck's smoke test.
+-- job: 0005-sync-review-fixes
+-- Sync every script changed since the Studio state (tools/bridge/sync_list.py), rebuild the areas the review fixes
+-- touched (Arrival, Research, Exterior, Training Yard at the dressed pass; the hangar's Gameplay with the launch
+-- platform's Frame walls), then run HubCheck, NavCheck and the new BudgetCheck. Stops before building if a push
+-- conflicts (a script was edited by hand in Studio).
 return function(ctx)
-	local push = ctx.push({ { file = "builders/maps/central_command/TrainingYard.lua", expect = 977157613 } })
-	if push[1].status ~= "updated" and push[1].status ~= "unchanged" then
-		return { stopped = "push failed", push = push }
+	local push = ctx.push({
+	{ file = "builders/checks/BudgetCheck.lua" },
+	{ file = "builders/checks/HubCheck.lua", expect = 1572554657 },
+	{ file = "builders/lib/Props/Industrial.lua", expect = 1752245319 },
+	{ file = "builders/lib/Props/Vehicles.lua", expect = 1491819250 },
+	{ file = "builders/maps/central_command/Arrival.lua", expect = 507775611 },
+	{ file = "builders/maps/central_command/Exterior.lua", expect = 436741040 },
+	{ file = "builders/maps/central_command/Research.lua", expect = 2935445444 },
+	{ file = "builders/maps/central_command/TrainingYard.lua", expect = 3349727375 },
+	{ file = "builders/maps/hangar/Gameplay.lua", expect = 2757640032 },
+	{ file = "builders/maps/outpost07/Compound.lua", expect = 559188777 },
+	{ file = "builders/maps/outpost07/Wilds.lua", expect = 3875662824 },
+})
+	for _, r in ipairs(push) do
+		if r.status ~= "updated" and r.status ~= "unchanged" and r.status ~= "created" then
+			return { stopped = "push " .. r.status .. ": " .. tostring(r.file), push = push }
+		end
 	end
 
 	local BK = ctx.requireFresh("ServerStorage.DevTools.BuildKit")
 	local Common = ctx.requireFresh("ServerStorage.DevTools.Builders.Common")
 	local Props = ctx.requireFresh("ServerStorage.DevTools.Props")(BK)
-	local Yard = ctx.requireFresh("ServerStorage.DevTools.Builders.CentralCommand.TrainingYard")
-
-	local passes = {}
-	for _, pass in ipairs({ "blockout", "structure", "dressed" }) do
-		local ok, stats = pcall(Yard.Build, { BK = BK, Common = Common, Props = Props, pass = pass })
-		passes[pass] = if ok then stats else { error = tostring(stats) }
+	local built = {}
+	for _, area in ipairs({ "Arrival", "Research", "Exterior", "TrainingYard" }) do
+		local builder = ctx.requireFresh("ServerStorage.DevTools.Builders.CentralCommand." .. area)
+		local ok, stats = pcall(builder.Build, { BK = BK, Common = Common, Props = Props, pass = "dressed" })
+		built[area] = if ok then stats else { error = tostring(stats) }
 	end
+	local gameplay = ctx.requireFresh("ServerStorage.DevTools.Builders.Hangar.Gameplay")
+	local ok, stats = pcall(gameplay.Build, { BK = BK, Common = Common, pass = "dressed" })
+	built.HangarGameplay = if ok then stats else { error = tostring(stats) }
 
-	-- What a few key parts ended up as, to check placement without a screenshot.
-	local root = ctx.find("Workspace.Map.CentralCommand.TrainingYard")
-	local probes = {}
-	for _, name in ipairs({ "PedestrianGate", "ObservationBooth", "Mast1", "Mast5", "Crates_NW", "PlateRack1" }) do
-		local inst = root and root:FindFirstChild(name, true)
-		if inst and inst:IsA("Model") then
-			local cf, size = inst:GetBoundingBox()
-			probes[name] = { center = { cf.X, cf.Y, cf.Z }, size = { size.X, size.Y, size.Z } }
-		else
-			probes[name] = "missing"
-		end
+	local function check(name)
+		local ok2, result = pcall(function()
+			return ctx.requireFresh("ServerStorage.DevTools.Checks." .. name).Run()
+		end)
+		return if ok2 then result else { error = tostring(result) }
 	end
-	local jersey = 0
-	for _, d in ipairs(root:GetDescendants()) do
-		if d:IsA("Model") and string.sub(d.Name, 1, 7) == "Jersey_" then
-			jersey += 1
-		end
-	end
-
 	return {
 		push = push,
-		passes = passes,
-		jerseyBarriers = jersey,
-		probes = probes,
-		hubCheck = ctx.requireFresh("ServerStorage.DevTools.Checks.HubCheck").Run(),
-		navCheck = ctx.requireFresh("ServerStorage.DevTools.Checks.NavCheck").Run(),
+		built = built,
+		hubCheck = check("HubCheck"),
+		navCheck = check("NavCheck"),
+		budgetCheck = check("BudgetCheck"),
 	}
 end
