@@ -86,6 +86,9 @@ local defs: { [string]: Def } = {
 	GuardS1 = { template = "Guard1", at = { -10, 0, -178, "+Z" }, idle = "HandsBehindBack" },
 	GuardS2 = { template = "Guard2", at = { 10, 0, -180, "+Z" }, idle = "HandsBehindBack" },
 	GuardS3 = { template = "Guard3", at = { 14, 0, -174, "+Z" }, idle = "HandsBehindBack" },
+	-- Two more stand in the research corridor past the locked door, seen through its window (map_01 §10, §14).
+	GuardR1 = { template = "Guard1", at = { 150, 0, -56.5, "-X" }, idle = "HandsBehindBack" },
+	GuardR2 = { template = "Guard2", at = { 150, 0, -51.5, "-X" }, idle = "HandsBehindBack" },
 	-- Medical (S41): Voss at the scanner console; Mara on the Observation Deck after it (S42).
 	Voss = { template = "Voss", at = "MARK_VOSS_MED", speaker = "VS" },
 	MaraDeck = { template = "Mara", at = "MARK_MARA_DECK", speaker = "M" },
@@ -101,7 +104,7 @@ return {
 		HUB_BRIEFED = { "Tamsin", "Okafor", "OfficerC3", "OfficerC4", "OfficerC7", "OfficerC5", "OfficerC8", "OfficerRouteA", "Morrow", "Hollis", "Vale", "Pell", "T1", "T2", "T3", "T4", "T5" },
 		-- S40-S43 (and loads at M01_COMPLETE, CH1_RETURNED, CH1_MEDICAL): the evening hangar and Voss in Medical; the Ops
 		-- Hall's day shift has gone (their barks are the morning's). MaraDeck joins after S41.
-		HUB_EVENING = { "ValeReturn", "Rhein", "TechCase", "GuardS1", "GuardS2", "GuardS3", "T1", "T5", "Pell", "Voss" },
+		HUB_EVENING = { "ValeReturn", "Rhein", "TechCase", "GuardS1", "GuardS2", "GuardS3", "GuardR1", "GuardR2", "T1", "T5", "Pell", "Voss" },
 	},
 	-- Talk prompts (docs/05 S02: HoldDuration 0, MaxActivationDistance 8).
 	Talk = { DISTANCE = 8, PREFIX = "TALK_" },

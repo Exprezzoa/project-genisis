@@ -69,9 +69,9 @@ local BOUNDS = {
 	{ "CentralCommand", "EastCorridor", V(59, -1, -62), V(82, 31, 64) }, -- stairwell 2 deeper than the doc (Q-009); pilasters 1 proud
 	{ "CentralCommand", "Equipment", V(80, -1, -42), V(132, 22, 0.5) }, -- pilasters 1 proud (structure pass)
 	{ "CentralCommand", "Medical", V(80, -1, 0), V(132, 22, 42) }, -- pilasters 1 proud (structure pass)
-	{ "CentralCommand", "Research", V(80, -1, -81), V(251, 17, -19) },
-	{ "CentralCommand", "Arrival", V(-80, -1, 40), V(80, 19, 130) },
-	{ "CentralCommand", "Exterior", V(-421, -4.1, -321), V(421, 60, 421) },
+	{ "CentralCommand", "Research", V(80, -1, -82), V(252, 27.4, -18) }, -- the lab's pilasters 1 proud; its roof antenna to 27.4 (dressed)
+	{ "CentralCommand", "Arrival", V(-600, -6.1, 40), V(415, 19.6, 152) }, -- the rail line X -600..412 with its buffer stop and embankment (D-102); canopy fascia to 19.6
+	{ "CentralCommand", "Exterior", V(-421, -4.1, -321), V(421, 60, 440) }, -- the apron outside the main gate to Z 440 (D-103)
 	{ "CentralCommand", "TrainingYard", V(-421, -1, -301), V(-122, 56, -39) }, -- the simulacrum is 56 tall
 	{ "Hangar", "Shell", V(-134.5, -1, -231.5), V(134.5, 98.6, -68.5) }, -- door housings at X +-134.5 (map_02 §4); the roof's ridge cap at 98.6
 	{ "Hangar", "GateCorridor", V(-16, -1, -70), V(16, 17, -40) },

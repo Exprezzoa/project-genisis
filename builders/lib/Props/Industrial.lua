@@ -1,6 +1,7 @@
 --!nonstrict
 -- Props/Industrial: Crate (S/M/L), CrateStack, MetalCase, Barrel, ToolCart, Forklift, FloodlightMast, JerseyBarrier,
--- StreetLamp, and the hangar's PowerCabinet, PlateRack, MobileStair, Bollard, ExtinguisherStation, CoolantTank (new).
+-- StreetLamp, the hangar's PowerCabinet, PlateRack, MobileStair, Bollard, ExtinguisherStation, CoolantTank (new), and the
+-- motor pool's FuelTank.
 -- Recipes: docs/07_building_with_parts.md §6. cframe = the bottom-center on the floor, facing -Z.
 
 local V = Vector3.new
@@ -192,14 +193,16 @@ return function(Props, BK)
 	end
 
 	-- Jersey barrier 6 x 3 x 2: a base box and two wedges (a wedge profile) in CONCRETE_LIGHT, a hazard band.
+	-- A WedgePart is tall at its +Z side, so the front slope stands as is and the back one is turned round (both lean
+	-- in toward the top; until 2026-10-17 they were swapped and the barrier was wider at the top).
 	function Props.JerseyBarrier(parent, cframe, opts)
 		opts = opts or {}
 		local k = Props.kit(parent, opts.name or "JerseyBarrier", cframe)
 		local concrete = { Color = P.CONCRETE_LIGHT, Material = "Concrete" }
 		local base = k.box("Base", V(6, 1, 2), V(0, 0.5, 0), concrete)
 		k.box("Top", V(6, 2, 0.8), V(0, 2, 0), concrete)
-		k.wedge("SlopeF", V(6, 2, 0.6), CFrame.new(0, 2, -0.7) * CFrame.Angles(0, math.pi, 0), concrete)
-		k.wedge("SlopeB", V(6, 2, 0.6), CFrame.new(0, 2, 0.7), concrete)
+		k.wedge("SlopeF", V(6, 2, 0.6), CFrame.new(0, 2, -0.7), concrete)
+		k.wedge("SlopeB", V(6, 2, 0.6), CFrame.new(0, 2, 0.7) * CFrame.Angles(0, math.pi, 0), concrete)
 		k.box("Band", V(6.02, 0.4, 0.82), V(0, 2.6, 0), with({ Color = P.HAZARD_YELLOW }, soft))
 		return k.finish(base)
 	end
@@ -340,6 +343,36 @@ return function(Props, BK)
 		local label = k.box("Label", V(1.8, 1.0, 0.05), CFrame.new(0, 5.4, -2.02).Position, with({ Color = P.HAZARD_YELLOW }, soft))
 		local gui = Props.gui(label, Enum.NormalId.Front, 0.6, 60)
 		Props.label(gui, "COOLANT", 0.05, 0.25, 0.9, 0.5, { font = Props.FONT.header, color = P.HAZARD_BLACK, xAlign = "Center" })
+		return k.finish(body)
+	end
+
+	-- FuelTank 8 across x 16 long, lying along local Z: a #7B848C cylinder on two concrete saddles, end caps, two bands,
+	-- a ladder up its +X side to a small platform with a filler hatch, a "FUEL — NO FLAME" sign on its front cap.
+	function Props.FuelTank(parent, cframe, opts)
+		opts = opts or {}
+		local k = Props.kit(parent, opts.name or "FuelTank", cframe)
+		local metal = { Color = "#7B848C", Material = "Metal" }
+		local dark = with({ Color = P.STEEL_DARK, Material = "Metal" }, soft)
+		local body = k.cyl("Body", "Z", V(8, 8, 16), V(0, 5.2, 0), metal)
+		for _, z in ipairs({ -8.1, 8.1 }) do
+			k.cyl("Cap", "Z", V(7.4, 7.4, 0.3), V(0, 5.2, z), with(metal, { CanCollide = false }))
+		end
+		for _, z in ipairs({ -4.6, 4.6 }) do
+			k.box("Saddle", V(7, 2.2, 1.4), V(0, 1.1, z), { Color = P.CONCRETE_DARK, Material = "Concrete" })
+			k.cyl("Band", "Z", V(8.2, 8.2, 0.3), V(0, 5.2, z), dark)
+		end
+		for _, z in ipairs({ -5.9, -4.9 }) do
+			k.box("LadderRail", V(0.15, 8.6, 0.15), V(4.3, 4.6, z), dark)
+		end
+		for y = 1, 8, 1.2 do
+			k.box("Rung", V(0.12, 0.12, 1.0), V(4.3, y, -5.4), dark)
+		end
+		k.box("Platform", V(2.4, 0.2, 3), V(2.2, 9.25, -5.4), with({ Color = P.STEEL_MID, Material = "DiamondPlate" }, soft))
+		k.cyl("Hatch", "Y", V(1.4, 0.3, 1.4), V(0, 9.3, 2), dark)
+		k.cyl("Valve", "Z", V(0.8, 0.8, 1.2), V(-2.4, 2.6, -8.6), with({ Color = P.DANGER_RED, Material = "Metal" }, soft))
+		local sign = k.box("Sign", V(3.6, 1.6, 0.06), V(0, 5.4, -8.3), with({ Color = P.HAZARD_YELLOW }, soft))
+		local gui = Props.gui(sign, Enum.NormalId.Front, 0.6, 50)
+		Props.label(gui, "FUEL — NO FLAME", 0.05, 0.2, 0.9, 0.6, { font = Props.FONT.header, color = P.HAZARD_BLACK, xAlign = "Center" })
 		return k.finish(body)
 	end
 end

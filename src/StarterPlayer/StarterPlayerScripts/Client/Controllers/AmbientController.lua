@@ -7,7 +7,8 @@
 --     "Q3_Terminal_StandIn" (Back face);
 --   * map models tagged HideOnFlag vanish for a player who has their HideFlag (the father's patch, CH1_TOOK_PATCH);
 --   * holograms: parts tagged Hologram shimmer and now and then glitch, HoloBlink parts blink at BlinkHz, HoloSweep
---     parts turn about PivotCenter (Radius, Period), HoloClock panels show the lighting's clock;
+--     parts turn about PivotCenter (Radius, Period), HoloClock panels show the lighting's clock; parts and lights tagged
+--     Pulse breathe on a sine (PulsePeriod, PulseDepth: the research canister's mass);
 --   * the Ops Hall's status wall and kiosk (tag StatusWall; map_01 §3, §14): Outpost 07 "REPORT OVERDUE" blinking
 --     1 Hz while the hub is in its MORNING, "COMMS RESTORED / UNDER REVIEW" after; the ticker scrolls; the clock;
 --   * the hub's lights (tag HubLight) dim 30% at NIGHT (map_01 §14), and those with a playing cinematic's `dim` tag
@@ -186,6 +187,28 @@ local function startHolograms()
 					local hz = part:GetAttribute("BlinkHz") or 1
 					local on = (now * hz) % 1 < 0.5
 					part.Transparency = if on then base[part] else 0.9
+				end
+			end
+			task.wait(0.05)
+		end
+	end)
+
+	-- Pulses (the research canister's mass, map_01 §10): a part fades by PulseDepth and a light dims by the same
+	-- fraction, on a sine of PulsePeriod seconds.
+	task.spawn(function()
+		local base = {}
+		while true do
+			local now = os.clock()
+			for _, item in ipairs(CollectionService:GetTagged("Pulse")) do
+				local period = item:GetAttribute("PulsePeriod") or 2
+				local depth = item:GetAttribute("PulseDepth") or 0.5
+				local wave = 0.5 - 0.5 * math.cos(now * 2 * math.pi / period) -- 0 at rest, 1 at the dimmest
+				if item:IsA("BasePart") then
+					base[item] = base[item] or item.Transparency
+					item.Transparency = base[item] + (1 - base[item]) * depth * wave
+				elseif item:IsA("Light") then
+					base[item] = base[item] or item.Brightness
+					item.Brightness = base[item] * (1 - depth * wave)
 				end
 			end
 			task.wait(0.05)

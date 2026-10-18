@@ -10,7 +10,7 @@
 builders/
   lib/BuildKit/              -- primitives and helpers (§3): init.lua + Core, Structure, Detail, Fx, Gameplay (D-009)
   lib/Palette.lua            -- every hex from 06_art_direction.md as Color3 constants
-  lib/Props/                 -- prop factory functions (§6): init.lua + Furniture, Display, Industrial (D-100, D-101)
+  lib/Props/                 -- prop factory functions (§6): init.lua + Furniture, Display, Industrial, Vehicles (D-100, D-101, D-103)
   checks/<Name>              -- spec checks and self-tests (§8); mirrored as DevTools.Checks.<Name> (D-013)
   characters/CharacterKit.lua, characters/<Name>.lua
   rigs/Vanguard.lua, rigs/Strider.lua, rigs/Watcher.lua
