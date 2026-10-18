@@ -6,7 +6,8 @@
 -- BLOCKOUT pass, like Compound: right sizes and places, collisions, markers, cameras, triggers, barriers,
 -- prompts on stand-ins. No props, except the rover: the player walks into it in S32, so its hull, bay and the
 -- things in it are built in every pass (see rover below). The STRUCTURE pass of the trail and the basin is in
--- WildsStructure, passed in as opts.Structure.
+-- WildsStructure, passed in as opts.Structure; the DRESSED pass (trees, rock clusters, the fallen pylon, cracks,
+-- footprints, mist) is in WildsDressed, passed in as opts.Dressed.
 --
 --   Builder.Build({ BK = BK, Common = Common, Layout = Layout, pass = "blockout", areas = { "Basin" } })
 
@@ -282,6 +283,10 @@ function Builder.Build(opts)
 		local more = opts.Structure and opts.Structure[area]
 		if more and ctx.level >= 2 then
 			more(ctx, L.tools(ctx), Builder)
+		end
+		local dress = opts.Dressed and opts.Dressed[area]
+		if dress and ctx.level >= 3 then
+			dress(ctx, L.tools(ctx), Builder)
 		end
 		reports[area] = C.finish(ctx)
 		opts.BK.breathe()

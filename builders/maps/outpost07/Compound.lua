@@ -5,7 +5,9 @@
 --
 -- BLOCKOUT pass: right sizes and places, walls, floors, openings, stairs, collisions, markers, triggers, prompts
 -- on stand-ins. Flat colors, no props, no lights. The STRUCTURE pass (lights, signs, windows, gates, trims) is in
--- CompoundStructure, passed in as opts.Structure and run per area when the pass is "structure" or higher. Areas are separate folders under Workspace.Map.Outpost07 and
+-- CompoundStructure, passed in as opts.Structure and run per area when the pass is "structure" or higher. The DRESSED
+-- pass (props, the "abandoned" details, grime) is in CompoundDressed, passed in as opts.Dressed and run per area when
+-- the pass is "dressed". Areas are separate folders under Workspace.Map.Outpost07 and
 -- can be rebuilt one at a time:
 --
 --   Builder.Build({ BK = BK, Common = Common, Layout = Layout, pass = "blockout", areas = { "Bunker" } })
@@ -302,6 +304,10 @@ function Builder.Build(opts)
 		local more = opts.Structure and opts.Structure[area]
 		if more and ctx.level >= 2 then
 			more(ctx, L.tools(ctx))
+		end
+		local dress = opts.Dressed and opts.Dressed[area]
+		if dress and ctx.level >= 3 then
+			dress(ctx, L.tools(ctx))
 		end
 		reports[area] = C.finish(ctx)
 		opts.BK.breathe()

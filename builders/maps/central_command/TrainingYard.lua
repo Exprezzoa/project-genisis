@@ -225,7 +225,7 @@ function Builder.gate(ctx, C, Lib)
 	BK.box(m, "Pier_S", V(GATE.x - 1, 0, zS + 0.6), V(GATE.x + 1, 3, -43), { Color = P.CONCRETE_LIGHT, Material = "Concrete" })
 	BK.box(D, "Pier_S_Band", V(GATE.x - 1.01, 2.4, zS + 0.6), V(GATE.x + 1.01, 2.8, -43), { Color = P.HAZARD_YELLOW, Tags = { "Detail" } })
 	for _, dir in ipairs({ -1, 1 }) do
-		BK.sign(D, "GateSign", BK.lookAlong(V(GATE.x + dir * 0.4, 9.7, GATE.z), V(dir, 0, 0)), Vector2.new(6.2, 1.2), "TRAINING YARD — PILOTS ONLY", { light = true })
+		BK.sign(D, "GateSign", BK.lookAlong(V(GATE.x + dir * 0.2, 9.7, GATE.z), V(dir, 0, 0)), Vector2.new(6.2, 1.2), "TRAINING YARD — PILOTS ONLY", { light = true })
 	end
 	BK.box(m, "SignBracket", V(GATE.x - 0.15, 9, GATE.z - 3.1), V(GATE.x + 0.15, 10.3, GATE.z + 3.1), steel)
 	-- The leaf, hinged on the north post and swung 90° into the yard (toward -X), along the north post's line.
@@ -286,8 +286,13 @@ function Builder.booth(ctx, C, Lib)
 	BK.box(b, "E_Door", V(x2 - 0.15, 0.6, dz + 0.3), V(x2 + 0.15, 7.6, z2 - 0.4), { Color = P.STEEL_MID, Material = "Metal" })
 	BK.box(b, "E_Head", V(x2 - 0.3, 7.6, z1 + 0.4), V(x2 + 0.3, 9.3, z2 - 0.4), wall)
 	BK.box(b, "Roof", V(x1 - 1, 9.3, z1 - 1), V(x2 + 1, 10, z2 + 1), { Color = P.CONCRETE_DARK, Material = "Concrete" })
-	BK.box(b, "RoofTrim", V(x1 - 1.05, 9.3, z1 - 1.05), V(x2 + 1.05, 9.5, z2 + 1.05), { Color = P.AMBER, CanCollide = false, CanQuery = false, CastShadow = false })
-	BK.sign(ctx.Detail, "Booth_Sign", BK.lookAlong(V(x2 + 0.45, 8.45, -60), V(1, 0, 0)), Vector2.new(7, 1), "OBSERVATION — RANGE CONTROL", { light = true })
+	-- The amber trim is a thin fascia round the roof's edge (a full slab under the roof would share its bottom face).
+	local trim = { Color = P.AMBER, CanCollide = false, CanQuery = false, CastShadow = false }
+	BK.box(b, "RoofTrim_N", V(x1 - 1.1, 9.35, z1 - 1.1), V(x2 + 1.1, 9.6, z1 - 1), trim)
+	BK.box(b, "RoofTrim_S", V(x1 - 1.1, 9.35, z2 + 1), V(x2 + 1.1, 9.6, z2 + 1.1), trim)
+	BK.box(b, "RoofTrim_W", V(x1 - 1.1, 9.35, z1 - 1), V(x1 - 1, 9.6, z2 + 1), trim)
+	BK.box(b, "RoofTrim_E", V(x2 + 1, 9.35, z1 - 1), V(x2 + 1.1, 9.6, z2 + 1), trim)
+	BK.sign(ctx.Detail, "Booth_Sign", BK.lookAlong(V(x2 + 0.35, 8.45, -60), V(1, 0, 0)), Vector2.new(7, 1), "OBSERVATION — RANGE CONTROL", { light = true })
 	b.PrimaryPart = plinth
 	-- Frames don't walk onto it.
 	BK.barrier(ctx.Gameplay, "FrameBarrier_Booth", V(x1 - 1.5, 0, z1 - 1.5), V(x2 + 1.5, 40, z2 + 1.5), "FrameBarrier")
