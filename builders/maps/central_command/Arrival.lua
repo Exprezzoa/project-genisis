@@ -7,8 +7,10 @@
 -- Passes (docs/07 §2): blockout = concourse shell, platform, canopy and columns, the rail line (ballast, sleepers,
 -- rails, buffer stop); structure = the concourse's framed glass walls (curb, mullions every 4, head beam, fascia) and
 -- portal, the canopy's girders, rafters and fascia, the platform's yellow edge line and nosing, the back railing, the
--- parked train; dressed = signs, info screens, benches, turnstiles, the station hologram, canopy strip lights, the
--- departure board, posters, bins, column fittings, floor text, tactile strip, joints and tile seams.
+-- light fixtures (concourse and canopy strip lights) and the signs (ARRIVALS — PLATFORM 1 with its back plate and rods,
+-- the way to the Ops Hall, the station's name over the portal and on the canopy fascia), the parked train;
+-- dressed = info screens, benches, turnstiles, the station hologram, the departure board, posters, bins, column
+-- fittings, floor text, tactile strip, joints and tile seams.
 -- D-102: the line runs X -600..412 (the doc's -600..600 would run into the Bulwark at X 420): a buffer stop ends it.
 -- opts: Common, BK, Props (structure pass and up), pass.
 
@@ -95,7 +97,7 @@ function Builder.railLine(ctx, C)
 		BK.cyl(ctx.Detail, { Name = "BufferStop_Buffer", Axis = "X", Size = V(1.4, 1.0, 1.0), CFrame = CFrame.new(bx - 0.5, 3.6, z), Color = P.STEEL_LIGHT, Material = "Metal", Tags = { "Detail" } })
 	end
 	BK.box(S, "BufferStop_Beam", V(bx + 0.1, 3.0, 134.8), V(bx + 1.1, 4.2, 145.2), red)
-	BK.box(ctx.Detail, "BufferStop_Lamp", V(bx + 0.3, 4.4, 139.6), V(bx + 0.8, 4.9, 140.4), { Color = P.DANGER_RED, Material = "Neon", Tags = { "Detail" } })
+	BK.box(ctx.Detail, "BufferStop_Lamp", V(bx + 0.3, 4.2, 139.6), V(bx + 0.8, 4.7, 140.4), { Color = P.DANGER_RED, Material = "Neon", Tags = { "Detail" } })
 end
 
 function Builder.structure(ctx, C, Lib)
@@ -141,6 +143,49 @@ function Builder.structure(ctx, C, Lib)
 	-- The platform's back edge: a railing either side of the concourse (the ends stay open to the yard).
 	BK.railing(S, "Railing_W", { V(-80, 0, 80.6), V(-10.6, 0, 80.6) })
 	BK.railing(S, "Railing_E", { V(10.6, 0, 80.6), V(80, 0, 80.6) })
+
+	Builder.lightsAndSigns(ctx, C)
+end
+
+-- Light fixtures and signage (docs/07 §2: both belong to the structure pass).
+function Builder.lightsAndSigns(ctx, C)
+	local BK, P, F, D = ctx.BK, ctx.P, ctx.Props, ctx.Detail
+	local soft = { CanCollide = false, CanQuery = false, CastShadow = false }
+	local function with(extra)
+		local t = table.clone(soft)
+		for k, v in pairs(extra) do
+			t[k] = v
+		end
+		return t
+	end
+
+	-- Concourse strip lights, their housings against the ceiling (Y 14).
+	for i, z in ipairs({ 46, 56, 66, 76 }) do
+		C.fixture(ctx, "Strip" .. i, V(0, 13.9, z), V(0.3, 0.15, 6), { Brightness = 1, Range = 16 })
+	end
+
+	-- Strip lights under the canopy: two rows of eight (06 §5 strips, lit at every preset; HubLight dims at night).
+	-- Mounted on the slab's underside (Y 18): the housing spans Y 17.89..18.14, like the concourse strips.
+	for row, z in ipairs({ 98, 114 }) do
+		for i, x in ipairs({ -70, -50, -30, -10, 10, 30, 50, 70 }) do
+			C.fixture(ctx, ("CanopyStrip%d_%d"):format(row, i), V(x, 17.9, z), V(8, 0.15, 0.4), { Brightness = 1, Range = 20 })
+		end
+	end
+
+	-- Signs: "ARRIVALS — PLATFORM 1" hanging near the Ops Hall end (its back points the way in); the station's name over
+	-- the portal, seen from the platform and the train.
+	for _, x in ipairs({ -5.5, 5.5 }) do
+		BK.box(D, "SignRod", V(x - 0.06, 11.8, 44.94), V(x + 0.06, 14, 45.06), with({ Color = P.STEEL_DARK, Material = "Metal" }))
+	end
+	BK.box(F, "Sign_Back", V(-6.2, 10.1, 44.9), V(6.2, 11.9, 45.1), with({ Color = P.STEEL_DARK, Material = "Metal" }))
+	BK.sign(D, "Sign_Arrivals", BK.lookAlong(V(0, 11, 44.84), V(0, 0, -1)), Vector2.new(12, 1.6), "ARRIVALS — PLATFORM 1", { light = true })
+	BK.sign(D, "Sign_ToOps", BK.lookAlong(V(0, 11, 45.16), V(0, 0, 1)), Vector2.new(12, 1.6), "OPS HALL · FRAME HANGAR ↑", { textColor = P.SIGN_WHITE, bgColor = P.SLATE })
+	BK.sign(D, "Sign_Station", BK.lookAlong(V(0, 14.3, 80.66), V(0, 0, 1)), Vector2.new(17, 1.8), "HALDEN CENTRAL COMMAND", { light = true })
+
+	-- The station's name on the canopy's front fascia, seen from the train.
+	for i, x in ipairs({ -40, 40 }) do
+		BK.sign(D, "Sign_Fascia" .. i, BK.lookAlong(V(x, 18.4, 128.46), V(0, 0, 1)), Vector2.new(22, 1.8), "HALDEN CENTRAL COMMAND", { light = true })
+	end
 end
 
 -- The parked train CT-9 (map_01 §11): 5 cars 40 long, 2 apart, X -104..104, Z 134..146, on two bogies each; body
@@ -227,11 +272,13 @@ function Builder.train(ctx, Lib)
 			end
 			k.box("NoseStripe", V(0.06, 0.5, 11.6), V(20.03, 3.4, 0), amber)
 		end
-		-- Car numbers under the stripe on both sides (painted).
+		-- Car numbers under the stripe on both sides (painted): Y 3.1..3.9, below the stripe (4.05..4.55). On the cab's
+		-- platform side (Front, its x = 0 at the +X end) the number starts at X ~8.2, clear of the door at X 9.3..12.7.
 		for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
-			local gui = Lib.gui(shell, face, 0.6, 12)
+			local gui = Lib.gui(shell, face, 0.6, 50)
 			gui.Name = "Number_" .. face.Name
-			Lib.label(gui, ("CT-9 · %02d"):format(i), 0.04, 0.8, 0.22, 0.1, { font = Lib.FONT.header, color = P.SIGN_WHITE })
+			local nx = if cab and face == Enum.NormalId.Front then 0.17 else 0.04
+			Lib.label(gui, ("CT-9 · %02d"):format(i), nx, 0.8625, 0.22, 0.1, { font = Lib.FONT.header, color = P.SIGN_WHITE })
 		end
 		k.finish(shell)
 	end
@@ -255,20 +302,6 @@ function Builder.dressConcourse(ctx, C, Lib)
 		end
 		return t
 	end
-
-	for i, z in ipairs({ 46, 56, 66, 76 }) do
-		C.fixture(ctx, "Strip" .. i, V(0, 13.9, z), V(0.3, 0.15, 6), { Brightness = 1, Range = 16 })
-	end
-
-	-- Signs: "ARRIVALS — PLATFORM 1" hanging near the Ops Hall end (its back points the way in); the station's name over
-	-- the portal, seen from the platform and the train.
-	for _, x in ipairs({ -5.5, 5.5 }) do
-		BK.box(D, "SignRod", V(x - 0.06, 11.8, 44.94), V(x + 0.06, 14, 45.06), with({ Color = P.STEEL_DARK, Material = "Metal" }))
-	end
-	BK.box(F, "Sign_Back", V(-6.2, 10.1, 44.9), V(6.2, 11.9, 45.1), with({ Color = P.STEEL_DARK, Material = "Metal" }))
-	BK.sign(D, "Sign_Arrivals", BK.lookAlong(V(0, 11, 44.84), V(0, 0, -1)), Vector2.new(12, 1.6), "ARRIVALS — PLATFORM 1", { light = true })
-	BK.sign(D, "Sign_ToOps", BK.lookAlong(V(0, 11, 45.16), V(0, 0, 1)), Vector2.new(12, 1.6), "OPS HALL · FRAME HANGAR ↑", { textColor = P.SIGN_WHITE, bgColor = P.SLATE })
-	BK.sign(D, "Sign_Station", BK.lookAlong(V(0, 14.3, 80.66), V(0, 0, 1)), Vector2.new(17, 1.8), "HALDEN CENTRAL COMMAND", { light = true })
 
 	-- Two info pylons with the train times (map_01 §11, its text exactly).
 	for i, s in ipairs({ { -8.6, 56, 1 }, { 8.6, 64, -1 } }) do
@@ -325,13 +358,6 @@ function Builder.dressPlatform(ctx, C, Lib, platform)
 		return t
 	end
 
-	-- Strip lights under the canopy: two rows of eight (06 §5 strips, lit at every preset; HubLight dims at night).
-	for row, z in ipairs({ 98, 114 }) do
-		for i, x in ipairs({ -70, -50, -30, -10, 10, 30, 50, 70 }) do
-			C.fixture(ctx, ("CanopyStrip%d_%d"):format(row, i), V(x, 16.9, z), V(8, 0.15, 0.4), { Brightness = 1, Range = 20 })
-		end
-	end
-
 	-- The departure board, double-sided, hanging over the aisle.
 	BK.box(F, "Board_Frame", V(-5.4, 12.3, 105.85), V(5.4, 15.7, 106.15), with({ Color = P.STEEL_DARK, Material = "Metal" }))
 	for _, x in ipairs({ -4.5, 4.5 }) do
@@ -341,11 +367,6 @@ function Builder.dressPlatform(ctx, C, Lib, platform)
 		BK.screen(D, "Board_Screen", BK.lookAlong(V(0, 14, 106 + dir * 0.16), V(0, 0, dir)), Vector2.new(10, 3), {
 			text = "PLATFORM 1 · DEPARTURES\nCT-6 HALDEN CENTRAL → CORROW 07:40 · ON TIME\nCT-9 · NOT IN SERVICE",
 		})
-	end
-
-	-- The station's name on the canopy's front fascia, seen from the train.
-	for i, x in ipairs({ -40, 40 }) do
-		BK.sign(D, "Sign_Fascia" .. i, BK.lookAlong(V(x, 18.4, 128.46), V(0, 0, 1)), Vector2.new(22, 1.8), "HALDEN CENTRAL COMMAND", { light = true })
 	end
 
 	-- Benches facing the line, bins between them.
@@ -391,8 +412,9 @@ function Builder.dressPlatform(ctx, C, Lib, platform)
 		BK.hazardStripe(D, "EndStripe" .. i, CFrame.new(x, 0, 104.4) * CFrame.Angles(0, math.pi / 2, 0), 47, 1.6)
 	end
 
-	-- Expansion joints on the platform every 16.
-	BK.seams(platform, Enum.NormalId.Top, 16, { width = 0.2, color = P.CONCRETE_DARK, parent = D, name = "Platform_Joints" })
+	-- Expansion joints on the platform every 16, sunk to Y 0.03: under the edge line and hazard bands (0.05) so they never
+	-- fight them (as in the hangar, Shell.lua).
+	BK.seams(platform, Enum.NormalId.Top, 16, { width = 0.2, depth = 0.06, color = P.CONCRETE_DARK, parent = D, name = "Platform_Joints" })
 end
 
 return Builder

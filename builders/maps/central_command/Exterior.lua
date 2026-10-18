@@ -2,7 +2,9 @@
 -- builders/maps/central_command/Exterior.lua  ->  DevTools.Builders.CentralCommand.Exterior
 -- docs/maps/map_01_central_command.md §13.1: the hub's grounds inside the perimeter X -420..420, Z -320..420.
 --
--- Passes (docs/07 §2): blockout = the pavement ground and the PlayerBarrier along the perimeter; structure = the
+-- Passes (docs/07 §2): blockout = the pavement ground, the PlayerBarrier and the FrameBarrier along the perimeter
+-- (the FrameBarrier open on the east for the causeway), FrameBarrier boxes over the motor pool, the main gate and the
+-- guard booth (docs/07 §5; built in every pass); structure = the
 -- asphalt roads (the main road north from the south gate to Z 166, then west to the motor pool), the chain-link
 -- perimeter fence, the main gate with its gantry sign and guard booth, the flag plaza, the motor pool's apron and
 -- canopy, the level crossing; dressed = street lamps every 40 (lit at EVENING and NIGHT: tag EveningLamp), the three
@@ -43,6 +45,18 @@ function Builder.Build(opts)
 	BK.barrier(G, "Perimeter_E", V(420, top, -320), V(421, 60, 420), "PlayerBarrier")
 	BK.barrier(G, "Perimeter_N", V(-421, top, -321), V(421, 60, -320), "PlayerBarrier")
 	BK.barrier(G, "Perimeter_S", V(-421, top, 420), V(421, 60, 421), "PlayerBarrier")
+	-- A 64-stud Frame passes PlayerBarriers and walks up onto anything lower than itself (docs/07 §5, D-049):
+	-- FrameBarriers (40 tall) on the perimeter line, open on the east where the causeway leaves (between its own
+	-- edge barriers, Z -175..-125, for S10's auto-walk to AUTO_CAUSEWAY_END), and over the motor pool (canopy,
+	-- vehicles, fuel tank, mast and clutter), the main gate's pillars and gantry, and the guard booth.
+	BK.barrier(G, "FrameBarrier_Perimeter_W", V(-421, top, -320), V(-420, 40, 420), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Perimeter_E1", V(420, top, -320), V(421, 40, -175), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Perimeter_E2", V(420, top, -125), V(421, 40, 420), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Perimeter_N", V(-421, top, -321), V(421, 40, -320), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Perimeter_S", V(-421, top, 420), V(421, 40, 421), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_MotorPool", V(-261, top, 59), V(-159, 40, 129), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Gate", V(-20, top, 418), V(20, 40, 422), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Booth", V(20.5, top, 401.5), V(31.5, 40, 412.5), "FrameBarrier")
 
 	if ctx.level >= 2 then
 		Builder.roads(ctx, C)
@@ -173,7 +187,7 @@ function Builder.gate(ctx, C, Lib)
 	end
 	BK.box(leaf, "Mesh", V(-50, 0.8, 421.88), V(-19.8, 7.6, 421.92), { Color = P.STEEL_LIGHT, Transparency = 0.8, CanCollide = false, CanQuery = false, CastShadow = false })
 	for x = -48, -22, 13 do
-		BK.cyl(leaf, { Name = "Wheel", Axis = "Z", Size = V(0.8, 0.8, 0.3), CFrame = CFrame.new(x, 0.4, 421.9), Color = P.HAZARD_BLACK, CanCollide = false })
+		BK.cyl(leaf, { Name = "Wheel", Axis = "Z", Size = V(0.8, 0.8, 0.3), CFrame = CFrame.new(x, 0.4, 421.9), Color = P.HAZARD_BLACK, CanCollide = false, CanQuery = false, CastShadow = false })
 	end
 
 	-- Booms across both lanes, lowered, inside the gate at Z 412 (decorative: nothing collides).
@@ -222,8 +236,14 @@ function Builder.gate(ctx, C, Lib)
 	BK.box(b, "W_Door", V(x1 - 0.15, 0.6, 406.2), V(x1 + 0.15, 7.6, 410.6), { Color = P.STEEL_MID, Material = "Metal" })
 	BK.box(b, "W_Head", V(x1 - 0.3, 7, z1 + 0.4), V(x1 + 0.3, 8.5, z2 - 0.4), wall)
 	BK.box(b, "Roof", V(x1 - 1.2, 8.5, z1 - 1.2), V(x2 + 1.2, 9.2, z2 + 1.2), { Color = P.CONCRETE_DARK, Material = "Concrete" })
-	BK.box(b, "RoofTrim", V(x1 - 1.25, 8.5, z1 - 1.25), V(x2 + 1.25, 8.7, z2 + 1.25), { Color = P.AMBER, CanCollide = false, CanQuery = false, CastShadow = false })
-	BK.sign(D, "Booth_Sign", BK.lookAlong(V(x1 - 1.3, 7.8, 407), V(-1, 0, 0)), Vector2.new(6, 1), "GATE 1 — SECURITY", { light = true })
+	-- An amber fascia round the roof's edge: four 0.05-thick strips just outside its sides (no face shared with the roof's
+	-- underside, docs/06 §1).
+	local trim = { Color = P.AMBER, CanCollide = false, CanQuery = false, CastShadow = false }
+	BK.box(b, "RoofTrim_N", V(x1 - 1.25, 8.5, z1 - 1.25), V(x2 + 1.25, 8.7, z1 - 1.2), trim)
+	BK.box(b, "RoofTrim_S", V(x1 - 1.25, 8.5, z2 + 1.2), V(x2 + 1.25, 8.7, z2 + 1.25), trim)
+	BK.box(b, "RoofTrim_W", V(x1 - 1.25, 8.5, z1 - 1.2), V(x1 - 1.2, 8.7, z2 + 1.2), trim)
+	BK.box(b, "RoofTrim_E", V(x2 + 1.2, 8.5, z1 - 1.2), V(x2 + 1.25, 8.7, z2 + 1.2), trim)
+	BK.sign(D, "Booth_Sign", BK.lookAlong(V(x1 - 0.36, 7.75, 407), V(-1, 0, 0)), Vector2.new(6, 1), "GATE 1 — SECURITY", { light = true })
 	Lib.Desk(b, CFrame.new(28.4, 0.6, 407) * Lib.FACE["-X"], { name = "Desk" })
 	Lib.Chair(b, CFrame.new(26.2, 0.6, 407) * Lib.FACE["+X"], { name = "Chair" })
 	Lib.Terminal(b, CFrame.new(28.6, 3.4, 406.4) * Lib.FACE["-X"], { name = "Terminal", lines = { "GATE 1 · LOG", "No vehicles due", "06:00 shift" } })
@@ -271,7 +291,7 @@ function Builder.motorPool(ctx, C, Lib)
 	end
 	BK.box(S, "Canopy_Roof", V(-254, 14, 65), V(-198, 14.6, 97), { Color = P.STEEL_MID, Material = "Metal" })
 	BK.box(D, "Canopy_Fascia", V(-254.3, 13.6, 96.9), V(-197.7, 15, 97.3), { Color = P.HAZARD_YELLOW, Tags = { "Detail" } })
-	BK.sign(D, "Sign_MotorPool", BK.lookAlong(V(-226, 14.3, 97.35), V(0, 0, 1)), Vector2.new(14, 1.2), "MOTOR POOL — THIRD FRONTIER", { textColor = P.HAZARD_BLACK, bgColor = P.HAZARD_YELLOW })
+	BK.sign(D, "Sign_MotorPool", BK.lookAlong(V(-226, 14.3, 97.35), V(0, 0, 1)), Vector2.new(14, 1.2), "MOTOR POOL — THIRD FRONTIER")
 	for i, x in ipairs({ -240, -226, -212 }) do
 		C.fixture(ctx, "CanopyStrip" .. i, V(x, 13.85, 81), V(0.4, 0.15, 10), { Brightness = 1, Range = 18 })
 	end
@@ -301,7 +321,6 @@ function Builder.lamps(ctx, C, Lib)
 	for x = -20, -220, -40 do
 		lamp("Lamp_WS", x, 198.5, "-Z")
 	end
-	lamp("Lamp_Gate", -22, 410, "+X")
 end
 
 function Builder.dressMotorPool(ctx, C, Lib)
@@ -348,13 +367,13 @@ function Builder.dressMotorPool(ctx, C, Lib)
 			put("Board", V(5, 0.7, 0.1), CFrame.new(0, 8.6, -0.25) * CFrame.Angles(0, 0, math.rad(a)), { Color = P.MEDICAL_WHITE, CanCollide = false, CanQuery = false })
 			put("BoardEdge", V(5.1, 0.12, 0.08), CFrame.new(0, 8.6, -0.32) * CFrame.Angles(0, 0, math.rad(a)), { Color = P.DANGER_RED, CanCollide = false, CanQuery = false, CastShadow = false })
 		end
-		put("LampBar", V(2.6, 0.3, 0.3), CFrame.new(0, 6.2, -0.3), { Color = P.STEEL_DARK, Material = "Metal", CanCollide = false })
+		put("LampBar", V(2.6, 0.3, 0.3), CFrame.new(0, 6.2, -0.3), { Color = P.STEEL_DARK, Material = "Metal", CanCollide = false, CanQuery = false, CastShadow = false })
 		for _, x in ipairs({ -1.1, 1.1 }) do
 			put("Lamp", V(0.7, 0.7, 0.2), CFrame.new(x, 6.2, -0.5), { Color = P.EMERGENCY_RED, CanCollide = false, CanQuery = false, CastShadow = false })
 		end
 		put("BoomPost", V(1, 3.4, 1), CFrame.new(2.6, 1.7, 0), { Color = P.HAZARD_YELLOW, Material = "Metal" })
 		put("Boom", V(0.35, 13, 0.35), CFrame.new(2.6, 9.6, 0), { Color = P.MEDICAL_WHITE, CanCollide = false, CanQuery = false })
-		local signPart = put("Sign", V(3.4, 0.9, 0.08), CFrame.new(0, 4.4, -0.25), { Color = P.MEDICAL_WHITE, CanCollide = false, CanQuery = false, CastShadow = false })
+		local signPart = put("Sign", V(3.4, 0.9, 0.08), CFrame.new(0, 4.4, -0.25), { Color = P.HAZARD_YELLOW, CanCollide = false, CanQuery = false, CastShadow = false })
 		local gui = Lib.gui(signPart, Enum.NormalId.Front, 0.6, 60)
 		Lib.label(gui, "RAILWAY CROSSING", 0.05, 0.15, 0.9, 0.7, { font = Lib.FONT.header, color = P.HAZARD_BLACK, xAlign = "Center" })
 	end
@@ -375,13 +394,13 @@ function Builder.flags(ctx, C, Lib)
 		local base = k.box("Base", V(2.4, 0.8, 2.4), V(0, 0.4, 0), { Color = P.CONCRETE_DARK, Material = "Concrete" })
 		local h = if x == 0 then 34 else 30
 		k.cyl("Pole", "Y", V(0.5, h, 0.5), V(0, 0.8 + h / 2, 0), { Color = P.STEEL_LIGHT, Material = "Metal" })
-		k.ball("Finial", 0.9, V(0, 0.8 + h + 0.3, 0), { Color = P.AMBER, Material = "Metal", CanCollide = false })
+		k.ball("Finial", 0.9, V(0, 0.8 + h + 0.3, 0), { Color = P.AMBER, Material = "Metal", CanCollide = false, CanQuery = false, CastShadow = false })
 		local top = 0.8 + h - 0.6
 		local cloth = if x == 0 then P.SLATE else P.SLATE_DEEP
-		k.box("Cloth", V(7, 4.4, 0.1), V(3.75, top - 2.2, 0), { Color = cloth, Material = "Fabric", CanCollide = false, CastShadow = false })
-		k.box("Hoist", V(0.25, 4.4, 0.14), V(0.35, top - 2.2, 0), { Color = P.STEEL_DARK, CanCollide = false, CastShadow = false })
-		k.box("BandTop", V(7, 0.3, 0.12), V(3.75, top - 0.25, 0), { Color = P.AMBER, CanCollide = false, CastShadow = false })
-		k.box("BandBottom", V(7, 0.3, 0.12), V(3.75, top - 4.15, 0), { Color = P.AMBER, CanCollide = false, CastShadow = false })
+		k.box("Cloth", V(7, 4.4, 0.1), V(3.75, top - 2.2, 0), { Color = cloth, Material = "Fabric", CanCollide = false, CanQuery = false, CastShadow = false })
+		k.box("Hoist", V(0.25, 4.4, 0.14), V(0.35, top - 2.2, 0), { Color = P.STEEL_DARK, CanCollide = false, CanQuery = false, CastShadow = false })
+		k.box("BandTop", V(7, 0.3, 0.12), V(3.75, top - 0.25, 0), { Color = P.AMBER, CanCollide = false, CanQuery = false, CastShadow = false })
+		k.box("BandBottom", V(7, 0.3, 0.12), V(3.75, top - 4.15, 0), { Color = P.AMBER, CanCollide = false, CanQuery = false, CastShadow = false })
 		for _, side in ipairs({ -1, 1 }) do
 			Lib.insignia(k, CFrame.new(3.9, top - 2.0, side * 0.065) * (if side > 0 then CFrame.Angles(0, math.pi, 0) else CFrame.identity), 2.6, P.AMBER)
 		end

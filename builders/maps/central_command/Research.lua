@@ -3,11 +3,13 @@
 -- docs/maps/map_01_central_command.md §10: Research Corridor X 80..200, Z -60..-48, ceiling 12, locked security
 -- door at X 100 (DOOR_RESEARCH); Voss Lab X 200..250, Z -80..-20 (shell only in the Vertical Slice).
 --
--- Passes (docs/07 §2): blockout = corridor, the security door and its prompt, the lab shell; structure = the
--- corridor's white finishes and LIGHT_COOL strips, exterior kickplates and pilasters, the lab's parapet and closed
--- door; dressed = the door's sign, card reader, hazard band and camera on the near side; through the window the
--- containment canister at X 190 (clue 3: an amber-orange mass pulsing at 2.0 s, tag Pulse, AmbientController), its
--- console, cabinets, pipes; rooftop units seen from the Observation Deck.
+-- Passes (docs/07 §2): blockout = corridor (concrete walls, a header at X 80 under the East corridor's ceiling), the
+-- security door (SmoothPlastic window) and its prompt, the lab shell, FrameBarriers 40 tall over the corridor and the
+-- lab (every pass); structure = the corridor's white lining and finishes, LIGHT_COOL strips every 10, the security
+-- door's sign, exterior kickplates and pilasters, the lab's parapet and closed door; dressed = the corridor's wall
+-- panel seams; the door's card reader, hazard band and camera on the near side; through the window the containment
+-- canister at X 190 (clue 3: an AMBER_CORE mass pulsing at 2.0 s, tag Pulse, AmbientController), its console,
+-- cabinets, pipes; rooftop units seen from the Observation Deck.
 -- opts: Common, BK, Props (structure pass and up), pass.
 
 local Builder = {}
@@ -31,8 +33,11 @@ function Builder.Build(opts)
 
 	local floor = BK.floor(S, "Floor", 80, 200, -60, -48, 0, 1, { Color = "#D5DADE" })
 	BK.ceiling(S, "Ceiling", 80, 200, -60, -48, CEIL, 1, ctx.CEIL)
-	BK.wallX(S, "Wall_N", 80, 199, -60, 0, 13, C.EXT, white)
-	BK.wallX(S, "Wall_S", 80, 199, -48, 0, 13, C.EXT, white)
+	-- Exterior walls are Concrete CONCRETE_MID (map_01 §2); the structure pass lines their corridor faces in white.
+	BK.wallX(S, "Wall_N", 80, 199, -60, 0, 13, C.EXT, ctx.EXT)
+	BK.wallX(S, "Wall_S", 80, 199, -48, 0, 13, C.EXT, ctx.EXT)
+	-- The East corridor's ceiling is 2 higher (bottom Y 14): a header closes X 80 between this roof (13) and it.
+	BK.box(S, "Header_W", V(80, 13, -59), V(81, 14, -48), ctx.EXT)
 
 	-- Security door: steel, 10 x 10, fills the corridor (clear width Z -59..-49), window 3 x 2 at Y 4..6.
 	local door = BK.model(G, "DOOR_RESEARCH")
@@ -43,9 +48,11 @@ function Builder.Build(opts)
 	BK.box(door, "Leaf_Upper", V(99.5, 6, -59), V(100.5, 10, -49), steel)
 	BK.box(door, "Leaf_Left", V(99.5, 4, -59), V(100.5, 6, -55.5), steel)
 	BK.box(door, "Leaf_Right", V(99.5, 4, -52.5), V(100.5, 6, -49), steel)
-	BK.box(door, "Window", V(99.9, 4, -55.5), V(100.1, 6, -52.5), ctx.GLASS)
+	-- SmoothPlastic, not Glass (map_01 §10 says Glass): the engine doesn't draw transparent parts behind Glass
+	-- material, and the canister, its ring and the clue-3 mass seen through this window are all transparent.
+	BK.box(door, "Window", V(99.9, 4, -55.5), V(100.1, 6, -52.5), { Color = P.GLASS, Transparency = ctx.GLASS.Transparency })
 	BK.box(door, "Lintel", V(99.5, 10, -59), V(100.5, 12, -49), white)
-	BK.box(door, "StatusStrip", V(99.35, 10.2, -57), V(99.5, 10.5, -51), { Color = P.DANGER_RED, Material = "Neon", CanCollide = false })
+	BK.box(door, "StatusStrip", V(99.35, 10.2, -57), V(99.5, 10.5, -51), { Color = P.DANGER_RED, Material = "Neon", CanCollide = false, CanQuery = false })
 	door.PrimaryPart = lower
 	BK.prompt(lower, "INT_RESEARCH_DOOR", "Open")
 
@@ -57,10 +64,15 @@ function Builder.Build(opts)
 	BK.wallZ(S, "Lab_Wall_W", -79, -21, 200, 0, 16, C.EXT, ctx.EXT)
 	BK.wallZ(S, "Lab_Wall_E", -79, -21, 250, 0, 16, C.EXT, ctx.EXT)
 
+	-- FrameBarriers (docs/07 §5, 40 tall): a 64-stud Frame would walk up onto the corridor roof (13) and the lab (19).
+	BK.barrier(G, "FrameBarrier_Corridor", V(80, 0, -61), V(199, 40, -47), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_VossLab", V(199, 0, -81), V(251, 40, -19), "FrameBarrier")
+
 	if ctx.level >= 2 then
 		Builder.structure(ctx, C, Lib)
 	end
 	if ctx.level >= 3 then
+		Builder.dressSeams(ctx)
 		Builder.dressNear(ctx, C, Lib)
 		Builder.dressFar(ctx, C, Lib)
 		Builder.dressRoofs(ctx, C, Lib)
@@ -77,24 +89,32 @@ function Builder.structure(ctx, C, Lib)
 		return { Color = color, Material = material or "SmoothPlastic", CastShadow = false, Tags = { "Detail" } }
 	end
 
-	-- White corridor: a dark kickplate, a SLATE band at 3, a STEEL_DARK ceiling trim on both long walls; the door
-	-- interrupts them at X 99.5..100.5.
+	-- White corridor: a MEDICAL_WHITE lining over the concrete walls' inner faces, a dark kickplate, a SLATE band at
+	-- 3, a STEEL_DARK ceiling trim on both long walls; the door interrupts them at X 99.5..100.5.
 	for _, w in ipairs({ { "N", Z1, 1 }, { "S", Z2, -1 } }) do
 		local z, n = w[2], w[3]
 		for i, run in ipairs({ { 80, 99.5 }, { 100.5, 199 } }) do
-			local function band(name, y1, y2, depth, props)
-				BK.box(D, ("%s_%s%d"):format(name, w[1], i), V(run[1], y1, math.min(z, z + n * depth)), V(run[2], y2, math.max(z, z + n * depth)), props)
+			local function band(folder, name, y1, y2, depth, props)
+				BK.box(folder, ("%s_%s%d"):format(name, w[1], i), V(run[1], y1, math.min(z, z + n * depth)), V(run[2], y2, math.max(z, z + n * depth)), props)
 			end
-			band("Kick", 0, 1, 0.1, detail(P.KICKPLATE))
-			band("Band", 2.85, 3.15, 0.14, detail(P.SLATE))
-			band("CeilTrim", CEIL - 0.35, CEIL, 0.16, detail(P.STEEL_DARK, "Metal"))
+			band(S, "Lining", 0, CEIL, 0.04, { Color = P.MEDICAL_WHITE, CastShadow = false })
+			band(D, "Kick", 0, 1, 0.1, detail(P.KICKPLATE))
+			band(D, "Band", 2.85, 3.15, 0.14, detail(P.SLATE))
+			band(D, "CeilTrim", CEIL - 0.35, CEIL, 0.16, detail(P.STEEL_DARK, "Metal"))
 		end
 	end
 
-	-- LIGHT_COOL strips (06 §5 corridor strips): two on the near side, eight past the door.
-	for i, x in ipairs({ 86, 94, 108, 120, 132, 144, 156, 168, 180, 192 }) do
-		C.fixture(ctx, "Strip" .. i, V(x, CEIL - 0.1, -54), V(6, 0.15, 0.3), { Color = P.LIGHT_COOL, Brightness = 1, Range = 16 })
+	-- LIGHT_COOL strips every 10 (06 §5 corridor strips): two on the near side, ten past the door.
+	local strip = 0
+	for x = 85, 195, 10 do
+		strip += 1
+		C.fixture(ctx, "Strip" .. strip, V(x, CEIL - 0.1, -54), V(6, 0.15, 0.3), { Color = P.LIGHT_COOL, Brightness = 1, Range = 16 })
 	end
+
+	-- The security door's sign over its leaf, on the player's side (map_01 §10).
+	BK.sign(D, "Sign_Restricted", BK.lookAlong(V(99.4, 11.25, -54), V(-1, 0, 0)), Vector2.new(9.6, 1.2), "RESTRICTED — SCIENCE DIVISION — CLEARANCE 3", {
+		textColor = P.HAZARD_BLACK, bgColor = P.HAZARD_YELLOW,
+	})
 
 	-- Outside: the corridor's long faces and the lab's four faces (kickplate, pilasters every 24); the lab's parapet.
 	C.face(ctx, "Ext_N", V(80, 0, -61), V(199, 0, -61), V(0, 0, -1), { kind = "exterior", top = 13 })
@@ -113,6 +133,26 @@ function Builder.structure(ctx, C, Lib)
 	BK.door(S, "Door_VossLab", CFrame.new(198.75, 0, -54) * Lib.FACE["-X"], 8, C.DOUBLE_H, { double = true, locked = true, wallThickness = 0.5, sign = "SCIENCE DIVISION" })
 end
 
+-- Wall panel seams on the corridor's white faces (docs/07 §7): vertical every 16 (world multiples) and a horizontal
+-- at 10, 0.2 wide, 0.05 proud of the lining, 8% darker than MEDICAL_WHITE. The SLATE band stands in for the one at 3.
+function Builder.dressSeams(ctx)
+	local BK, P, D = ctx.BK, ctx.P, ctx.Detail
+	local seam = { Color = BK.darken(P.MEDICAL_WHITE, 0.08), CastShadow = false, Tags = { "Detail" } }
+	for _, w in ipairs({ { "N", Z1, 1 }, { "S", Z2, -1 } }) do
+		local z, n = w[2], w[3]
+		local z1, z2 = math.min(z + n * 0.04, z + n * 0.09), math.max(z + n * 0.04, z + n * 0.09)
+		for i, run in ipairs({ { 80, 99.5 }, { 100.5, 199 } }) do
+			BK.box(D, ("SeamH_%s%d"):format(w[1], i), V(run[1], 9.9, z1), V(run[2], 10.1, z2), seam)
+			for x = math.ceil(run[1] / 16) * 16, run[2], 16 do
+				if x - 0.6 > run[1] and x + 0.6 < run[2] then
+					BK.box(D, ("SeamV_%s%d_Low"):format(w[1], x), V(x - 0.1, 1, z1), V(x + 0.1, 2.85, z2), seam)
+					BK.box(D, ("SeamV_%s%d"):format(w[1], x), V(x - 0.1, 3.15, z1), V(x + 0.1, CEIL - 0.35, z2), seam)
+				end
+			end
+		end
+	end
+end
+
 -- The player's side of the door (X 80..100).
 function Builder.dressNear(ctx, C, Lib)
 	local BK, P, F, D = ctx.BK, ctx.P, ctx.Props, ctx.Detail
@@ -125,9 +165,6 @@ function Builder.dressNear(ctx, C, Lib)
 		return t
 	end
 
-	BK.sign(D, "Sign_Restricted", BK.lookAlong(V(99.4, 11.25, -54), V(-1, 0, 0)), Vector2.new(9.6, 1.2), "RESTRICTED — SCIENCE DIVISION — CLEARANCE 3", {
-		textColor = P.HAZARD_BLACK, bgColor = P.HAZARD_YELLOW,
-	})
 	-- Panel seams and a hazard band across the leaf's foot.
 	for _, y in ipairs({ 3, 7.5 }) do
 		BK.box(D, "DoorSeam", V(99.42, y - 0.05, Z1 + 0.3), V(99.5, y + 0.05, Z2 - 0.3), with({ Color = P.STEEL_DARK }))
@@ -181,8 +218,9 @@ function Builder.dressFar(ctx, C, Lib)
 		local a = i * math.pi / 2 + math.pi / 4
 		BK.box(can, "Strut" .. i, V(cx + math.cos(a) * 1.55 - 0.1, 2.5, cz + math.sin(a) * 1.55 - 0.1), V(cx + math.cos(a) * 1.55 + 0.1, 8.5, cz + math.sin(a) * 1.55 + 0.1), with({ Color = P.STEEL_DARK, Material = "Metal" }))
 	end
-	-- The mass: five glowing lobes (calibrated amber glow, D-099: amber-orange on screen) and three darker nodules.
-	local glow = BK.GLOW.amber.Color
+	-- The mass: five glowing lobes, Neon AMBER_CORE at 0.3 (map_01 §10; cores are outside D-099's glow calibration,
+	-- like clue 2's exposed core in Unit 03), and three darker nodules.
+	local glow = P.AMBER_CORE
 	for i, b in ipairs({ { 0, 4.6, 0, 1.8 }, { 0.45, 5.6, 0.2, 1.4 }, { -0.4, 5.3, -0.35, 1.3 }, { 0.1, 6.5, -0.15, 1.1 }, { -0.25, 4.3, 0.5, 1.2 } }) do
 		BK.ball(can, with({ Name = "Mass" .. i, Size = Vector3.one * b[4], CFrame = CFrame.new(cx + b[1], b[2], cz + b[3]), Color = glow, Material = "Neon", Transparency = 0.3, Tags = { "Pulse" }, Attributes = PULSE }))
 	end
@@ -216,17 +254,24 @@ end
 function Builder.dressRoofs(ctx, C, Lib)
 	local BK, P, F, D = ctx.BK, ctx.P, ctx.Props, ctx.Detail
 	local soft = { CanCollide = false, CanQuery = false, CastShadow = false }
+	local function with(extra)
+		local t = table.clone(soft)
+		for k, v in pairs(extra) do
+			t[k] = v
+		end
+		return t
+	end
 	for i, p in ipairs({ { 214, -66 }, { 232, -66 } }) do
 		BK.box(F, "RoofUnit" .. i, V(p[1] - 4, 17, p[2] - 3), V(p[1] + 4, 20.4, p[2] + 3), { Color = P.STEEL_MID, Material = "Metal" })
-		BK.cyl(D, { Name = "RoofUnit_Fan" .. i, Axis = "Y", Size = V(4, 0.2, 4), CFrame = CFrame.new(p[1], 20.5, p[2]), Color = P.STEEL_DARK, Material = "Metal", CanCollide = false, CastShadow = false })
+		BK.cyl(D, with({ Name = "RoofUnit_Fan" .. i, Axis = "Y", Size = V(4, 0.2, 4), CFrame = CFrame.new(p[1], 20.5, p[2]), Color = P.STEEL_DARK, Material = "Metal" }))
 	end
 	BK.pipeRun(D, "RoofDuct", { V(214, 18.5, -62.8), V(214, 18.5, -40), V(232, 18.5, -40), V(232, 18.5, -62.8) }, 0.6, { color = P.STEEL_LIGHT })
 	for i, x in ipairs({ 120, 160 }) do
 		BK.cyl(F, { Name = "VentStack" .. i, Axis = "Y", Size = V(1.4, 3, 1.4), CFrame = CFrame.new(x, 14.5, -54), Color = P.STEEL_MID, Material = "Metal" })
-		BK.cyl(D, { Name = "VentStack_Cap" .. i, Axis = "Y", Size = V(2, 0.3, 2), CFrame = CFrame.new(x, 16.2, -54), Color = P.STEEL_DARK, Material = "Metal", CanCollide = false, CastShadow = false })
+		BK.cyl(D, with({ Name = "VentStack_Cap" .. i, Axis = "Y", Size = V(2, 0.3, 2), CFrame = CFrame.new(x, 16.2, -54), Color = P.STEEL_DARK, Material = "Metal" }))
 	end
-	BK.box(D, "Antenna", V(240.9, 17, -26.1), V(241.1, 27, -25.9), { Color = P.STEEL_DARK, Material = "Metal", CanCollide = false, CastShadow = false })
-	BK.box(D, "Antenna_Lamp", V(240.8, 27, -26.2), V(241.2, 27.4, -25.8), { Color = P.DANGER_RED, Material = "Neon", CanCollide = false, CastShadow = false })
+	BK.box(D, "Antenna", V(240.9, 17, -26.1), V(241.1, 27, -25.9), with({ Color = P.STEEL_DARK, Material = "Metal" }))
+	BK.box(D, "Antenna_Lamp", V(240.8, 27, -26.2), V(241.2, 27.4, -25.8), with({ Color = P.DANGER_RED, Material = "Neon" }))
 end
 
 return Builder
