@@ -12,7 +12,7 @@
 --   local Props = require(DT.Props:Clone())(BK)
 --   Props.Console(folder, CFrame.new(x, 0, z) * Props.FACE["+Z"], { lines = { ... } })
 --
--- Child modules (each returns function(Props, BK) and adds its props): Furniture, Display, Industrial, Vehicles.
+-- Child modules (each returns function(Props, BK) and adds its props): Furniture, Display, Industrial, Vehicles, Outdoor.
 -- Dev-time only: game code must never require anything under ServerStorage.DevTools.
 
 return function(BK)
@@ -166,7 +166,7 @@ return function(BK)
 		kit.wedge("Insignia_Apex_R", Vector3.new(t, tall, half), at * CFrame.new(half / 2, 0.3 * s + tall / 2, 0) * CFrame.Angles(0, -math.pi / 2, 0), c)
 	end
 
-	for _, name in ipairs({ "Furniture", "Display", "Industrial", "Vehicles" }) do
+	for _, name in ipairs({ "Furniture", "Display", "Industrial", "Vehicles", "Outdoor" }) do
 		local child = script:FindFirstChild(name)
 		if not child then
 			error("[Props] child module '" .. name .. "' is missing")
