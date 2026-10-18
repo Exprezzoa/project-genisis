@@ -1,5 +1,7 @@
 """Prints the Luau push list for a bridge job: every .lua file under src/ and builders/ that changed between the
 commit Studio's scripts are known to match (bridge/studio_state.txt) and HEAD (or the working tree with --worktree).
+studio_state.txt: the first word of the first line is the base commit; each further non-comment line
+"<commit> <path>" records a file Studio holds at another commit (one a job pushed).
 
 Each item carries `expect`, the bytes/adler32 sum of the file as Studio holds it (computed from that commit, the
 same sum as tools/checksum.ps1 and the plugin), so the plugin refuses to overwrite anything edited by hand in
@@ -25,22 +27,49 @@ def adler(data: bytes):
     return b * 65536 + a
 
 
-state = open(os.path.join(root, "bridge", "studio_state.txt")).read().split()[0]
+lines = [l.split("#")[0].split() for l in open(os.path.join(root, "bridge", "studio_state.txt"))]
+lines = [l for l in lines if l]
+state = lines[0][0]
+override = {l[1]: l[0] for l in lines[1:]}
 target = [] if "--worktree" in sys.argv else ["HEAD"]
-changed = git("diff", "--name-status", state, *target, "--", "src", "builders").decode().splitlines()
+
+
+def current(path):
+    """The file's text in the working tree or at HEAD."""
+    if target:
+        return git("show", f"HEAD:{path}")
+    return open(os.path.join(root, path), "rb").read()
+
+
+def studio(path):
+    """The file's text as Studio holds it, or None if Studio doesn't have it."""
+    try:
+        return git("show", f"{override.get(path, state)}:{path}")
+    except subprocess.CalledProcessError:
+        return None
+
+
+changed = set(git("diff", "--name-only", state, *target, "--", "src", "builders").decode().split())
+if not target:
+    changed |= set(git("ls-files", "--others", "--exclude-standard", "--", "src", "builders").decode().split())
+changed |= set(override)
 items = []
-for line in changed:
-    status, path = line.split("\t")[0], line.split("\t")[-1]
+for path in sorted(changed):
     if not path.endswith(".lua"):
         continue
-    if status.startswith("D"):
+    if not os.path.exists(os.path.join(root, path)) and not target:
         print(f"-- deleted, remove by hand if needed: {path}", file=sys.stderr)
         continue
-    if status.startswith("A"):
+    try:
+        now = current(path)
+    except subprocess.CalledProcessError:
+        print(f"-- deleted, remove by hand if needed: {path}", file=sys.stderr)
+        continue
+    held = studio(path)
+    if held is None:
         items.append(f'\t{{ file = "{path}" }},')
-    else:
-        old = git("show", f"{state}:{path}")
-        items.append(f'\t{{ file = "{path}", expect = {adler(old)} }},')
+    elif adler(held) != adler(now) or len(held.replace(b"\r\n", b"\n")) != len(now.replace(b"\r\n", b"\n")):
+        items.append(f'\t{{ file = "{path}", expect = {adler(held)} }},')
 print("{")
 print("\n".join(items))
 print("}")

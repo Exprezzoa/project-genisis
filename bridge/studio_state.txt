@@ -1,1 +1,2 @@
-753a997  # Studio scripts matched this commit at job 0001-baseline (2026-10-18); jobs 0002-0003 pushed nothing; 0004 never ran
+753a997  # base: Studio scripts matched this commit at job 0001-baseline (2026-10-18)
+eec110b builders/maps/central_command/TrainingYard.lua  # pushed by job 0004
