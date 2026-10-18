@@ -1,36 +1,49 @@
--- job: 0003-research-exterior-dressed
--- Phase 7: build Research and Exterior at the dressed pass, then run HubCheck and NavCheck.
--- Each builder is idempotent: it clears and rebuilds only its own Workspace.Map.CentralCommand.<Area> folder.
+-- job: 0004-training-yard
+-- Phase 7: the Training Yard's structure and dressed passes (map_01 §12, D-105). Pushes the new builder (only if
+-- Studio still holds the version from the baseline), builds blockout -> structure -> dressed (each idempotent, so the
+-- last one stands), then runs HubCheck, NavCheck and BuildKitCheck's smoke test.
 return function(ctx)
-	local function count(path)
-		local root = ctx.find(path)
-		if not root then
-			return nil
-		end
-		local parts, lights = 0, 0
-		for _, d in ipairs(root:GetDescendants()) do
-			if d:IsA("BasePart") then
-				parts += 1
-			elseif d:IsA("Light") then
-				lights += 1
-			end
-		end
-		return { parts = parts, lights = lights }
+	local push = ctx.push({ { file = "builders/maps/central_command/TrainingYard.lua", expect = 977157613 } })
+	if push[1].status ~= "updated" and push[1].status ~= "unchanged" then
+		return { stopped = "push failed", push = push }
 	end
 
 	local BK = ctx.requireFresh("ServerStorage.DevTools.BuildKit")
 	local Common = ctx.requireFresh("ServerStorage.DevTools.Builders.Common")
 	local Props = ctx.requireFresh("ServerStorage.DevTools.Props")(BK)
+	local Yard = ctx.requireFresh("ServerStorage.DevTools.Builders.CentralCommand.TrainingYard")
 
-	local out = { before = {}, built = {} }
-	for _, area in ipairs({ "Research", "Exterior" }) do
-		out.before[area] = count("Workspace.Map.CentralCommand." .. area)
-		local builder = ctx.requireFresh("ServerStorage.DevTools.Builders.CentralCommand." .. area)
-		local ok, stats = pcall(builder.Build, { BK = BK, Common = Common, Props = Props, pass = "dressed" })
-		out.built[area] = if ok then stats else { error = tostring(stats) }
+	local passes = {}
+	for _, pass in ipairs({ "blockout", "structure", "dressed" }) do
+		local ok, stats = pcall(Yard.Build, { BK = BK, Common = Common, Props = Props, pass = pass })
+		passes[pass] = if ok then stats else { error = tostring(stats) }
 	end
 
-	out.hubCheck = ctx.requireFresh("ServerStorage.DevTools.Checks.HubCheck").Run()
-	out.navCheck = ctx.requireFresh("ServerStorage.DevTools.Checks.NavCheck").Run()
-	return out
+	-- What a few key parts ended up as, to check placement without a screenshot.
+	local root = ctx.find("Workspace.Map.CentralCommand.TrainingYard")
+	local probes = {}
+	for _, name in ipairs({ "PedestrianGate", "ObservationBooth", "Mast1", "Mast5", "Crates_NW", "PlateRack1" }) do
+		local inst = root and root:FindFirstChild(name, true)
+		if inst and inst:IsA("Model") then
+			local cf, size = inst:GetBoundingBox()
+			probes[name] = { center = { cf.X, cf.Y, cf.Z }, size = { size.X, size.Y, size.Z } }
+		else
+			probes[name] = "missing"
+		end
+	end
+	local jersey = 0
+	for _, d in ipairs(root:GetDescendants()) do
+		if d:IsA("Model") and string.sub(d.Name, 1, 7) == "Jersey_" then
+			jersey += 1
+		end
+	end
+
+	return {
+		push = push,
+		passes = passes,
+		jerseyBarriers = jersey,
+		probes = probes,
+		hubCheck = ctx.requireFresh("ServerStorage.DevTools.Checks.HubCheck").Run(),
+		navCheck = ctx.requireFresh("ServerStorage.DevTools.Checks.NavCheck").Run(),
+	}
 end
