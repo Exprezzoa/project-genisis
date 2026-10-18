@@ -1,21 +1,24 @@
--- job: 0001-baseline
--- First contact (Genesis Bridge, D-102): what this place holds and how its scripts compare with the repo.
--- Changes nothing.
+-- job: 0002-arrival-dressed
+-- Phase 7: build the Arrival (concourse, platform, rail line, train CT-9) at the dressed pass, then run HubCheck.
+-- The builder is idempotent: it clears and rebuilds only Workspace.Map.CentralCommand.Arrival.
 return function(ctx)
-	local files = ctx.files("^src/.*%.lua$")
-	for _, f in ipairs(ctx.files("^builders/.*%.lua$")) do
-		table.insert(files, f)
+	local before = ctx.find("Workspace.Map.CentralCommand.Arrival")
+	local beforeParts = 0
+	if before then
+		for _, d in ipairs(before:GetDescendants()) do
+			if d:IsA("BasePart") then
+				beforeParts += 1
+			end
+		end
 	end
-	local tree = {}
-	for _, name in ipairs({ "Workspace", "ReplicatedFirst", "ReplicatedStorage", "ServerScriptService", "ServerStorage", "StarterGui", "StarterPlayer", "Lighting" }) do
-		tree[name] = ctx.dump(game:GetService(name), 2)
-	end
-	print("Genesis Bridge baseline: " .. #files .. " repo scripts checked")
-	return {
-		place = game.Name,
-		placeId = game.PlaceId,
-		gameId = game.GameId,
-		sums = ctx.studioSums(files),
-		tree = tree,
-	}
+
+	local BK = ctx.requireFresh("ServerStorage.DevTools.BuildKit")
+	local Common = ctx.requireFresh("ServerStorage.DevTools.Builders.Common")
+	local Props = ctx.requireFresh("ServerStorage.DevTools.Props")(BK)
+	local Arrival = ctx.requireFresh("ServerStorage.DevTools.Builders.CentralCommand.Arrival")
+
+	local stats = Arrival.Build({ BK = BK, Common = Common, Props = Props, pass = "dressed" })
+	local check = ctx.requireFresh("ServerStorage.DevTools.Checks.HubCheck").Run()
+
+	return { beforeParts = beforeParts, arrival = stats, hubCheck = check }
 end

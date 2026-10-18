@@ -1,6 +1,6 @@
 # Genesis Bridge: Claude in Studio through GitHub
 
-Lets a Claude **cloud** session (which can't reach the Studio MCP on your PC) work in your place (D-102).
+Lets a Claude **cloud** session (which can't reach the Studio MCP on your PC) work in your place (D-104).
 
 ```
 Claude (cloud) --push--> GitHub: claude/yo-0sxhcv  bridge/job.lua + code

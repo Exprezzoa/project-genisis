@@ -1,7 +1,7 @@
 --!nonstrict
 -- tools/bridge/GenesisBridge.server.lua  ->  a local Studio plugin (install: tools/bridge/README.md)
 --
--- Genesis Bridge lets a Claude cloud session work in this place without the Studio MCP (D-102).
+-- Genesis Bridge lets a Claude cloud session work in this place without the Studio MCP (D-104).
 -- GitHub is the mailbox:
 --   1. Claude pushes code and a job file `bridge/job.lua` to the work branch.
 --   2. This plugin watches the branch. When `bridge/job.lua` carries a new `-- job: <id>` first line,
