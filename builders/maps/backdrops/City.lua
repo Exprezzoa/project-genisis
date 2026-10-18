@@ -68,7 +68,7 @@ local H_CAP = 160
 
 -- What the lots keep clear of.
 local BULWARK = { x1 = 400, x2 = 450, z1 = -800, z2 = 800 } -- the wall X 420..450 plus its 20-deep buttresses
-local WILDERNESS_CLIP = false
+local WILDERNESS_CLIP = true -- D-107: New Halden ends at its east wall (docs/02); nothing of the city stands outside it
 local WILD = { x1 = 450, z1 = -1000, z2 = 1000 } -- map_00 §1: the Wilderness backdrop X 450..2000, Z -1000..1000
 local RAIL_CLEAR = { x2 = -420, z1 = 120, z2 = 160 }
 

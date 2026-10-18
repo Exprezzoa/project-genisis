@@ -50,6 +50,7 @@ local ORDER = {
 	"TitanVFXController",
 	"FrameDamageController",
 	"AmbientController",
+	"BackdropController",
 	"DebugController",
 }
 

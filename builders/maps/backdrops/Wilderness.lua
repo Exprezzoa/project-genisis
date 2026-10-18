@@ -305,7 +305,7 @@ function Builder.tree(ctx, wood, rng, name, base, third)
 end
 
 -- The ruined city: 18 broken tower blocks, one per cell of a 3 x 6 grid over X 1400..1900, Z -600..400.
--- Footprints 30-60, heights 40-140; the six towers in cells where (column + row) % 3 == 0 tilt 5-15° in a random
+-- Footprints 30-60, heights 40-140 to the broken peak (body 40-126); the six towers in cells where (column + row) % 3 == 0 tilt 5-15° in a random
 -- direction. Every tower (its lean included) stays inside its cell, clear of the Titan and the gate's view of it;
 -- after 30 failed tries a tower is drawn small and upright.
 function Builder.ruins(ctx, style)
@@ -324,7 +324,7 @@ function Builder.ruins(ctx, style)
 				local small = attempt > 30
 				local w = if small then 30 else rng.next(30, 60)
 				local d = if small then 30 else rng.next(30, 60)
-				local h = rng.next(40, 140)
+				local h = rng.next(40, 126) -- the jagged top adds up to 14, so the broken peak stays within 140 (map_00 §3.2)
 				local tilt = if (i + j) % 3 == 0 and not small then RAD(rng.next(5, 15)) else 0
 				local az = rng.next(0, TAU)
 				local reach = math.sqrt(w * w + d * d) / 2 + h * math.sin(tilt) + 2
