@@ -155,7 +155,8 @@ return function(Props, BK)
 
 	-- FloodlightMast 2 x 50 x 2: a lattice mast (four bars, diagonal braces every 6, STEEL_DARK) and two lamp boxes
 	-- 3 x 2 x 2 with LIGHT_COOL faces and SpotLights (3 / 60 / 50). opts.height, opts.aim (world point), opts.shadows,
-	-- opts.single (one light for both heads, to save the area's light budget), opts.lightTags.
+	-- opts.single (one light for both heads, to save the area's light budget), opts.lightTags. The faces carry
+	-- OnColor LIGHT_COOL / OffColor STEEL_MID (as StreetLamp's), so an EveningLamp-tagged mast's faces go dark by day.
 	function Props.FloodlightMast(parent, cframe, opts)
 		opts = opts or {}
 		local h = opts.height or 50
@@ -185,6 +186,7 @@ return function(Props, BK)
 			local hc = CFrame.lookAt(head, target)
 			BK.part(k.model, { Name = "Lamp" .. i, Size = V(3, 2, 2), CFrame = hc * CFrame.new(0, 0, 0.6), Color = P.STEEL_DARK, Material = "Metal", CanCollide = false })
 			local face = BK.part(k.model, with({ Name = "LampFace" .. i, Size = V(2.6, 1.6, 0.1), CFrame = hc * CFrame.new(0, 0, -0.45), Color = P.LIGHT_COOL, Material = "Neon" }, soft))
+			BK.attr(face, { OnColor = P.LIGHT_COOL, OffColor = P.STEEL_MID })
 			if i == 1 or not opts.single then
 				BK.light(face, "Spot", { Color = P.LIGHT_COOL, Brightness = 3, Range = 60, Angle = 50, Face = Enum.NormalId.Front, Shadows = opts.shadows == true and i == 1, Tags = opts.lightTags })
 			end

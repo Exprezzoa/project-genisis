@@ -4,8 +4,8 @@
 -- door at X 100 (DOOR_RESEARCH); Voss Lab X 200..250, Z -80..-20 (shell only in the Vertical Slice).
 --
 -- Passes (docs/07 §2): blockout = corridor (concrete walls, a header at X 80 under the East corridor's ceiling), the
--- security door (SmoothPlastic window) and its prompt, the lab shell, FrameBarriers 40 tall over the corridor and the
--- lab (every pass); structure = the corridor's white lining and finishes, LIGHT_COOL strips every 10, the security
+-- security door (SmoothPlastic window) and its prompt, the lab shell, FrameBarriers to Y 40 over the corridor (from its
+-- roof) and the lab (every pass); structure = the corridor's white lining and finishes, LIGHT_COOL strips every 10, the security
 -- door's sign, exterior kickplates and pilasters, the lab's parapet and closed door; dressed = the corridor's wall
 -- panel seams; the door's card reader, hazard band and camera on the near side; through the window the containment
 -- canister at X 190 (clue 3: an AMBER_CORE mass pulsing at 2.0 s, tag Pulse, AmbientController), its console,
@@ -65,7 +65,9 @@ function Builder.Build(opts)
 	BK.wallZ(S, "Lab_Wall_E", -79, -21, 250, 0, 16, C.EXT, ctx.EXT)
 
 	-- FrameBarriers (docs/07 §5, 40 tall): a 64-stud Frame would walk up onto the corridor roof (13) and the lab (19).
-	BK.barrier(G, "FrameBarrier_Corridor", V(80, 0, -61), V(199, 40, -47), "FrameBarrier")
+	-- The corridor's sits on its roof (Y 13 up; a Frame's root floats at 22-38), so the corridor stays clear and the
+	-- door prompt keeps its line of sight (a queryable part in front of a prompt's part hides it: D-101 (9)).
+	BK.barrier(G, "FrameBarrier_Corridor", V(80, 13, -61), V(199, 40, -47), "FrameBarrier")
 	BK.barrier(G, "FrameBarrier_VossLab", V(199, 0, -81), V(251, 40, -19), "FrameBarrier")
 
 	if ctx.level >= 2 then

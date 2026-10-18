@@ -34,6 +34,13 @@ function Builder.Build(opts)
 	ring("FrameBarrier_Bay3", 43, 97, -232, -178)
 	BK.barrier(G, "FrameBarrier_Stair", V(-120, 0, -232), V(-100, 40, -140), "FrameBarrier")
 	BK.barrier(G, "FrameBarrier_SouthEntrance", V(-16, 0, -72), V(16, 40, -68), "FrameBarrier")
+	-- The launch platform (X 123..200, Z -190..-110, chamfers 1 out) is open on three sides: without these a Frame
+	-- walks off it onto the hub's roofs (Equipment, Medical and the Observation Deck at 18-22) and grounds. The east
+	-- side stays open where the causeway leaves (its own barriers run Z -177..-175 and -125..-123 from X 200).
+	BK.barrier(G, "FrameBarrier_Launch_N", V(121.5, 0, -193), V(203, 40, -191), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Launch_S", V(121.5, 0, -109), V(203, 40, -107), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Launch_EN", V(201, 0, -191), V(203, 40, -175), "FrameBarrier")
+	BK.barrier(G, "FrameBarrier_Launch_ES", V(201, 0, -125), V(203, 40, -109), "FrameBarrier")
 
 	C.placeRegistry(ctx, { "Hangar", "GateCorridor", "LaunchPlatform" })
 	return C.finish(ctx)
