@@ -30,6 +30,7 @@ This file is short on purpose. The full specification lives in `docs/`. **Read t
 - **If the user edited something by hand in Studio:** read it back first (dump `.Source` or the instance tree), merge it into the local file, then continue. Never overwrite manual edits blindly.
 - **Saving:** run-code can't save the place file. At the end of every milestone (and at least every ~45 minutes of building), **tell the user to press Ctrl+S / File → Publish to Roblox** and wait for confirmation. Remind them that publishing creates version history they can roll back to.
 - **Git (if available):** commit after each verified task with a clear message.
+- **No MCP (cloud session)?** Use the Genesis Bridge (`tools/bridge/README.md`, D-102): push code plus a `bridge/job.lua` job; the user's Studio plugin runs it and uploads the report to the `bridge-reports` branch.
 
 ---
 
